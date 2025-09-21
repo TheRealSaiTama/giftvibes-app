@@ -1,5 +1,7 @@
+"use client";
 import Image from 'next/image';
 import Link from 'next/link';
+import { motion } from 'motion/react';
 
 interface Category {
   name: string;
@@ -10,40 +12,40 @@ interface Category {
 
 const categoryData: Category[] = [
   {
-    name: 'Furniture',
-    image: 'https://cdn.prod.website-files.com/63e857eaeaf853471d5335ff/63e8c4e570738029a725e686_Furniture-min.png',
-    bgColor: '#286269',
-    alt: 'Modern living room with furniture',
+    name: 'CUSTOM',
+    image: '/customdiary.jpg',
+    bgColor: '#124559',
+    alt: 'Beautiful customized diaries with personal designs',
   },
   {
-    name: 'Hand Bag',
-    image: 'https://cdn.prod.website-files.com/63e857eaeaf853471d5335ff/63e8c4e52d6553668075697e_hand%20bag-min.png',
+    name: 'NEW YEAR',
+    image: '/unnamed.png',
+    bgColor: '#1a5d73',
+    alt: 'Elegant New Year themed diaries',
+  },
+  {
+    name: 'DIWALI',
+    image: '/diwali.png',
     bgColor: '#E8923C',
-    alt: 'Leather handbags on an orange background',
+    alt: 'Premium Diwali gift diaries and sets',
   },
   {
-    name: 'Books',
-    image: 'https://cdn.prod.website-files.com/63e857eaeaf853471d5335ff/63e8c4e460afc22b7ea53520_books-min.png',
-    bgColor: '#A14144',
-    alt: 'Stack of books against a red background',
+    name: 'CORPORATE',
+    image: '/corporate.png',
+    bgColor: '#2c3e50',
+    alt: 'Professional corporate gift sets and diaries',
   },
   {
-    name: 'Tech',
-    image: 'https://cdn.prod.website-files.com/63e857eaeaf853471d5335ff/63e8c4e754ac2e32897cb53b_tech-min.png',
+    name: 'LOGO PRINT',
+    image: '/logodiary.png',
+    bgColor: '#8b4513',
+    alt: 'Custom logo printed diaries for businesses',
+  },
+  {
+    name: 'PROMO',
+    image: '/promodiary.png',
     bgColor: '#28966E',
-    alt: 'Various tech gadgets on a green background',
-  },
-  {
-    name: 'Sneakers',
-    image: 'https://cdn.prod.website-files.com/63e857eaeaf853471d5335ff/63e8c4e64b769118272f244f_sneakers-min.png',
-    bgColor: '#C68393',
-    alt: 'Person wearing white sneakers with one foot on a purple tire',
-  },
-  {
-    name: 'Travel',
-    image: 'https://cdn.prod.website-files.com/63e857eaeaf853471d5335ff/63e8c4e71eb4ad6d07e7568f_travel-min.png',
-    bgColor: '#E7AA4F',
-    alt: 'Travel items including a suitcase, hat, and headphones on a yellow background',
+    alt: 'Promotional gifts and diary sets',
   },
 ];
 
@@ -52,15 +54,28 @@ const Categories = () => {
     <section className="bg-white py-[100px]">
       <div className="container">
         <div className="section-title-wrap">
-          <h3 className="text-[32px] font-bold text-[#1a1a1a] leading-[48px] mb-10">
-            Shop our top categories
-          </h3>
+          <motion.h3
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.4 }}
+            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+            className="text-[32px] font-bold text-[#1a1a1a] leading-[48px] mb-10"
+          >
+            Explore Our Product Categories
+          </motion.h3>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
-          {categoryData.map((category) => (
-            <Link href="#" key={category.name} className="block">
+          {categoryData.map((category, index) => (
+            <motion.div
+              key={category.name}
+              initial={{ opacity: 0, y: 50 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.2 }}
+              transition={{ duration: 0.5, delay: index * 0.06, ease: [0.22, 1, 0.36, 1] }}
+            >
+            <Link href="#" className="block group">
               <div 
-                className="relative h-[250px] p-5 rounded-[12px] overflow-hidden transition-transform duration-300 ease-in-out hover:scale-105"
+                className="relative h-[250px] rounded-[16px] overflow-hidden transition-all duration-500 ease-out hover:scale-105 hover:shadow-2xl hover:shadow-black/20"
                 style={{ backgroundColor: category.bgColor }}
               >
                 <Image
@@ -68,13 +83,26 @@ const Categories = () => {
                   alt={category.alt}
                   fill
                   sizes="(max-width: 767px) 50vw, (max-width: 1024px) 33vw, 16vw"
-                  className="absolute inset-0 w-full h-full object-cover"
+                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                 />
-                <h3 className="relative z-10 text-2xl font-semibold leading-7 text-white">
-                  {category.name}
-                </h3>
+                
+                {/* Modern overlay with gradient */}
+                <div className="absolute inset-0 z-[5] bg-gradient-to-br from-black/20 via-transparent to-black/80" />
+                
+                {/* Corner badge design */}
+                <div className="absolute top-4 right-4 z-10">
+                  <div className="bg-white/95 backdrop-blur-sm rounded-lg px-3 py-2 shadow-lg border border-white/20 transition-all duration-300 group-hover:bg-white group-hover:scale-105">
+                    <span className="text-[#124559] font-bold text-xs uppercase tracking-widest">
+                      {category.name}
+                    </span>
+                  </div>
+                </div>
+                
+                {/* Bottom accent line */}
+                <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-white/60 to-transparent z-10 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500" />
               </div>
             </Link>
+            </motion.div>
           ))}
         </div>
       </div>

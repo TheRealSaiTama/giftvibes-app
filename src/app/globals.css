@@ -15,7 +15,7 @@
   --color-popover: #ffffff;
   --color-popover-foreground: #333333;
 
-  --color-primary: #1B5E20;
+  --color-primary: #124559;
   --color-primary-foreground: #ffffff;
 
   --color-secondary: #F5F5F5;
@@ -32,7 +32,7 @@
 
   --color-border: #e5e5e5;
   --color-input: #e5e5e5;
-  --color-ring: #1B5E20;
+  --color-ring: #124559;
 
   --color-chart-1: #e67e22;
   --color-chart-2: #2d8659;
@@ -57,7 +57,7 @@
   --color-red: #D32F2F;
   --color-blue: #1976D2;
   --color-pink: #E91E63;
-  --color-teal: #00796B;
+  --color-teal: #124559;
   --color-orange: #FF5722;
   --color-light-blue: #B3E5FC;
   --color-beige-tan: #D7CCC8;
@@ -80,6 +80,7 @@
   /* Shadcn/UI animations */
   --animate-accordion-down: accordion-down 0.2s ease-out;
   --animate-accordion-up: accordion-up 0.2s ease-out;
+  --animate-shiny-text: shiny-text 8s infinite;
 
   @keyframes accordion-down {
     from {
@@ -95,6 +96,17 @@
     }
     to {
       height: 0;
+    }
+  }
+  @keyframes shiny-text {
+    0%,
+    90%,
+    100% {
+      background-position: calc(-100% - var(--shiny-width)) 0;
+    }
+    30%,
+    60% {
+      background-position: calc(100% + var(--shiny-width)) 0;
     }
   }
 }
@@ -223,4 +235,190 @@
 /* Hide Next.js error overlay portal */
 nextjs-portal {
   display: none !important;
+}
+
+/* 3D Button */
+.learn-more {
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+  outline: none;
+  border: 0;
+  vertical-align: middle;
+  text-decoration: none;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  color: #ffffff; /* Text color changed to white */
+  text-transform: uppercase;
+  padding: 1.25em 2em;
+  background: #124559; /* Midnight green background */
+  border: 2px solid #0f3644; /* Darker midnight green border */
+  border-radius: 0.75em;
+  transform-style: preserve-3d;
+  transition: transform 150ms cubic-bezier(0, 0, 0.58, 1), background 150ms cubic-bezier(0, 0, 0.58, 1);
+}
+
+.learn-more::before {
+  position: absolute;
+  content: '';
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #1a5d73; /* Lighter midnight green */
+  border-radius: inherit;
+  box-shadow: 0 0 0 2px #0f3644, 0 0.625em 0 0 #a2b8bd; /* Darker border, light green-grey shadow */
+  transform: translate3d(0, 0.75em, -1em);
+  transition: transform 150ms cubic-bezier(0, 0, 0.58, 1), box-shadow 150ms cubic-bezier(0, 0, 0.58, 1);
+}
+
+.learn-more:hover {
+  background: #1a5d73; /* Lighter midnight green */
+  transform: translate(0, 0.25em);
+}
+
+.learn-more:hover::before {
+  box-shadow: 0 0 0 2px #0f3644, 0 0.5em 0 0 #a2b8bd; /* Darker border, light green-grey shadow */
+  transform: translate3d(0, 0.5em, -1em);
+}
+
+.learn-more:active {
+  background: #1a5d73; /* Lighter midnight green */
+  transform: translate(0em, 0.75em);
+}
+
+.learn-more:active::before {
+  box-shadow: 0 0 0 2px #0f3644, 0 0 #a2b8bd; /* Darker border, light green-grey shadow */
+  transform: translate3d(0, 0, -1em);
+}
+
+/* From Uiverse.io by FColombati - Orange Theme */
+.neumorphic-btn {
+  all: unset;
+  cursor: pointer;
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+  position: relative;
+  border-radius: 100em;
+  background-color: rgba(101, 67, 33, 0.75); /* Dark brown base */
+  box-shadow:
+    -0.15em -0.15em 0.15em -0.075em rgba(101, 67, 33, 0.25),
+    0.0375em 0.0375em 0.0675em 0 rgba(101, 67, 33, 0.1);
+}
+
+.neumorphic-btn::after {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  width: calc(100% + 0.3em);
+  height: calc(100% + 0.3em);
+  top: -0.15em;
+  left: -0.15em;
+  border-radius: inherit;
+  background: linear-gradient(
+    -135deg,
+    rgba(101, 67, 33, 0.5),
+    transparent 20%,
+    transparent 100%
+  );
+  filter: blur(0.0125em);
+  opacity: 0.25;
+  mix-blend-mode: multiply;
+}
+
+.neumorphic-btn .button-outer {
+  position: relative;
+  z-index: 1;
+  border-radius: inherit;
+  transition: box-shadow 300ms ease;
+  will-change: box-shadow;
+  box-shadow:
+    0 0.05em 0.05em -0.01em rgba(101, 67, 33, 1),
+    0 0.01em 0.01em -0.01em rgba(101, 67, 33, 0.5),
+    0.15em 0.3em 0.1em -0.01em rgba(101, 67, 33, 0.25);
+}
+
+.neumorphic-btn:hover .button-outer {
+  box-shadow:
+    0 0 0 0 rgba(101, 67, 33, 1),
+    0 0 0 0 rgba(101, 67, 33, 0.5),
+    0 0 0 0 rgba(101, 67, 33, 0.25);
+}
+
+.neumorphic-btn .button-inner {
+  --inset: 0.035em;
+  position: relative;
+  z-index: 1;
+  border-radius: inherit;
+  padding: 1em 1.5em;
+  background-image: linear-gradient(
+    135deg,
+    #ffb95f, /* Light Orange */
+    #ff914b  /* Dark Orange */
+  );
+  transition:
+    box-shadow 300ms ease,
+    clip-path 250ms ease,
+    background-image 250ms ease,
+    transform 250ms ease;
+  will-change: box-shadow, clip-path, background-image, transform;
+  overflow: clip;
+  clip-path: inset(0 0 0 0 round 100em);
+  box-shadow:
+    /* 1 */ 0 0 0 0 inset rgba(101, 67, 33, 0.1),
+    /* 2 */ -0.05em -0.05em 0.05em 0 inset rgba(101, 67, 33, 0.25),
+    /* 3 */ 0 0 0 0 inset rgba(101, 67, 33, 0.1),
+    /* 4 */ 0 0 0.05em 0.2em inset rgba(255, 255, 255, 0.25),
+    /* 5 */ 0.025em 0.05em 0.1em 0 inset rgba(255, 255, 255, 1),
+    /* 6 */ 0.12em 0.12em 0.12em inset rgba(255, 255, 255, 0.25),
+    /* 7 */ -0.075em -0.25em 0.25em 0.1em inset rgba(101, 67, 33, 0.25);
+}
+
+.neumorphic-btn:hover .button-inner {
+  clip-path: inset(
+    clamp(1px, 0.0625em, 2px) clamp(1px, 0.0625em, 2px)
+      clamp(1px, 0.0625em, 2px) clamp(1px, 0.0625em, 2px) round 100em
+  );
+  box-shadow:
+    /* 1 */ 0.1em 0.15em 0.05em 0 inset rgba(101, 67, 33, 0.75),
+    /* 2 */ -0.025em -0.03em 0.05em 0.025em inset rgba(101, 67, 33, 0.5),
+    /* 3 */ 0.25em 0.25em 0.2em 0 inset rgba(101, 67, 33, 0.5),
+    /* 4 */ 0 0 0.05em 0.5em inset rgba(255, 255, 255, 0.15),
+    /* 5 */ 0 0 0 0 inset rgba(255, 255, 255, 1),
+    /* 6 */ 0.12em 0.12em 0.12em inset rgba(255, 255, 255, 0.25),
+    /* 7 */ -0.075em -0.12em 0.2em 0.1em inset rgba(101, 67, 33, 0.25);
+}
+
+.neumorphic-btn .button-inner span {
+  position: relative;
+  z-index: 4;
+  font-family: "Inter", sans-serif;
+  letter-spacing: -0.05em;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0);
+  background-image: linear-gradient(
+    135deg,
+    #8B4513, /* Dark Brown */
+    #A0522D  /* Lighter Brown */
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  transition: transform 250ms ease;
+  display: block;
+  will-change: transform;
+  text-shadow: rgba(0, 0, 0, 0.1) 0 0 0.1em;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+.neumorphic-btn:hover .button-inner span {
+  transform: scale(0.975);
+}
+
+.neumorphic-btn:active .button-inner {
+  transform: scale(0.975);
 }

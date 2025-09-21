@@ -13,19 +13,19 @@ import {
 import { Input } from "@/components/ui/input";
 
 const megaMenuItems = [
-  { name: 'Furniture', items: '240 Item Available' },
-  { name: 'Hand Bag', items: '240 Item Available' },
-  { name: 'Shoe', items: '240 Item Available' },
-  { name: 'Headphone', items: '240 Item Available' },
-  { name: 'Laptop', items: '240 Item Available' },
-  { name: 'Book', items: '240 Item Available' },
+  { name: 'Customized Diaries', items: '150+ Designs Available' },
+  { name: 'New Year Diaries', items: '80+ Styles Available' },
+  { name: 'Diwali Gift Diaries', items: '60+ Options Available' },
+  { name: 'Corporate Gift Sets', items: '120+ Packages Available' },
+  { name: 'Logo Printed Diaries', items: '200+ Templates Available' },
+  { name: 'Promotional Gifts', items: '90+ Items Available' },
 ];
 
 const Header = () => {
   return (
     <header className="sticky top-0 z-50 bg-white">
       {/* Top Promotional Bar */}
-      <div className="bg-[#0f4c3a] py-[7px] text-white hidden lg:block">
+      <div className="bg-[#124559] py-[7px] text-white hidden lg:block">
         <div className="container flex items-center justify-between px-10">
           <div className="flex items-center gap-1.5">
             <Image 
@@ -35,40 +35,16 @@ const Header = () => {
               height={16} 
               className="invert"
             />
-            <span className="text-xs">+001234567890</span>
+            <span className="text-xs">+919311135190</span>
           </div>
 
-          <p className="text-xs">
-            Get 50% Off on Selected Items
+          <p className="text-xs text-white">
+            Lowest Price Guarantee
             <span className="opacity-50 mx-6">|</span>
             Shop Now
           </p>
 
-          <div className="flex items-center gap-6">
-            <DropdownMenu>
-              <DropdownMenuTrigger className="flex items-center text-xs focus:outline-none">
-                Eng
-                <ChevronDown size={16} className="ml-1 opacity-80" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                <DropdownMenuItem>Bangla</DropdownMenuItem>
-                <DropdownMenuItem>Arabic</DropdownMenuItem>
-                <DropdownMenuItem>Urdu</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            <DropdownMenu>
-              <DropdownMenuTrigger className="flex items-center text-xs focus:outline-none">
-                Location
-                <ChevronDown size={16} className="ml-1 opacity-80" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                <DropdownMenuItem>Dhaka</DropdownMenuItem>
-                <DropdownMenuItem>USA</DropdownMenuItem>
-                <DropdownMenuItem>India</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+          <div></div>
         </div>
       </div>
 
@@ -77,10 +53,10 @@ const Header = () => {
         <div className="container flex items-center justify-between h-[88px] px-10">
           <Link href="/">
             <Image 
-              src="https://cdn.prod.website-files.com/63e857eaeaf853471d5335ff/63e86ab4c21faa7bc0bd90dd_Logo.svg" 
+              src="/logo3.png" 
               alt="Shopcart" 
-              width={140} 
-              height={32}
+              width={170} 
+              height={40}
             />
           </Link>
 
@@ -91,7 +67,7 @@ const Header = () => {
                 <ChevronDown className="w-4 h-4 ml-1" />
               </DropdownMenuTrigger>
               <DropdownMenuContent className="p-6 w-[560px]">
-                <div className="font-semibold text-dark-gray mb-4">Popular Categories</div>
+                <div className="font-semibold text-dark-gray mb-4">Our Products</div>
                 <div className="grid grid-cols-3 gap-x-6 gap-y-4">
                   {megaMenuItems.map((item) => (
                     <Link href="#" key={item.name} className="group">
@@ -107,32 +83,22 @@ const Header = () => {
                 </div>
               </DropdownMenuContent>
             </DropdownMenu>
-            <Link href="#" className="hover:text-primary transition-colors">Deals</Link>
-            <Link href="#" className="hover:text-primary transition-colors">What’s New</Link>
-            <Link href="#" className="hover:text-primary transition-colors">Delivery</Link>
+            <Link href="#" className="hover:text-primary transition-colors">Bulk Orders</Link>
+            <Link href="#" className="hover:text-primary transition-colors">Custom Design</Link>
+            <Link href="#" className="hover:text-primary transition-colors">Quick Delivery</Link>
           </nav>
 
           <div className="flex items-center gap-6">
             <div className="relative hidden xl:block w-[300px]">
               <Input 
                 type="search" 
-                placeholder="Search Product" 
+                placeholder="Search Diaries & Gifts" 
                 className="w-full rounded-md pr-10 h-11 border-gray-200 focus:border-ring focus:ring-ring"
               />
               <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
             </div>
 
             <div className="flex items-center gap-4">
-              <Link href="#" className="nav-text flex items-center gap-2 hover:text-primary transition-colors">
-                <Image 
-                  src="https://cdn.prod.website-files.com/63e857eaeaf853471d5335ff/63eb3dec9d6ee83660ebe1de_user.png" 
-                  alt="Account" 
-                  width={24} 
-                  height={24} 
-                />
-                <span className="hidden md:inline">Account</span>
-              </Link>
-
               <Link href="#" className="nav-text flex items-center gap-2 hover:text-primary transition-colors">
                 <Image 
                   src="https://cdn.prod.website-files.com/63e857eaeaf853471d5335ff/63eb3dec9b865e78d4ff6b8d_shopping-cart-add.png" 

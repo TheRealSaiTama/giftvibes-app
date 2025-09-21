@@ -4,34 +4,39 @@ import Image from "next/image";
 
 const popularProducts = [
   {
-    name: "Gaming Headphone",
-    price: "239.00",
-    description: "Table with air purifier, stained veneer/black",
-    image: "https://cdn.prod.website-files.com/63e857eaeaf853471d5335ff/63e8c4e54b76914b262f2448_headphone-min.png",
+    name: "Black Note Book With Pen Gift Set RE 570",
+    price: "198.00",
+    currency: "INR",
+    description: "Hardcover black notebook with matching metal pen, 100 GSM ruled pages and gift-ready box.",
+    image: "/diary/trendingdiary.png",
   },
   {
-    name: "Base Camp Duffel M",
-    price: "159.00",
-    description: "Table with air purifier, stained veneer/black",
-    image: "https://cdn.prod.website-files.com/63e857eaeaf853471d5335ff/63e8c4e48b497e63cc46b800_base%20camp%20duffel%2002-min.png",
+    name: "Blue Note Book With Pen Gift Set RE 571",
+    price: "198.00",
+    currency: "INR",
+    description: "Matte blue finish, elastic closure, ribbon bookmark and premium ball pen included.",
+    image: "/diary/trendingdiary2.png",
   },
   {
-    name: "Tomford Watch",
-    price: "39.00",
-    description: "Table with air purifier, stained veneer/black",
-    image: "https://cdn.prod.website-files.com/63e857eaeaf853471d5335ff/63e8c4e74b769109fd2f245a_tomford%20watch-min.png",
+    name: "Brown Note Book With Pen Gift Set RE 572",
+    price: "200.00",
+    currency: "INR",
+    description: "Classic brown PU cover, 120 ruled sheets, pen loop and pocket sleeve for notes.",
+    image: "/diary/trendingdiary3.png",
   },
   {
-    name: "Cabin",
-    price: "239.00",
-    description: "Table with air purifier, stained veneer/black",
-    image: "https://cdn.prod.website-files.com/63e857eaeaf853471d5335ff/63e8c4e5bc6a9ac192b3d597_cabin-min.png",
+    name: "Soft Cover Note Book With Pen Gift Set RE 578",
+    price: "230.00",
+    currency: "INR",
+    description: "Flexible soft‑touch cover with lay‑flat binding, smooth pen and kraft gift packaging.",
+    image: "/diary/trendingdiary41.png",
   },
   {
-    name: "Pendleton Water Bottle",
-    price: "89.00",
-    description: "Stainless steel, Food safe, Hand wash",
-    image: "https://cdn.prod.website-files.com/63e857eaeaf853471d5335ff/63e8c4e65cc936826acce6d9_pendleton%20water%20bottle-min.png",
+    name: "Grey Note Book With Pen Gift Set RE 579",
+    price: "230.00",
+    currency: "INR",
+    description: "Elegant grey textured cover, date header pages, metal clip pen and magnetic clasp.",
+    image: "/diary/trendingdiary5.png",
   },
 ];
 
@@ -42,7 +47,7 @@ const WeeklyPopularProducts = () => {
   return (
     <section className="py-16 bg-white">
       <div className="container">
-        <h3 className="text-2xl font-semibold text-[#333333] mb-10">Weekly Popular Products</h3>
+        <h3 className="text-2xl font-semibold text-[#333333] mb-10">Trending Diary Collections</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
           {popularProducts.map((product) => (
             <div key={product.name} className="flex flex-col group">
@@ -66,7 +71,7 @@ const WeeklyPopularProducts = () => {
               <div className="pt-4 flex flex-col flex-grow">
                 <div className="flex justify-between items-start gap-2">
                   <h4 className="text-base font-semibold text-[#333333] leading-tight">{product.name}</h4>
-                  <p className="text-lg font-bold text-[#333333] whitespace-nowrap">${product.price}</p>
+                  <p className="text-lg font-bold text-[#333333] whitespace-nowrap">{product.currency === 'INR' ? '₹' : '$'}{product.price}</p>
                 </div>
                 <p className="text-sm text-[#666666] mt-2 min-h-[40px]">{product.description}</p>
                 <div className="flex items-center gap-1.5 mt-2 mb-4">
