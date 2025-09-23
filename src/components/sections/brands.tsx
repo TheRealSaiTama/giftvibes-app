@@ -8,13 +8,15 @@ type Brand = {
   logo: string;
 };
 
+// Point to all brand logos placed in public/brand
 const brandsData: Brand[] = [
-  { name: 'GiftVibes', logo: '/brand/gfg.png' },
-  { name: 'GiftVibes', logo: '/brand/gfg.png' },
-  { name: 'GiftVibes', logo: '/brand/gfg.png' },
-  { name: 'GiftVibes', logo: '/brand/gfg.png' },
-  { name: 'GiftVibes', logo: '/brand/gfg.png' },
-  { name: 'GiftVibes', logo: '/brand/gfg.png' },
+  { name: 'Brand 1', logo: '/brand/image_2025-09-23_00-54-08.png' },
+  { name: 'Brand 2', logo: '/brand/image_2025-09-23_00-54-22.png' },
+  { name: 'Brand 3', logo: '/brand/image_2025-09-23_00-55-13.png' },
+  { name: 'Brand 4', logo: '/brand/image_2025-09-23_00-55-35.png' },
+  { name: 'Brand 5', logo: '/brand/image_2025-09-23_00-55-50.png' },
+  { name: 'Brand 6', logo: '/brand/image_2025-09-23_00-56-12.png' },
+  { name: 'Brand 7', logo: '/brand/image_2025-09-23_00-56-33.png' },
 ];
 
 const BrandLogo = ({ brand }: { brand: Brand }) => (
@@ -38,18 +40,19 @@ const BrandsSection = () => {
             className="!text-[#161c2d] !bg-gradient-to-r !from-transparent !via-[#161c2d]/80 !via-50% !to-transparent !max-w-none !mx-0"
             shimmerWidth={150}
           >
-            Trusted by Brands
+            Trusted by Leading Brands
           </AnimatedShinyText>
         </h2>
-        <div className="relative py-2">
+        {/* Seamless marquee */}
+        <div className="relative py-10 mt-6">
           <motion.div
             className="flex whitespace-nowrap"
             initial={{ x: 0 }}
             animate={{ x: ['0%', '-50%'] }}
-            transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
+            transition={{ duration: 25, repeat: Infinity, ease: 'linear' }}
           >
-            {[...brandsData, ...brandsData, ...brandsData, ...brandsData].map((brand, idx) => (
-              <BrandLogo key={`${brand.name}-${idx}-${Math.random()}`} brand={brand} />
+            {[...brandsData, ...brandsData].map((brand, idx) => (
+              <BrandLogo key={`marquee-${brand.name}-${idx}`} brand={brand} />
             ))}
           </motion.div>
         </div>

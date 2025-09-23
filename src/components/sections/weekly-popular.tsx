@@ -51,7 +51,7 @@ const WeeklyPopularProducts = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
           {popularProducts.map((product) => (
             <div key={product.name} className="flex flex-col group">
-              <div className="relative bg-[#f5f5f5] rounded-lg p-6 flex items-center justify-center aspect-square overflow-hidden">
+              <div className="relative bg-white p-6 flex items-center justify-center aspect-square overflow-hidden product-image-container">
                 <Image
                   src={product.image}
                   alt={product.name}

@@ -9,7 +9,7 @@ const CashBackSection = () => {
           {/* Left Content */}
           <div className="text-white">
             <h2 className="text-[40px] leading-[50px] font-bold mb-[30px] text-white">
-              Corporate Diaries & Premium Gift Sets
+              Corporate Diaries & Premium Gift Sets from GiftVibes.in
             </h2>
             <p className="text-base leading-7 text-white/80 max-w-[520px] mb-10">
               From logo‑embossed planners to curated gift combos, we craft branded stationery that

@@ -1,3 +1,4 @@
+"use client";
 import Image from 'next/image';
 
 interface Product {
@@ -37,20 +38,6 @@ const products: Product[] = [
     image: '/diary/blueocean.png',
     currency: 'INR',
   },
-  {
-    name: 'SUPRA ECO Natural Paper Diary 2026',
-    price: 110.00,
-    description: 'Eco-conscious diary with recycled natural paper, soft-touch cover, 80 GSM pages and clean minimal layout.',
-    image: '/diary/supereco.png',
-    currency: 'INR',
-  },
-  {
-    name: 'Hardy Square PU Leather Sunday Full Diary 2026',
-    price: 132.00,
-    description: 'Textured square‑pattern PU leather diary with Sunday full page layout, 100 GSM pages and ribbon bookmark.',
-    image: '/diary/hardysquare.png',
-    currency: 'INR',
-  },
 ];
 
 const heartIconUrl = "https://cdn.prod.website-files.com/63e857eaeaf853471d5335ff/63e9df775b939f51a0b22f6d_Icon.svg";
@@ -58,7 +45,7 @@ const starIconUrl = "https://cdn.prod.website-files.com/63e857eaeaf853471d5335ff
 
 const ProductCard = ({ product }: { product: Product }) => (
   <div className="bg-card rounded-lg shadow-[0_2px_8px_rgba(0,0,0,0.1)] overflow-hidden flex flex-col group transition-shadow duration-300 hover:shadow-xl">
-    <div className="relative bg-light-gray aspect-square rounded-t-lg overflow-hidden">
+    <div className="relative bg-white aspect-square overflow-hidden product-image-container">
       <Image 
         src={product.image} 
         alt={product.name} 
@@ -96,7 +83,7 @@ const BestDealsSection = () => {
     <section className="bg-background py-16">
       <div className="container">
         <h2 className="mb-10">Latest Collections 2026</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
           {products.map((product) => (
             <ProductCard key={product.name} product={product} />
           ))}

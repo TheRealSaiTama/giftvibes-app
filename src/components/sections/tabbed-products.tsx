@@ -141,11 +141,11 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, className }) => {
   return (
     <div
       className={cn(
-        "bg-card rounded-lg border border-border shadow-[0_2px_8px_rgba(0,0,0,0.05)] p-4 flex flex-col transition-shadow hover:shadow-lg",
+        "bg-card rounded-lg shadow-[0_2px_8px_rgba(0,0,0,0.05)] p-4 flex flex-col transition-shadow hover:shadow-lg",
         className
       )}
     >
-      <div className="relative bg-secondary rounded-md flex items-center justify-center p-5 mb-5 h-[230px] overflow-hidden">
+      <div className="relative bg-white flex items-center justify-center p-5 mb-5 h-[230px] overflow-hidden product-image-container">
         <Image
           src={product.image}
           alt={product.name}
