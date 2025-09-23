@@ -121,7 +121,7 @@ interface ChartTooltipContentProps {
   color?: string
   nameKey?: string
   labelKey?: string
-  indicator?: "dot" | "line"
+  indicator?: "dot" | "line" | "dashed"
   hideLabel?: boolean
   hideIndicator?: boolean
   className?: string
