@@ -12,8 +12,7 @@ const CashBackSection = () => {
               Corporate Diaries & Premium Gift Sets from GiftVibes.in
             </h2>
             <p className="text-base leading-7 text-white/80 max-w-[520px] mb-10">
-              From logo‑embossed planners to curated gift combos, we craft branded stationery that
-              elevates your client and employee gifting. Customizable, premium, delivered on time.
+              From logo‑embossed planners to curated gift combos, We help promote your brand that leaves a long lasting impression on your clients and builds a sense of trust among your employees. Customised Diaries, Customised Notebooks, Customised Gifts, Executive Diaries, Leather Diaries and Gift sets at best price.   delivered on time.
             </p>
             <button className="neumorphic-btn">
               <div className="button-outer">

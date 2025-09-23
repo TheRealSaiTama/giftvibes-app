@@ -41,7 +41,7 @@ const features = [
       </svg>
     ),
     title: "High-Grade Product Range",
-    description: "Premium quality stationery products that exceed expectations.",
+    description: "Premium quality products that exceed expectations.",
     delay: 0.4,
   },
   {
@@ -50,8 +50,8 @@ const features = [
         <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
       </svg>
     ),
-    title: "Customized Packaging",
-    description: "Tailored packaging solutions for your brand requirements.",
+    title: "Customized Printing",
+    description: "We are serving with out expertise in various printing methods like Logo Emboss Printing, Customised Cover Printing, Logo on Each Page, Hot Foil Printing, Engraving Printing and Laser Printing. ",
     delay: 0.5,
   },
   {
@@ -61,7 +61,7 @@ const features = [
         <path strokeLinecap="round" strokeLinejoin="round" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10l2-2h8a1 1 0 001-1zM21 11V5a2 2 0 00-2-2H9a2 2 0 00-2 2v2" />
       </svg>
     ),
-    title: "Huge Distribution Network",
+    title: "PAN India Deliveries",
     description: "Extensive reach across nationwide markets and beyond.",
     delay: 0.6,
   },
@@ -86,7 +86,7 @@ const WhyChooseUsSection: React.FC = () => {
         transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
         className="text-lg text-gray-600 max-w-2xl mx-auto mb-16"
       >
-        We are more than just a stationery provider; we are your partners in success. Here’s why discerning clients choose Ravindra Enterprises.
+        We are more than just a Diary Manufacturers; we are your partners in success. Here’s why discerning clients choose Ravindra Enterprises.
       </motion.p>
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
         {features.map((feature) => (

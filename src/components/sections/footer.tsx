@@ -45,7 +45,7 @@ const TermsOfServiceContent = () => (
     
     <h4>Policy for Return of Order</h4>
     <p>Giftvibes.in makes its best possible effort to provide you an excellent online shopping experience. If you are still left wanting on account of any issue, we are there to help you out in whichever way we can. Yet, we do not provide the alternative to cancel or return orders as we produce personalized printed products that are customized to your requirement.</p>
-    <p>Please get in touch with us at 9311135190 or send an email at support@Giftvibes.in for any further queries.</p>
+    <p>Please get in touch with us at +919899223130 or send an email at support@Giftvibes.in for any further queries.</p>
     <p>We do not guarantee the color of the uploaded/attached pictures / designs as the process includes heat transfer of the images where some loss of color is always applicable.</p>
     <p>We do not guarantee the exact color of engraving / printing on any product as the color of finished product might appear different.</p>
     <p>We ship your material with 3 ways – Air | Train | Road Lorry service. Normally with road lorry service takes 5-10 working days to reach to destination.</p>
@@ -110,7 +110,7 @@ const ShippingReturnsContent = () => (
     
     <h4>Return / cancellation and exchange</h4>
     <p>We print and dispatch your order as per our commitments, but in case of delay in natural problems in printing, production, or shipping transit time, mishandelling or damage from transporter / shipping company, printing defaults or some other reason, company do not return or exchange product.</p>
-    <p>We endeavor to deliver your order to you at the earliest. We deals in wholesale and order based customized products so cancellation/refund is not possible after placing an order. If the order cannot be processed due to any unavoidable circumstances. we do not provide the alternative to return orders as we produce personalized printed products that are customized to your requirement. Please get in touch with us at 9311135190 or send an email at support@Giftvibes.in for any further queries.</p>
+    <p>We endeavor to deliver your order to you at the earliest. We deals in wholesale and order based customized products so cancellation/refund is not possible after placing an order. If the order cannot be processed due to any unavoidable circumstances. we do not provide the alternative to return orders as we produce personalized printed products that are customized to your requirement. Please get in touch with us at +919899223130 or send an email at support@Giftvibes.in for any further queries.</p>
     
     <h4>Can I have an order delivered on a particular date?</h4>
     <p>We continuously try to deliver products purchased from Giftvibes.in in best condition and in the fastest time possible. However, we can't commit on the same.</p>

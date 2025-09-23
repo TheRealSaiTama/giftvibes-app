@@ -47,7 +47,7 @@ const WeeklyPopularProducts = () => {
   return (
     <section className="py-16 bg-white">
       <div className="container">
-        <h3 className="text-2xl font-semibold text-[#333333] mb-10">Trending Diary Collections</h3>
+        <h3 className="text-2xl font-semibold text-[#333333] mb-10">Trending Diary Giftsets</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
           {popularProducts.map((product) => (
             <div key={product.name} className="flex flex-col group">

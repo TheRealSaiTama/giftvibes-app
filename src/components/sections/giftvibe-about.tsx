@@ -114,7 +114,7 @@ const GiftVibeAbout = () => {
             className="relative inline-block"
           >
             <p className="text-lg md:text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed font-medium">
-              Manufacturers of Diaries, Note Books and Corporate Gifts <br/>Crafting Excellence Since 1999 - Your Premier Partner for Promotional Gifting Solutions
+              Manufacturers of Diaries, Note Books and Corporate Gifts <br/>Crafting Excellence Since 1999 - Your Premier Partner for Corporate Gifting Solutions
             </p>
             <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-24 h-0.5 bg-gradient-to-r from-[#124559]/50 to-[#2a6b80]/50 rounded-full"></div>
           </motion.div>
@@ -172,7 +172,7 @@ const GiftVibeAbout = () => {
                 transition={{ duration: 0.6, delay: 0.2 }}
                 className="text-xl font-medium"
               >
-                Incorporated in 1999, Ravindra Enterprises stands as one of the industry's most trusted names in manufacturing and exporting premium stationery products. From our state-of-the-art facilities, we deliver excellence to clients worldwide.
+                Incorporated in 1999, Ravindra Enterprises stands as one of the industry's most trusted names in manufacturing and exporting premium Corporate Diaries and Gifts. From our state-of-the-art facilities, we deliver excellence to clients worldwide.
               </motion.p>
               <motion.p
                 initial={{ opacity: 0, y: 20 }}
@@ -189,7 +189,7 @@ const GiftVibeAbout = () => {
                 transition={{ duration: 0.6, delay: 0.6 }}
                 className="font-semibold text-[#124559]"
               >
-                Under the visionary leadership of Mr. Ravi Kaushik, we've established ourselves as industry leaders through client-centered approaches and unwavering dedication to excellence.
+                Under the visionary leadership of our Founders, we've established ourselves as industry leaders through client-centered approaches and unwavering dedication to excellence.
               </motion.p>
             </div>
           </motion.div>

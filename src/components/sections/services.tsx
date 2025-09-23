@@ -10,7 +10,7 @@ const servicesData = [
   },
   {
     title: "Bulk Order Solutions",
-    subtitle: "Special pricing and services for corporate orders",
+    subtitle: "Special pricing and services for corporate orders and expertise in handling bulk order",
     image: "https://cdn.prod.website-files.com/63e857eaeaf853471d5335ff/63e8c4e6707380718425e697_onlie%20payment-min.png",
     bgColorClass: "bg-[#2c3e50]",
     alt: "Bulk order solutions icon",
