@@ -118,6 +118,7 @@ interface ChartTooltipContentProps {
   indicator?: "dot" | "line"
   hideLabel?: boolean
   hideIndicator?: boolean
+  className?: string
 }
 
 function ChartTooltipContent({
@@ -133,6 +134,7 @@ function ChartTooltipContent({
   indicator = "dot",
   hideLabel = false,
   hideIndicator = false,
+  className,
 }: ChartTooltipContentProps) {
   const { config } = useChart()
 
