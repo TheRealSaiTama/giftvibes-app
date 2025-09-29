@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { ChevronDown, Menu, Search } from "lucide-react";
+import { ChevronDown, Menu, Search, MessageCircle } from "lucide-react";
 
 import {
   DropdownMenu,
@@ -11,6 +11,15 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { useState } from "react";
+import {
+  Dialog,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { EnquiryFormContent } from "./enquiry-modal";
+import { useSelectedProducts } from '@/context/ProductContext';
+import { Badge } from '@/components/ui/badge';
 
 const megaMenuItems = [
   { name: 'Customized Diaries', items: '150+ Designs Available' },
@@ -22,6 +31,8 @@ const megaMenuItems = [
 ];
 
 const Header = () => {
+  const [open, setOpen] = useState(false);
+
   return (
     <header className="sticky top-0 z-50 bg-white">
       {/* Top Promotional Bar */}
@@ -99,15 +110,32 @@ const Header = () => {
             </div>
 
             <div className="flex items-center gap-4">
-              <Link href="#" className="nav-text flex items-center gap-2 hover:text-primary transition-colors">
-                <Image 
-                  src="https://cdn.prod.website-files.com/63e857eaeaf853471d5335ff/63eb3dec9b865e78d4ff6b8d_shopping-cart-add.png" 
-                  alt="Cart" 
-                  width={24} 
-                  height={24} 
-                />
-                <span className="hidden md:inline">Cart</span>
-              </Link>
+              <Dialog open={open} onOpenChange={setOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="ghost" size="sm" className="nav-text flex items-center gap-2 hover:text-primary transition-colors">
+                    <MessageCircle className="w-5 h-5" />
+                    <span className="hidden md:inline">Enquiry</span>
+                  </Button>
+                </DialogTrigger>
+                <EnquiryFormContent open={open} onOpenChange={setOpen} selectedProducts={[]} />
+              </Dialog>
+              {(() => {
+                const { selectedProducts, clearSelected } = useSelectedProducts();
+                const count = selectedProducts.length;
+                if (count === 0) return null;
+                return (
+                  <Dialog open={open} onOpenChange={setOpen}>
+                    <DialogTrigger asChild>
+                      <Button variant="ghost" size="sm" className="nav-text flex items-center gap-2 hover:text-primary transition-colors relative">
+                        <MessageCircle className="w-5 h-5" />
+                        <span className="hidden md:inline pr-0">Enquire Selected ({count})</span>
+                        <Badge className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] h-4 w-4 flex items-center justify-center">{count}</Badge>
+                      </Button>
+                    </DialogTrigger>
+                    <EnquiryFormContent open={open} onOpenChange={setOpen} selectedProducts={selectedProducts} onSubmitAfter={() => clearSelected()} />
+                  </Dialog>
+                );
+              })()}
             </div>
             
             <button className="lg:hidden">

@@ -5,6 +5,8 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
+import { useSelectedProducts } from '@/context/ProductContext';
+import { Checkbox } from '@/components/ui/checkbox';
 
 type Product = {
   id: number;
@@ -138,14 +140,30 @@ interface ProductCardProps {
 }
 
 const ProductCard: React.FC<ProductCardProps> = ({ product, className }) => {
+  const { selectProduct, deselectProduct, isSelected } = useSelectedProducts();
+  const selected = isSelected(product.id);
+
   return (
     <div
       className={cn(
-        "bg-card rounded-lg shadow-[0_2px_8px_rgba(0,0,0,0.05)] p-4 flex flex-col transition-shadow hover:shadow-lg",
+        "bg-card rounded-lg shadow-[0_2px_8px_rgba(0,0,0,0.05)] p-4 flex flex-col transition-shadow hover:shadow-lg relative",
         className
       )}
     >
-      <div className="relative bg-white flex items-center justify-center p-5 mb-5 h-[230px] overflow-hidden product-image-container">
+      <div className="absolute top-2 left-2 z-10">
+        <Checkbox
+          checked={selected}
+          onCheckedChange={(checked) => {
+            if (checked) {
+              selectProduct(product);
+            } else {
+              deselectProduct(product.id);
+            }
+          }}
+          className="data-[state=checked]:bg-[#124559] data-[state=checked]:border-[#124559]"
+        />
+      </div>
+      <div className="relative bg-white flex items-center justify-center p-5 mb-5 h-[230px] overflow-hidden product-image-container pt-8 pl-8">
         <Image
           src={product.image}
           alt={product.name}
@@ -168,8 +186,8 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, className }) => {
           <p className="text-lg font-bold text-dark-gray whitespace-nowrap">{product.currency === 'INR' ? '₹' : '$'}{product.price.toFixed(2)}</p>
         </div>
         <p className="text-sm text-medium-gray mb-2">{product.description}</p>
-        <div className="flex items-center mb-4">
-          <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1.5 mt-2 mb-4">
+          <div className="flex gap-0.5">
             {Array.from({ length: 5 }).map((_, index) => (
               <Image
                 key={index}
@@ -183,8 +201,14 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, className }) => {
           </div>
           <span className="text-xs text-muted-foreground ml-2">({product.reviewCount})</span>
         </div>
-        <Button variant="outline" className="w-full mt-auto font-medium text-dark-gray text-base border-border hover:bg-primary hover:text-primary-foreground">
-          Add to Cart
+        <Button 
+          onClick={() => {
+            selectProduct(product);
+            console.log('Enquire for:', product.name);
+          }}
+          className="w-full mt-auto bg-[#124559] hover:bg-[#0f3d4a] text-white font-medium text-base border-none rounded-md transition-colors duration-200"
+        >
+          Enquire Now
         </Button>
       </div>
     </div>
