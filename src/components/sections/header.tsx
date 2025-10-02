@@ -94,6 +94,7 @@ const Header = () => {
                 </div>
               </DropdownMenuContent>
             </DropdownMenu>
+            <Link href="/shop" className="hover:text-primary transition-colors">Shop</Link>
             <Link href="#" className="hover:text-primary transition-colors">Bulk Orders</Link>
             <Link href="#" className="hover:text-primary transition-colors">Custom Design</Link>
             <Link href="#" className="hover:text-primary transition-colors">Quick Delivery</Link>
