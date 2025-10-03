@@ -1,9 +1,9 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { google } from 'googleapis';
 import { JWT } from 'google-auth-library';
 
 export async function GET(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { fileId: string } }
 ) {
   const { fileId } = params;
