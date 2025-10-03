@@ -4,9 +4,9 @@ import { JWT } from 'google-auth-library';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { fileId: string } }
+  context: { params: { fileId: string } }
 ) {
-  const { fileId } = params;
+  const fileId = context.params.fileId;
 
   if (!fileId) {
     return new NextResponse('File ID is required', { status: 400 });
