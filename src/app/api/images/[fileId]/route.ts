@@ -3,7 +3,7 @@ import { google } from 'googleapis';
 import { JWT } from 'google-auth-library';
 
 export async function GET(
-  request: NextRequest,
+  _: unknown,
   { params }: { params: { fileId: string } }
 ) {
   const { fileId } = params;
