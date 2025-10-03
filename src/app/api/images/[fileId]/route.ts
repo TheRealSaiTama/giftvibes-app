@@ -6,7 +6,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { fileId: string } }
 ) {
-  const fileId = params.fileId;
+  const { fileId } = params;
 
   if (!fileId) {
     return new NextResponse('File ID is required', { status: 400 });
