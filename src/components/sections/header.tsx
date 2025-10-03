@@ -22,12 +22,18 @@ import { useSelectedProducts } from '@/context/ProductContext';
 import { Badge } from '@/components/ui/badge';
 
 const megaMenuItems = [
-  { name: 'Customized Diaries', items: '150+ Designs Available' },
-  { name: 'New Year Diaries', items: '80+ Styles Available' },
-  { name: 'Diwali Gift Diaries', items: '60+ Options Available' },
-  { name: 'Corporate Gift Sets', items: '120+ Packages Available' },
-  { name: 'Logo Printed Diaries', items: '200+ Templates Available' },
-  { name: 'Promotional Gifts', items: '90+ Items Available' },
+  { name: 'CORPORATE GIFT SETS', items: 'Premium Packages Available' },
+  { name: 'NEW YEAR DIARY BOOKS', items: 'Fresh Designs 2025' },
+  { name: 'LEATHER GIFT ITEMS', items: 'Luxury Options' },
+  { name: 'LEATHER BAGS', items: 'Elegant Styles' },
+  { name: 'JUTE BAGS', items: 'Eco-Friendly Choices' },
+  { name: 'BOTTLES GIFT SET', items: 'Unique Sets' },
+  { name: 'POWER BANK DIARIES', items: 'Tech-Integrated Gifts' },
+  { name: 'PEN STANDS', items: 'Desk Essentials' },
+  { name: 'PROMOTIONAL UMBRELLAS', items: 'Branded Protection' },
+  { name: 'CUSTOMISED DIARY & NOTE BOOKS', items: 'Personalized Products' },
+  { name: 'CALENDARS', items: 'Yearly Planners' },
+  { name: "EXHIBITION VISITOR'S GIFT IDEAS", items: 'Event Specials' },
 ];
 
 const Header = () => {
