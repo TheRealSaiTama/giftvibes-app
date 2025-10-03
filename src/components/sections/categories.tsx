@@ -5,6 +5,7 @@ import { motion } from 'motion/react';
 
 interface Category {
   name: string;
+  subtitle: string;
   image: string;
   bgColor: string;
   alt: string;
@@ -12,40 +13,95 @@ interface Category {
 
 const categoryData: Category[] = [
   {
-    name: 'CUSTOM',
-    image: '/customdiary.jpg',
+    name: 'CORPORATE GIFT SETS',
+    subtitle: '120+ Packages Available',
+    image: '/corporate.png',
     bgColor: '#124559',
-    alt: 'Beautiful customized diaries with personal designs',
+    alt: 'Professional corporate gift sets and custom diaries',
   },
   {
-    name: 'NEW YEAR',
+    name: 'NEW YEAR DIARY',
+    subtitle: '80+ Styles Available',
     image: '/unnamed.png',
     bgColor: '#1a5d73',
-    alt: 'Elegant New Year themed diaries',
+    alt: 'Premium New Year themed diaries and planners',
   },
   {
-    name: 'DIWALI',
-    image: '/diwali.png',
-    bgColor: '#E8923C',
-    alt: 'Premium Diwali gift diaries and sets',
-  },
-  {
-    name: 'CORPORATE',
-    image: '/corporate.png',
-    bgColor: '#2c3e50',
-    alt: 'Professional corporate gift sets and diaries',
-  },
-  {
-    name: 'LOGO PRINT',
+    name: 'LEATHER NOTE BOOKS',
+    subtitle: 'Premium Collection',
     image: '/logodiary.png',
-    bgColor: '#8b4513',
-    alt: 'Custom logo printed diaries for businesses',
+    bgColor: '#2c3e50',
+    alt: 'High-quality leather notebooks and journals',
   },
   {
-    name: 'PROMO',
+    name: 'SBI GIFT ITEMS',
+    subtitle: 'Banking Partnership',
+    image: '/customdiary.jpg',
+    bgColor: '#8b4513',
+    alt: 'Special SBI branded gift items and diaries',
+  },
+  {
+    name: 'LEATHER BAGS',
+    subtitle: 'Executive Collection',
+    image: '/corporate.png',
+    bgColor: '#E8923C',
+    alt: 'Premium leather bags and accessories',
+  },
+  {
+    name: 'JUTE BAGS',
+    subtitle: 'Eco-Friendly Options',
     image: '/promodiary.png',
     bgColor: '#28966E',
-    alt: 'Promotional gifts and diary sets',
+    alt: 'Sustainable jute bags for promotional use',
+  },
+  {
+    name: 'BOTTLES GIFT SET',
+    subtitle: 'Premium Combos',
+    image: '/diwali.png',
+    bgColor: '#124559',
+    alt: 'Gift sets with premium bottles and accessories',
+  },
+  {
+    name: 'POWER BANK DIARIES',
+    subtitle: 'Tech-Integrated',
+    image: '/customdiary.jpg',
+    bgColor: '#1a5d73',
+    alt: 'Diaries with built-in power bank functionality',
+  },
+  {
+    name: 'PEN STANDS',
+    subtitle: 'Desktop Essentials',
+    image: '/logodiary.png',
+    bgColor: '#2c3e50',
+    alt: 'Elegant pen stands and desk accessories',
+  },
+  {
+    name: 'PROMOTIONAL UMBRELLAS',
+    subtitle: 'Branded Solutions',
+    image: '/promodiary.png',
+    bgColor: '#8b4513',
+    alt: 'Custom promotional umbrellas for marketing',
+  },
+  {
+    name: 'CUSTOMISED DIARY & NOTE BOOKS',
+    subtitle: '150+ Designs Available',
+    image: '/customdiary.jpg',
+    bgColor: '#E8923C',
+    alt: 'Fully customized diaries and notebooks',
+  },
+  {
+    name: 'TABLE CALENDARS',
+    subtitle: 'Desktop & Wall Options',
+    image: '/diwali.png',
+    bgColor: '#28966E',
+    alt: 'Custom table and wall calendars',
+  },
+  {
+    name: "EXHIBITION VISITOR'S GIFT IDEAS",
+    subtitle: 'Trade Show Specials',
+    image: '/corporate.png',
+    bgColor: '#124559',
+    alt: 'Special gift ideas for exhibition visitors',
   },
 ];
 
@@ -61,10 +117,10 @@ const Categories = () => {
             transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
             className="text-[32px] font-bold text-[#1a1a1a] leading-[48px] mb-10"
           >
-            Explore Our Product Categories
+            Our Products
           </motion.h3>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
           {categoryData.map((category, index) => (
             <motion.div
               key={category.name}
@@ -74,15 +130,15 @@ const Categories = () => {
               transition={{ duration: 0.5, delay: index * 0.06, ease: [0.22, 1, 0.36, 1] }}
             >
             <Link href="#" className="block group">
-              <div 
-                className="relative h-[250px] rounded-[16px] overflow-hidden transition-all duration-500 ease-out hover:scale-105 hover:shadow-2xl hover:shadow-black/20"
+              <div
+                className="relative h-[280px] rounded-[16px] overflow-hidden transition-all duration-500 ease-out hover:scale-105 hover:shadow-2xl hover:shadow-black/20"
                 style={{ backgroundColor: category.bgColor }}
               >
                 <Image
                   src={category.image}
                   alt={category.alt}
                   fill
-                  sizes="(max-width: 767px) 50vw, (max-width: 1024px) 33vw, 16vw"
+                  sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 20vw"
                   className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                 />
                 
@@ -92,9 +148,14 @@ const Categories = () => {
                 {/* Corner badge design */}
                 <div className="absolute top-4 right-4 z-10">
                   <div className="bg-white/95 backdrop-blur-sm rounded-lg px-3 py-2 shadow-lg border border-white/20 transition-all duration-300 group-hover:bg-white group-hover:scale-105">
-                    <span className="text-[#124559] font-bold text-xs uppercase tracking-widest">
-                      {category.name}
-                    </span>
+                    <div className="text-center">
+                      <span className="text-[#124559] font-bold text-xs uppercase tracking-widest block">
+                        {category.name}
+                      </span>
+                      <span className="text-gray-600 text-[10px] mt-1 block">
+                        {category.subtitle}
+                      </span>
+                    </div>
                   </div>
                 </div>
                 
