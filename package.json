@@ -8,7 +8,8 @@
         "start": "next start",
         "lint": "next lint",
         "test": "echo \"No tests configured\" && exit 0",
-        "db:seed": "npx tsx prisma/seed.ts"
+        "db:seed": "npx tsx prisma/seed.ts",
+        "postinstall": "prisma generate"
     },
     "dependencies": {
         "@babel/parser": "^7.28.4",
