@@ -1,7 +1,0 @@
-{
-  "build": {
-    "env": {
-      "IGNORE_TS_ERRORS": "true"
-    }
-  }
-}
