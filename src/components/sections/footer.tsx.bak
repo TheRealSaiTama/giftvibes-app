@@ -126,7 +126,7 @@ const ShippingReturnsContent = () => (
 );
 
 const FAQsContent = () => {
-  const [openFAQ, setOpenFAQ] = React.useState<number | null>(null);
+  const [openFAQ, setOpenFAQ] = useState<number | null>(null);
   
   const faqs = [
     {
@@ -333,10 +333,10 @@ const AcceptedPayments = () => (
 
 
 export default function Footer() {
-  const [isDrawerOpen, setDrawerOpen] = React.useState(false);
-  const [drawerContent, setDrawerContent] = React.useState<React.ReactNode>(null);
-  const [drawerTitle, setDrawerTitle] = React.useState("");
-  const [drawerSize, setDrawerSize] = React.useState<'small' | 'medium' | 'large'>('medium');
+  const [isDrawerOpen, setDrawerOpen] = useState(false);
+  const [drawerContent, setDrawerContent] = useState<React.ReactNode>(null);
+  const [drawerTitle, setDrawerTitle] = useState("");
+  const [drawerSize, setDrawerSize] = useState<'small' | 'medium' | 'large'>('medium');
   const year = new Date().getFullYear();
 
   const handleOpenDrawer = (type: 'terms' | 'privacy' | 'about' | 'shipping' | 'contact' | 'faqs') => {

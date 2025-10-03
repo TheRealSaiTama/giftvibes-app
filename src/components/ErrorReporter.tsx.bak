@@ -1,5 +1,5 @@
 "use client";
-import * as React from "react";
+
 import { useEffect, useRef } from "react";
 
 type ReporterProps = {
@@ -10,10 +10,10 @@ type ReporterProps = {
 
 export default function ErrorReporter({ error, reset }: ReporterProps) {
   /* ─ instrumentation shared by every route ─ */
-  const lastOverlayMsg = React.useRef("");
-  const pollRef = React.useRef<NodeJS.Timeout | null>(null);
+  const lastOverlayMsg = useRef("");
+  const pollRef = useRef<NodeJS.Timeout | null>(null);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const inIframe = window.parent !== window;
     if (!inIframe) return;
 
@@ -73,7 +73,7 @@ export default function ErrorReporter({ error, reset }: ReporterProps) {
   }, []);
 
   /* ─ extra postMessage when on the global-error route ─ */
-  React.useEffect(() => {
+  useEffect(() => {
     if (!error) return;
     window.parent.postMessage(
       {

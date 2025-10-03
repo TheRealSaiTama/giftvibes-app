@@ -1,9 +1,9 @@
 "use client";
-import * as React from "react";
+
 import * as z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import type { Resolver } from "react-hook-form";  
+import type { Resolver } from "react-hook-form";
 import { useState, useCallback, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
 import { Button } from "@/components/ui/button";
@@ -52,7 +52,7 @@ interface EnquiryFormContentProps {
 }
 
 export function EnquiryFormContent({ open, onOpenChange, selectedProducts = [], onSubmitAfter }: EnquiryFormContentProps) {
-  const [files, setFiles] = React.useState<File[]>([]);
+  const [files, setFiles] = useState<File[]>([]);
 
   const resolver = zodResolver(formSchema) as unknown as Resolver<FormData>;
 
@@ -72,7 +72,7 @@ export function EnquiryFormContent({ open, onOpenChange, selectedProducts = [], 
     },
   });
 
-  const onDrop = React.useCallback((acceptedFiles: File[]) => {
+  const onDrop = useCallback((acceptedFiles: File[]) => {
     setFiles((prev) => [...prev, ...acceptedFiles]);
   }, []);
 
@@ -125,7 +125,7 @@ export function EnquiryFormContent({ open, onOpenChange, selectedProducts = [], 
   };
 
   // Pre-fill description if selected
-  React.useEffect(() => {
+  useEffect(() => {
     if (selectedProducts.length > 0) {
       const productList = selectedProducts.map(p => `${p.name} - ₹${p.price}`).join('\n');
       form.setValue('description', `Interested in the following products:\n${productList}`);

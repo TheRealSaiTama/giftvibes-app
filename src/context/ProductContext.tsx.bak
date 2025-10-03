@@ -1,5 +1,5 @@
 "use client";
-import * as React from 'react';
+
 import { createContext, useContext, useState, ReactNode } from 'react';
 import type { Product } from '@/types/Product';
 
@@ -25,7 +25,7 @@ function normalizeProduct(input: Partial<Product> | any): Product {
 }
 
 export function ProductProvider({ children }: { children: ReactNode }) {
-  const [selectedProducts, setSelectedProducts] = React.useState<Product[]>([]);
+  const [selectedProducts, setSelectedProducts] = useState<Product[]>([]);
 
   const selectProduct = (productLike: Partial<Product> | any) => {
     const product = normalizeProduct(productLike);
@@ -60,7 +60,7 @@ export function ProductProvider({ children }: { children: ReactNode }) {
 }
 
 export function useSelectedProducts() {
-  const context = React.useContext(ProductContext);
+  const context = useContext(ProductContext);
   if (context === undefined) {
     throw new Error('useSelectedProducts must be used within a ProductProvider');
   }

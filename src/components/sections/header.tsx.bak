@@ -1,5 +1,5 @@
 "use client";
-import * as React from "react";
+
 import Image from "next/image";
 import Link from "next/link";
 import { ChevronDown, Menu, Search, MessageCircle } from "lucide-react";
@@ -31,8 +31,7 @@ const megaMenuItems = [
 ];
 
 const Header = () => {
-  const [open, setOpen] = React.useState(false);
-  const { selectedProducts, clearSelected } = useSelectedProducts();
+  const [open, setOpen] = useState(false);
 
   return (
     <header className="sticky top-0 z-50 bg-white">
@@ -122,6 +121,7 @@ const Header = () => {
                 <EnquiryFormContent open={open} onOpenChange={setOpen} selectedProducts={[]} />
               </Dialog>
               {(() => {
+                const { selectedProducts, clearSelected } = useSelectedProducts();
                 const count = selectedProducts.length;
                 if (count === 0) return null;
                 return (

@@ -7,8 +7,9 @@ const compat = new FlatCompat({
  
 const eslintConfig = [
   ...compat.config({
-    extends: ['next'],
-    plugins: ['import'],
+    extends: ['next', 'plugin:@typescript-eslint/recommended'],
+    plugins: ['import', '@typescript-eslint'],
+    parser: '@typescript-eslint/parser',
   }),
   {
     rules: {
@@ -16,7 +17,10 @@ const eslintConfig = [
       '@next/next/no-img-element': 'off',
       '@typescript-eslint/no-unused-vars': 'off',
       '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-unused-expressions': 'off',
+      '@typescript-eslint/no-require-imports': 'off',
       'react-hooks/exhaustive-deps': 'off',
+      'prefer-const': 'off',
       'import/no-unresolved': 'error',
       'import/named': 'error',
       'import/default': 'error',

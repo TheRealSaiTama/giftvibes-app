@@ -1,5 +1,7 @@
 "use client";
 import * as React from "react";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { useEffect, useState, useRef } from "react";
 
 export const CHANNEL = "ORCHIDS_HOVER_v1" as const;
@@ -398,11 +400,11 @@ const wrapMultiline = (text: string): string => {
 };
 
 export default function HoverReceiver() {
-  const [hoverBox, setHoverBox] = React.useState<Box>(null);
-  const [hoverBoxes, setHoverBoxes] = React.useState<Box[]>([]);
-  const [focusBox, setFocusBox] = React.useState<Box>(null);
-  const [focusedElementId, setFocusedElementId] = React.useState<string | null>(null);
-  const [isVisualEditMode, setIsVisualEditMode] = React.useState(() => {
+  const [hoverBox, setHoverBox] = useState<Box>(null);
+  const [hoverBoxes, setHoverBoxes] = useState<Box[]>([]);
+  const [focusBox, setFocusBox] = useState<Box>(null);
+  const [focusedElementId, setFocusedElementId] = useState<string | null>(null);
+  const [isVisualEditMode, setIsVisualEditMode] = useState(() => {
     // Initialize from localStorage if available
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem(VISUAL_EDIT_MODE_KEY);
@@ -410,48 +412,48 @@ export default function HoverReceiver() {
     }
     return false;
   });
-  const [isResizing, setIsResizing] = React.useState(false);
-  const [resizeHandle, setResizeHandle] = React.useState<string | null>(null);
-  const [resizeStart, setResizeStart] = React.useState<{
+  const [isResizing, setIsResizing] = useState(false);
+  const [resizeHandle, setResizeHandle] = useState<string | null>(null);
+  const [resizeStart, setResizeStart] = useState<{
     x: number;
     y: number;
     width: number;
     height: number;
   } | null>(null);
-  const [isScrolling, setIsScrolling] = React.useState(false);
+  const [isScrolling, setIsScrolling] = useState(false);
 
   // Tag labels for hover and focus overlays
-  const [hoverTag, setHoverTag] = React.useState<string | null>(null);
-  const [focusTag, setFocusTag] = React.useState<string | null>(null);
-  const isResizingRef = React.useRef(false);
-  const lastHitElementRef = React.useRef<HTMLElement | null>(null);
-  const lastHitIdRef = React.useRef<string | null>(null);
-  const focusedElementRef = React.useRef<HTMLElement | null>(null);
-  const isVisualEditModeRef = React.useRef(false);
-  const scrollTimeoutRef = React.useRef<number | null>(null);
-  const originalContentRef = React.useRef<string>("");
-  const originalSrcRef = React.useRef<string>(""); // track original img src
-  const focusedImageElementRef = React.useRef<HTMLImageElement | null>(null); // track the actual img element
-  const editingElementRef = React.useRef<HTMLElement | null>(null);
-  const wasEditableRef = React.useRef<boolean>(false);
-  const styleElementRef = React.useRef<HTMLStyleElement | null>(null);
-  const originalStylesRef = React.useRef<Record<string, string>>({});
-  const appliedStylesRef = React.useRef<Map<string, Record<string, string>>>(
+  const [hoverTag, setHoverTag] = useState<string | null>(null);
+  const [focusTag, setFocusTag] = useState<string | null>(null);
+  const isResizingRef = useRef(false);
+  const lastHitElementRef = useRef<HTMLElement | null>(null);
+  const lastHitIdRef = useRef<string | null>(null);
+  const focusedElementRef = useRef<HTMLElement | null>(null);
+  const isVisualEditModeRef = useRef(false);
+  const scrollTimeoutRef = useRef<number | null>(null);
+  const originalContentRef = useRef<string>("");
+  const originalSrcRef = useRef<string>(""); // track original img src
+  const focusedImageElementRef = useRef<HTMLImageElement | null>(null); // track the actual img element
+  const editingElementRef = useRef<HTMLElement | null>(null);
+  const wasEditableRef = useRef<boolean>(false);
+  const styleElementRef = useRef<HTMLStyleElement | null>(null);
+  const originalStylesRef = useRef<Record<string, string>>({});
+  const appliedStylesRef = useRef<Map<string, Record<string, string>>>(
     new Map()
   );
-  const hasStyleChangesRef = React.useRef<boolean>(false);
-  const lastClickTimeRef = React.useRef<number>(0);
-  const pendingCleanupRef = React.useRef<NodeJS.Timeout | null>(null);
+  const hasStyleChangesRef = useRef<boolean>(false);
+  const lastClickTimeRef = useRef<number>(0);
+  const pendingCleanupRef = useRef<NodeJS.Timeout | null>(null);
 
   // Cache of loaded fonts
-  const loadedFontFamilies = React.useRef<Set<string>>(new Set());
+  const loadedFontFamilies = useRef<Set<string>>(new Set());
   // Map of elementId that already has a persistent font set
-  const persistentFontMap = React.useRef<Map<string, string>>(new Map());
+  const persistentFontMap = useRef<Map<string, string>>(new Map());
   // Timeout refs for clearing persistent font map
-  const persistentFontTimeouts = React.useRef<Map<string, number>>(new Map());
+  const persistentFontTimeouts = useRef<Map<string, number>>(new Map());
 
   // Keep ref in sync with state and persist to localStorage
-  React.useEffect(() => {
+  useEffect(() => {
     isVisualEditModeRef.current = isVisualEditMode;
     // Persist to localStorage
     if (typeof window !== "undefined") {
@@ -460,7 +462,7 @@ export default function HoverReceiver() {
   }, [isVisualEditMode]);
 
   // On mount, notify parent if visual edit mode was restored from localStorage
-  React.useEffect(() => {
+  useEffect(() => {
     if (isVisualEditMode) {
       // Send acknowledgement to parent that visual edit mode is active
       // This will sync the parent's state with our restored state
@@ -524,7 +526,7 @@ export default function HoverReceiver() {
   };
 
   // Add global styles for contentEditable elements
-  React.useEffect(() => {
+  useEffect(() => {
     if (isVisualEditMode && !styleElementRef.current) {
       const style = document.createElement("style");
       style.textContent = `
@@ -797,7 +799,7 @@ export default function HoverReceiver() {
   };
 
   // Listen for style and image updates from parent
-  React.useEffect(() => {
+  useEffect(() => {
     function handleMessage(e: MessageEvent) {
       if (e.data?.type === "ORCHIDS_STYLE_UPDATE") {
         const { elementId, styles } = e.data;
@@ -985,7 +987,7 @@ export default function HoverReceiver() {
   };
 
   // Handle resize move
-  React.useEffect(() => {
+  useEffect(() => {
     if (
       !isResizing ||
       !resizeStart ||
@@ -1247,7 +1249,7 @@ export default function HoverReceiver() {
   };
 
   // Prevent all navigation in visual edit mode
-  React.useEffect(() => {
+  useEffect(() => {
     if (!isVisualEditMode) return;
 
     // Prevent link clicks
@@ -1277,7 +1279,7 @@ export default function HoverReceiver() {
   }, [isVisualEditMode]);
 
   // Clean up when exiting visual edit mode
-  React.useEffect(() => {
+  useEffect(() => {
     if (!isVisualEditMode) {
       cleanupEditingElement();
       // Clear applied styles tracking
@@ -1290,7 +1292,7 @@ export default function HoverReceiver() {
   }, [isVisualEditMode]);
 
   // Update focus box position when scrolling or resizing
-  React.useEffect(() => {
+  useEffect(() => {
     if (focusedElementRef.current) {
       const handleUpdate = () => {
         updateFocusBox();
@@ -1330,7 +1332,7 @@ export default function HoverReceiver() {
     }
   }, [focusedElementId]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     // Handle pointer movement directly in the iframe
     function onPointerMove(e: PointerEvent) {
       if (isResizingRef.current) {
