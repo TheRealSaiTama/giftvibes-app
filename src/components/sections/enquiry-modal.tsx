@@ -3,6 +3,7 @@
 import * as z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import type { Resolver } from "react-hook-form";
 import { useState, useCallback, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
 import { Button } from "@/components/ui/button";
@@ -26,25 +27,18 @@ import {
 } from "@/components/ui/form";
 import { toast } from "sonner";
 import Image from "next/image";
-
-type Product = {
-  id: number;
-  name: string;
-  image: string;
-  price: number;
-  currency: string;
-};
+import type { Product } from "@/types/Product";
 
 const formSchema = z.object({
-  description: z.string().optional(),
   fullName: z.string().min(1, "Full name is required"),
+  phone: z.string().min(10, "Phone number is required"),
+  email: z.string().email("Invalid email"),
+  quantity: z.number().min(1, "Quantity must be at least 1"),
+  pincode: z.number().min(100000, "Enter a valid pincode"),
+  address: z.string().min(5, "Address is required"),
+  description: z.string().optional(),
   companyName: z.string().optional(),
   gst: z.string().optional(),
-  phone: z.string().min(10, "Phone number must be at least 10 digits"),
-  email: z.string().email("Invalid email address"),
-  quantity: z.coerce.number().min(1, "Quantity must be at least 1"),
-  pincode: z.coerce.number().min(100000, "Pincode must be 6 digits"),
-  address: z.string().min(1, "Address is required"),
   orderNotes: z.string().optional(),
 });
 
@@ -59,8 +53,11 @@ interface EnquiryFormContentProps {
 
 export function EnquiryFormContent({ open, onOpenChange, selectedProducts = [], onSubmitAfter }: EnquiryFormContentProps) {
   const [files, setFiles] = useState<File[]>([]);
+
+  const resolver = zodResolver(formSchema) as unknown as Resolver<FormData>;
+
   const form = useForm<FormData>({
-    resolver: zodResolver(formSchema),
+    resolver,
     defaultValues: {
       description: "",
       fullName: "",
@@ -69,7 +66,7 @@ export function EnquiryFormContent({ open, onOpenChange, selectedProducts = [], 
       phone: "",
       email: "",
       quantity: 1,
-      pincode: 0,
+      pincode: 110001,
       address: "",
       orderNotes: "",
     },

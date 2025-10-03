@@ -236,3 +236,4 @@ The shop page is built with maintainability in mind:
 
 Enjoy your beautiful, fully functional shopping page!
 
+

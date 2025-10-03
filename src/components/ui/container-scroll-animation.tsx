@@ -1,5 +1,5 @@
+import * as React from "react";
 "use client";
-import React, { useRef } from "react";
 import { useScroll, useTransform, motion, MotionValue } from "motion/react";
 
 export const ContainerScroll = ({

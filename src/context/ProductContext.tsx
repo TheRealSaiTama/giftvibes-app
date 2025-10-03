@@ -1,18 +1,11 @@
 "use client";
 
 import { createContext, useContext, useState, ReactNode } from 'react';
-
-type Product = {
-  id: number;
-  name: string;
-  image: string;
-  price: number;
-  currency: string;
-};
+import type { Product } from '@/types/Product';
 
 interface ProductContextType {
   selectedProducts: Product[];
-  selectProduct: (product: Product) => void;
+  selectProduct: (productLike: Partial<Product> | any) => void;
   deselectProduct: (id: number) => void;
   clearSelected: () => void;
   isSelected: (id: number) => boolean;
@@ -20,12 +13,24 @@ interface ProductContextType {
 
 const ProductContext = createContext<ProductContextType | undefined>(undefined);
 
+function normalizeProduct(input: Partial<Product> | any): Product {
+  return {
+    id: Number(input.id),
+    name: String(input.name ?? ""),
+    image: String(input.image ?? ""),
+    price: Number(input.price ?? 0),
+    currency: (input.currency ?? "INR") as Product["currency"],
+    rating: input.rating != null ? Number(input.rating) : 0,
+  };
+}
+
 export function ProductProvider({ children }: { children: ReactNode }) {
   const [selectedProducts, setSelectedProducts] = useState<Product[]>([]);
 
-  const selectProduct = (product: Product) => {
-    setSelectedProducts(prev => 
-      prev.some(p => p.id === product.id) ? prev : [...prev, product]
+  const selectProduct = (productLike: Partial<Product> | any) => {
+    const product = normalizeProduct(productLike);
+    setSelectedProducts((prev) =>
+      prev.some((p) => p.id === product.id) ? prev : [...prev, product]
     );
   };
 

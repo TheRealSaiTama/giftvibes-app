@@ -7,132 +7,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { useSelectedProducts } from '@/context/ProductContext';
 import { Checkbox } from '@/components/ui/checkbox';
-
-type Product = {
-  id: number;
-  name: string;
-  price: number;
-  description: string;
-  image: string;
-  rating: number;
-  reviewCount: number;
-  currency?: string;
-};
-
-const gadgetProducts: Product[] = [
-  {
-    id: 1,
-    name: "Go Green Leather Diary 2026 With Planner",
-    price: 138.00,
-    description: "Eco-friendly PU leather diary with weekly/monthly planner, 120 GSM pages, pen loop and bookmark.",
-    image: "/diary/gogreen.png",
-    rating: 5,
-    reviewCount: 121,
-    currency: "INR",
-  },
-  {
-    id: 2,
-    name: "A5 ANT Leather Planner Diary 2026",
-    price: 110.00,
-    description: "Organic Cotton, fairtrade certified",
-    image: "/diary/antleather.png",
-    rating: 5,
-    reviewCount: 121,
-    currency: "INR",
-  },
-  {
-    id: 3,
-    name: "Lino A5 Leather Diary 2026",
-    price: 120.00,
-    description: "A perfect balance of high-fidelity audio",
-    image: "/diary/lino.png",
-    rating: 5,
-    reviewCount: 121,
-    currency: "INR",
-  },
-  {
-    id: 4,
-    name: "DIRECTORS Premium Leather Diary 2026",
-    price: 172.0,
-    description: "15 in. x 10 in. -Flap top closure",
-    image: "/diary/directors.png",
-    rating: 5,
-    reviewCount: 121,
-    currency: "INR",
-  },
-  {
-    id: 5,
-    name: "Primo A5 Corporate Diary And Pen Set",
-    price: 225.0,
-    description: "Table with air purifier, stained veneer/black",
-    image: "/diary/2025.png",
-    rating: 5,
-    reviewCount: 121,
-    currency: "INR",
-  },
-  {
-    id: 6,
-    name: "Wooden A5 Corporate Diary And Pen Set",
-    price: 230.0,
-    description: "Organic Cotton, fairtrade certified",
-    image: "/diary/woodendiary.png",
-    rating: 5,
-    reviewCount: 121,
-    currency: "INR",
-  },
-  {
-    id: 7,
-    name: "50-50 B5 Diary Calendar With Pen Combo Set",
-    price:  315.00,
-    description: "256, 8 core GPU, 8 GB",
-    image: "/diary/5050.png",
-    rating: 5,
-    reviewCount: 121,
-    currency: "INR",
-  },
-  {
-    id: 8,
-    name: "Ovel Leather B5 Diary Calendar With Pen Combo Set",
-    price: 300.00,
-    description: "5 Colors Available",
-    image: "/diary/ovel.png",
-    rating: 5,
-    reviewCount: 121,
-    currency: "INR",
-  },
-  {
-    id: 9,
-    name: "Paipin Brown Executive Leather Diary",
-    price: 154.00,
-    description: "Table with air purifier, stained veneer/black",
-    image: "/diary/papin.png",
-    rating: 5,
-    reviewCount: 121,
-    currency: "INR",
-  },
-];
-
-const tabs = [
-  "Diaries",
-  "Gift Sets",
-  "Planners",
-  "Notebooks",
-  "Logo Printed",
-  "Eco Series",
-  "Corporate Combos",
-  "Accessories",
-];
-
-const productsByCategory: { [key: string]: Product[] } = {
-  Diaries: gadgetProducts,
-  "Gift Sets": [...gadgetProducts].reverse(),
-  Planners: gadgetProducts,
-  Notebooks: [...gadgetProducts].reverse(),
-  "Logo Printed": gadgetProducts,
-  "Eco Series": [...gadgetProducts].reverse(),
-  "Corporate Combos": gadgetProducts,
-  Accessories: [...gadgetProducts].reverse(),
-};
+import { Product as DbProduct } from '@prisma/client';
+import type { Product } from '@/types/Product';
 
 interface ProductCardProps {
   product: Product;
@@ -195,13 +71,13 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, className }) => {
                 alt="star"
                 width={16}
                 height={16}
-                className={index < product.rating ? "" : "opacity-20"}
+                className={index < (product.rating ?? 0) ? "" : "opacity-20"}
               />
             ))}
           </div>
-          <span className="text-xs text-muted-foreground ml-2">({product.reviewCount})</span>
+          <span className="text-xs text-muted-foreground ml-2">({product.reviewCount ?? 0})</span>
         </div>
-        <Button 
+        <Button
           onClick={() => {
             selectProduct(product);
             console.log('Enquire for:', product.name);
@@ -215,14 +91,36 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, className }) => {
   );
 };
 
-export default function TabbedProducts() {
+export default function TabbedProducts({ products: dbProducts }: { products: DbProduct[] }) {
+  const products: Product[] = dbProducts.map(p => ({
+    id: p.id,
+    name: p.name,
+    price: p.minPrice || 0,
+    description: p.description || '',
+    image: p.imageUrl || '/diary/placeholder.png', // a placeholder image
+    rating: 5, // hardcoded for now
+    reviewCount: 121, // hardcoded for now
+    currency: 'INR',
+    category: p.category,
+  }));
+
+  const categories = [...new Set(products.map(p => p.category).filter(Boolean))];
+  const productsByCategory = categories.reduce((acc, category) => {
+    if (category) {
+        acc[category] = products.filter(p => p.category === category);
+    }
+    return acc;
+  }, {} as { [key: string]: Product[] });
+
+  const tabs = Object.keys(productsByCategory);
+
   return (
     <section className="py-20 bg-background">
       <div className="container">
         <h3 className="text-2xl font-semibold text-dark-gray mb-6">
           Todays Best Deals for you!
         </h3>
-        <Tabs defaultValue="Diaries" className="w-full">
+        <Tabs defaultValue={tabs[0]} className="w-full">
           <TabsList className="flex flex-wrap justify-start gap-x-3 gap-y-2 mb-10 bg-transparent p-0 h-auto">
             {tabs.map((tab) => (
               <TabsTrigger
@@ -237,7 +135,7 @@ export default function TabbedProducts() {
           {tabs.map((tab) => (
             <TabsContent key={tab} value={tab}>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                {productsByCategory[tab].map((product) => (
+                {productsByCategory[tab]?.map((product) => (
                   <ProductCard key={`${tab}-${product.id}`} product={product} />
                 ))}
               </div>

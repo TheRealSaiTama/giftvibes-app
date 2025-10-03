@@ -3,15 +3,7 @@ import Image from 'next/image';
 import { Button } from "@/components/ui/button";
 import { useSelectedProducts } from '@/context/ProductContext';
 import { Checkbox } from '@/components/ui/checkbox';
-
-interface Product {
-  id: number;
-  name: string;
-  price: number;
-  description: string;
-  image: string;
-  currency?: 'INR' | 'USD';
-}
+import type { Product } from '@/types/Product';
 
 const products: Product[] = [
   {

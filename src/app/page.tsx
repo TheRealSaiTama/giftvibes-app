@@ -13,8 +13,18 @@ import CashBackBottom from "@/components/sections/cash-back-bottom";
 import ServicesSection from "@/components/sections/services";
 import GiftVibeAbout from "@/components/sections/giftvibe-about";
 import Footer from "@/components/sections/footer";
+import { PrismaClient } from '@prisma/client';
 
-export default function HomePage() {
+const prisma = new PrismaClient();
+
+async function getProducts() {
+  const products = await prisma.product.findMany();
+  return products;
+}
+
+export default async function HomePage() {
+  const products = await getProducts();
+
   return (
     <div className="min-h-screen">
       <Header />
@@ -28,7 +38,7 @@ export default function HomePage() {
         <BrandsSection />
         <WeeklyPopularProducts />
         <CashBackSection />
-        <TabbedProducts />
+        <TabbedProducts products={products} />
         {/* Move these two sections just above the special discount banner */}
         <WhyChooseUsSection />
         <CustomerSatisfaction />

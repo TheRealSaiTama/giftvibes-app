@@ -8,7 +8,7 @@ const popularProducts = [
   {
     id: 1,
     name: "Black Note Book With Pen Gift Set RE 570",
-    price: "198.00",
+    price: 198.00,
     currency: "INR",
     description: "Hardcover black notebook with matching metal pen, 100 GSM ruled pages and gift-ready box.",
     image: "/diary/trendingdiary.png",
@@ -16,7 +16,7 @@ const popularProducts = [
   {
     id: 2,
     name: "Blue Note Book With Pen Gift Set RE 571",
-    price: "198.00",
+    price: 198.00,
     currency: "INR",
     description: "Matte blue finish, elastic closure, ribbon bookmark and premium ball pen included.",
     image: "/diary/trendingdiary2.png",
@@ -24,7 +24,7 @@ const popularProducts = [
   {
     id: 3,
     name: "Brown Note Book With Pen Gift Set RE 572",
-    price: "200.00",
+    price: 200.00,
     currency: "INR",
     description: "Classic brown PU cover, 120 ruled sheets, pen loop and pocket sleeve for notes.",
     image: "/diary/trendingdiary3.png",
@@ -32,7 +32,7 @@ const popularProducts = [
   {
     id: 4,
     name: "Soft Cover Note Book With Pen Gift Set RE 578",
-    price: "230.00",
+    price: 230.00,
     currency: "INR",
     description: "Flexible soft‑touch cover with lay‑flat binding, smooth pen and kraft gift packaging.",
     image: "/diary/trendingdiary41.png",
@@ -40,7 +40,7 @@ const popularProducts = [
   {
     id: 5,
     name: "Grey Note Book With Pen Gift Set RE 579",
-    price: "230.00",
+    price: 230.00,
     currency: "INR",
     description: "Elegant grey textured cover, date header pages, metal clip pen and magnetic clasp.",
     image: "/diary/trendingdiary5.png",
