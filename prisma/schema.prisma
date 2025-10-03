@@ -23,3 +23,17 @@ model Product {
   tags        String?
   category    String?
 }
+
+model Diary {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String?
+  price       Int
+  imageUrl    String
+  category    String
+  tags        String?
+  color       String?
+  size        String?
+  pages       Int?
+  coverType   String?
+}
