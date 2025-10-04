@@ -25,23 +25,16 @@ interface Filters {
 }
 
 function getFileIdFromUrl(url: string): string | null {
-  if (!url || !url.includes('drive.google.com')) {
-    return null;
-  }
-  
-  // Pattern 1: /file/d/FILE_ID/...
-  let match = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
-  if (match) {
-    return match[1];
-  }
-  
-  // Pattern 2: ?id=FILE_ID
-  match = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
-  if (match) {
-    return match[1];
-  }
+  if (!url) return null;
 
-  return null;
+  // This single, more robust regex will find the ID in multiple common formats.
+  // e.g., /d/ID, /file/d/ID, ?id=ID, &id=ID
+  // It also validates a typical ID length of 28+ characters.
+  const regex = /(?:\/d\/|\?id=|&id=)([a-zA-Z0-9_-]{28,})/;
+  const match = url.match(regex);
+
+  // The ID will be in the first capture group (index 1).
+  return match ? match[1] : null;
 }
 
 function filterAndSortProducts(products: ShopProduct[], filters: Filters): ShopProduct[] {
@@ -219,13 +212,14 @@ export default function ShopClient({ initialDiaries, initialProducts }: { initia
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {results.map((product) => {
                 let imageIdentifier: string | null = null;
-                if (product.imageUrl) {
-                  if (product.imageUrl.includes('drive.google.com')) {
+                const url = product.imageUrl?.trim();
+                if (url) {
+                  if (url.includes('drive.google.com')) {
                     // It's a Google Drive URL, so we MUST extract an ID.
-                    imageIdentifier = getFileIdFromUrl(product.imageUrl);
+                    imageIdentifier = getFileIdFromUrl(url);
                   } else {
                     // It's not a Google Drive URL, so assume it's a filename.
-                    imageIdentifier = product.imageUrl;
+                    imageIdentifier = url;
                   }
                 }
 
