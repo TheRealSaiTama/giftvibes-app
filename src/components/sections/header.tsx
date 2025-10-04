@@ -23,18 +23,18 @@ import { useSelectedProducts } from '@/context/ProductContext';
 import { Badge } from '@/components/ui/badge';
 
 const megaMenuItems = [
-  { name: 'CORPORATE GIFT SETS', items: 'Premium Packages Available' },
-  { name: 'NEW YEAR DIARY BOOKS', items: 'Fresh Designs 2025' },
-  { name: 'LEATHER GIFT ITEMS', items: 'Luxury Options' },
-  { name: 'LEATHER BAGS', items: 'Elegant Styles' },
-  { name: 'JUTE BAGS', items: 'Eco-Friendly Choices' },
-  { name: 'BOTTLES GIFT SET', items: 'Unique Sets' },
-  { name: 'POWER BANK DIARIES', items: 'Tech-Integrated Gifts' },
-  { name: 'PEN STANDS', items: 'Desk Essentials' },
-  { name: 'PROMOTIONAL UMBRELLAS', items: 'Branded Protection' },
-  { name: 'CUSTOMISED DIARY & NOTE BOOKS', items: 'Personalized Products' },
-  { name: 'CALENDARS', items: 'Yearly Planners' },
-  { name: "EXHIBITION VISITOR'S GIFT IDEAS", items: 'Event Specials' },
+  { name: 'CORPORATE GIFT SETS', items: 'Premium Packages Available', image: '/Giftvibes categories/CORPORATE GIFTSETS.png' },
+  { name: 'NEW YEAR DIARY BOOKS', items: 'Fresh Designs 2025', image: '/Giftvibes categories/NEW YEAR DIARYpng' },
+  { name: 'LEATHER GIFT ITEMS', items: 'Luxury Options', image: '/Giftvibes categories/LEATHER GIFT ITEMS.png' },
+  { name: 'LEATHER BAGS', items: 'Elegant Styles', image: '/Giftvibes categories/LEATHER BAGS.png' },
+  { name: 'JUTE BAGS', items: 'Eco-Friendly Choices', image: '/Giftvibes categories/JUTE BAGS.png' },
+  { name: 'BOTTLES GIFT SET', items: 'Unique Sets', image: '/Giftvibes categories/BOTTLE GIFT SETS.png' },
+  { name: 'POWER BANK DIARIES', items: 'Tech-Integrated Gifts', image: '/Giftvibes categories/POWERBANK DIARIES.png' },
+  { name: 'PEN STANDS', items: 'Desk Essentials', image: '/Giftvibes categories/PEN STANDS.png' },
+  { name: 'PROMOTIONAL UMBRELLAS', items: 'Branded Protection', image: '/Giftvibes categories/PROMOTIONAL UMBRELLAS.jpg' },
+  { name: 'CUSTOMISED DIARY & NOTE BOOKS', items: 'Personalized Products', image: '/Giftvibes categories/PROMOTIONAL DIARIES AND NOTEBOOKS.jpg' },
+  { name: 'CALENDARS', items: 'Yearly Planners', image: '/Giftvibes categories/CALENDARS.png' },
+  { name: "EXHIBITION VISITOR'S GIFT IDEAS", items: 'Event Specials', image: '/Giftvibes categories/EXHIBITION GIVEAWAY IDEAS.png' },
 ];
 
 const Header = () => {
@@ -91,7 +91,15 @@ const Header = () => {
                   {megaMenuItems.map((item) => (
                     <Link href="#" key={item.name} className="group">
                       <div className="flex items-start gap-3">
-                        <div className="w-[60px] h-[60px] bg-gray-100 rounded-md flex-shrink-0" />
+                        <div className="w-[60px] h-[60px] bg-gray-100 rounded-md flex-shrink-0 relative overflow-hidden">
+                          <Image 
+                            src={item.image} 
+                            alt={item.name}
+                            fill
+                            className="object-cover group-hover:scale-110 transition-transform duration-300"
+                            sizes="60px"
+                          />
+                        </div>
                         <div>
                           <p className="font-medium text-sm text-dark-gray group-hover:text-primary">{item.name}</p>
                           <p className="text-xs text-medium-gray">{item.items}</p>
