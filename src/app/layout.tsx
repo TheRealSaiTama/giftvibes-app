@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import VisualEditsMessenger from "../visual-edits/VisualEditsMessenger";
 import ErrorReporter from "@/components/ErrorReporter";
+import WhatsAppButton from "@/components/WhatsAppButton";
 import Script from "next/script";
 import { Toaster } from "sonner";
 import { ProductProvider } from '@/context/ProductContext';
@@ -37,6 +38,7 @@ export default function RootLayout({
           />
           <Toaster position="top-center" richColors expand />
           {children}
+          <WhatsAppButton />
           <VisualEditsMessenger />
         </ProductProvider>
       </body>

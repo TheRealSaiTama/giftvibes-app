@@ -45,25 +45,12 @@ const Header = () => {
     <header className="sticky top-0 z-50 bg-white">
       {/* Top Promotional Bar */}
       <div className="bg-[#124559] py-[7px] text-white hidden lg:block">
-        <div className="container flex items-center justify-between px-10">
-          <div className="flex items-center gap-1.5">
-            <Image 
-              src="https://cdn.prod.website-files.com/63e857eaeaf853471d5335ff/63e884fbeaf853f075555d17_Call.svg" 
-              alt="Phone" 
-              width={16} 
-              height={16} 
-              className="invert"
-            />
-            <span className="text-xs">+919899223130</span>
-          </div>
-
+        <div className="container flex items-center justify-center px-10">
           <p className="text-xs text-white">
             Lowest Price Guarantee
             <span className="opacity-50 mx-6">|</span>
             Shop Now
           </p>
-
-          <div></div>
         </div>
       </div>
 
