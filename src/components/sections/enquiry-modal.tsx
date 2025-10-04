@@ -33,8 +33,13 @@ const formSchema = z.object({
   fullName: z.string().min(1, "Full name is required"),
   phone: z.string().min(10, "Phone number is required"),
   email: z.string().email("Invalid email"),
-  quantity: z.number().min(1, "Quantity must be at least 1"),
-  pincode: z.number().min(100000, "Enter a valid pincode"),
+  quantity: z.coerce.number().min(100, "Minimum order quantity is 100"),
+  pincode: z
+    .coerce
+    .number()
+    .int()
+    .min(100000, "Enter a valid 6-digit pincode")
+    .max(999999, "Enter a valid 6-digit pincode"),
   address: z.string().min(5, "Address is required"),
   description: z.string().optional(),
   companyName: z.string().optional(),
@@ -63,7 +68,7 @@ export function EnquiryFormContent({ open, onOpenChange, selectedProducts = [], 
       gst: "",
       phone: "",
       email: "",
-      quantity: 1,
+      quantity: 100,
       pincode: 110001,
       address: "",
       orderNotes: "",
@@ -253,7 +258,8 @@ export function EnquiryFormContent({ open, onOpenChange, selectedProducts = [], 
                       type="number"
                       placeholder="Enter quantity"
                       className="h-12 px-4 border border-gray-300 rounded-lg focus:border-[#124559] focus:ring-2 focus:ring-[#124559]/10 transition-all"
-                      min={1}
+                      min={100}
+                      step={1}
                       {...field}
                     />
                   </FormControl>
