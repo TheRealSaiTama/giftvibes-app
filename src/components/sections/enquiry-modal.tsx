@@ -54,10 +54,8 @@ interface EnquiryFormContentProps {
 export function EnquiryFormContent({ open, onOpenChange, selectedProducts = [], onSubmitAfter }: EnquiryFormContentProps) {
   const [files, setFiles] = React.useState<File[]>([]);
 
-  const resolver = zodResolver(formSchema) as unknown as Resolver<FormData>;
-
   const form = useForm<FormData>({
-    resolver,
+    resolver: zodResolver(formSchema),
     defaultValues: {
       description: "",
       fullName: "",

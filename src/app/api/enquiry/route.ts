@@ -3,7 +3,7 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 import nodemailer from 'nodemailer';
 
-const createTransporter = (opts?: { secure?: boolean; port?: number }) => {
+const createTransporter = async (opts?: { secure?: boolean; port?: number }) => {
   const user = (process.env.GMAIL_EMAIL || '').trim();
   const pass = (process.env.GMAIL_APP_PASSWORD || '').replace(/\s/g, ''); // remove spaces if pasted
   const transporter = nodemailer.createTransport({
@@ -178,7 +178,7 @@ export async function POST(request: NextRequest) {
     
     const mailOptions = {
       from: `"Gift Vibes Diaries" <${process.env.GMAIL_EMAIL}>`,  // Sender name
-      to: 'giftvibes.in@gmail.com',  // Your inbox
+      to: process.env.ENQUIRY_RECIPIENT_EMAIL || process.env.GMAIL_EMAIL,  // Your inbox
       replyTo: email,  // Allow replies to customer
       subject: `New Diary Enquiry: ${fullName} - ${selectedProducts.length > 0 ? `${selectedProducts.length} Products` : 'General Enquiry'}`,
       html: htmlContent,
@@ -195,11 +195,11 @@ export async function POST(request: NextRequest) {
     let info;
     try {
       // Try STARTTLS (587)
-      info = await createTransporter({ port: 587, secure: false }).sendMail(mailOptions);
+      info = await (await createTransporter({ port: 587, secure: false })).sendMail(mailOptions);
     } catch (firstErr: any) {
       console.error('First attempt (587/STARTTLS) failed:', firstErr?.message || firstErr);
       // Fallback to SSL (465)
-      info = await createTransporter({ port: 465, secure: true }).sendMail(mailOptions);
+      info = await (await createTransporter({ port: 465, secure: true })).sendMail(mailOptions);
     }
     console.log('Email sent successfully:', info.messageId);
     
@@ -223,7 +223,7 @@ export async function POST(request: NextRequest) {
 export async function GET() {
   try {
     // Create a fresh transporter for diagnostics
-    const t = createTransporter({ port: 587, secure: false });
+    const t = await createTransporter({ port: 587, secure: false });
     const verified = await new Promise<boolean>((resolve) => {
       t.verify((err) => resolve(!err));
     });
