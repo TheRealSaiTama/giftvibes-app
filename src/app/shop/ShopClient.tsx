@@ -118,8 +118,8 @@ export default function ShopClient({ initialDiaries, initialProducts }: { initia
   const combinedProducts = useMemo(() => {
     const diariesAsProducts: ShopProduct[] = initialDiaries.map(diary => ({
       ...diary,
-      minPrice: diary.price,
-      maxPrice: diary.price,
+      minPrice: diary.minPrice,
+      maxPrice: diary.maxPrice,
     }));
     const productsAsShopProducts: ShopProduct[] = initialProducts.map(product => ({
         ...product,
@@ -317,8 +317,15 @@ export default function ShopClient({ initialDiaries, initialProducts }: { initia
                           </p>
                         )}
                         <div className="flex items-center justify-between">
-                          <span className="text-xl font-bold text-gray-900">₹{product.minPrice?.toLocaleString()}</span>
-                          <button 
+                          <span className="text-xl font-bold text-gray-900">
+                            {product.minPrice && product.maxPrice && product.minPrice !== product.maxPrice
+                              ? `₹${product.minPrice.toLocaleString()} - ₹${product.maxPrice.toLocaleString()}`
+                              : product.minPrice
+                                ? `₹${product.minPrice.toLocaleString()}`
+                                : 'Price on request'
+                            }
+                          </span>
+                          <button
                             onClick={() => handleProductSelect(product)}
                             className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors flex items-center gap-1 ${
                               isSelected(product.id)

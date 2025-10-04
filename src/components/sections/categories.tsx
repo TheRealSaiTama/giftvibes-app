@@ -120,7 +120,7 @@ const Categories = () => {
             Our Products
           </motion.h3>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+        <div className="flex overflow-x-auto gap-6 pb-4 custom-scrollbar">
           {categoryData.map((category, index) => (
             <motion.div
               key={category.name}
@@ -128,6 +128,7 @@ const Categories = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, amount: 0.2 }}
               transition={{ duration: 0.5, delay: index * 0.06, ease: [0.22, 1, 0.36, 1] }}
+              className="w-[240px] flex-shrink-0"
             >
             <Link href="#" className="block group">
               <div

@@ -32,14 +32,17 @@ async function seedDiaries() {
             continue;
         }
 
-        const priceRange = record['Price Range'] ? record['Price Range'].replace('/-', '').trim().split(' - ') : ['0'];
-        const minPrice = parseInt(priceRange[0], 10);
+        const priceText = record['Price Range'] || '0';
+        const prices = priceText.match(/\d+/g)?.map(Number) || [0];
+        const minPrice = prices[0];
+        const maxPrice = prices.length > 1 ? prices[1] : prices[0];
         
         await prisma.diary.upsert({
           where: { name: record['Product Name'] },
           update: {
             description: record['Short Description'],
-            price: isNaN(minPrice) ? 0 : minPrice,
+            minPrice: isNaN(minPrice) ? null : minPrice,
+            maxPrice: isNaN(maxPrice) ? null : maxPrice,
             imageUrl: record['Product image'],
             category: record['Categories'],
             tags: record['Tags'],
@@ -47,7 +50,8 @@ async function seedDiaries() {
           create: {
             name: record['Product Name'],
             description: record['Short Description'],
-            price: isNaN(minPrice) ? 0 : minPrice,
+            minPrice: isNaN(minPrice) ? null : minPrice,
+            maxPrice: isNaN(maxPrice) ? null : maxPrice,
             imageUrl: record['Product image'],
             category: record['Categories'],
             tags: record['Tags'],
@@ -88,9 +92,10 @@ async function seedProducts() {
                     continue;
                 }
 
-                const priceRange = record['Price Range'] ? record['Price Range'].replace('/-', '').trim().split(' - ') : ['0', '0'];
-                const minPrice = parseInt(priceRange[0], 10);
-                const maxPrice = parseInt(priceRange[1] || priceRange[0], 10);
+                const priceText = record['Price Range'] || '0';
+                const prices = priceText.match(/\d+/g)?.map(Number) || [0];
+                const minPrice = prices[0];
+                const maxPrice = prices.length > 1 ? prices[1] : prices[0];
 
                 await prisma.product.upsert({
                     where: { name: record['Product Name'] },
