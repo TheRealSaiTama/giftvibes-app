@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPriceOverride } from "@/lib/price-overrides";
-import { diaryCsvFiles } from "@/lib/diary-csv";
+import { getDiaryRows } from "@/lib/diary-data";
 
 interface SearchResult {
   id: number;
@@ -38,53 +38,38 @@ function matchesQuery(value: string | null | undefined, query: string): boolean 
 }
 
 async function searchDiaries(query: string, limit: number): Promise<SearchResult[]> {
-  const fs = await import("fs");
-  const { parse } = await import("csv-parse/sync");
-
   const results: SearchResult[] = [];
   let idCounter = 100000;
   const queue: Array<() => SearchResult | null> = [];
 
-  for (const file of diaryCsvFiles) {
-    try {
-      const csvData = fs.readFileSync(file.path, "utf-8");
-      const records = parse(csvData, {
-        columns: true,
-        skip_empty_lines: true,
-      }) as Record<string, string>[];
-
-      for (const record of records) {
-        const diaryId = idCounter++;
-        queue.push(() => {
-          const name = record["Product Name"];
-          if (!matchesQuery(name, query) &&
-              !matchesQuery(record["Tags"], query) &&
-              !matchesQuery(record["Categories"], query)) {
-            return null;
-          }
-
-          const priceText = record["Price Range"] || "";
-          const prices = priceText.match(/\d+/g)?.map(Number) || [];
-          const minPriceRaw = prices[0];
-          const maxPriceRaw = prices.length > 1 ? prices[prices.length - 1] : prices[0];
-          const override = getPriceOverride(name);
-
-          return {
-            id: diaryId,
-            name,
-            description: record["Short Description"] ?? "",
-            minPrice: override?.minPrice ?? (typeof minPriceRaw === "number" ? minPriceRaw : null),
-            maxPrice: override?.maxPrice ?? (typeof maxPriceRaw === "number" ? maxPriceRaw : null),
-            imageUrl: resolveImageUrl(record["Product image"]),
-            category: record["Categories"],
-            source: "diary" as const,
-            path: `/shop/${diaryId}`,
-          } satisfies SearchResult;
-        });
+  for (const record of getDiaryRows()) {
+    const diaryId = idCounter++;
+    queue.push(() => {
+      const name = record["Product Name"];
+      if (!matchesQuery(name, query) &&
+          !matchesQuery(record["Tags"], query) &&
+          !matchesQuery(record["Categories"], query)) {
+        return null;
       }
-    } catch (error) {
-      console.error("Error searching diary CSV", { file: file.name, error });
-    }
+
+      const priceText = record["Price Range"] || "";
+      const prices = priceText.match(/\d+/g)?.map(Number) || [];
+      const minPriceRaw = prices[0];
+      const maxPriceRaw = prices.length > 1 ? prices[prices.length - 1] : prices[0];
+      const override = getPriceOverride(name);
+
+      return {
+        id: diaryId,
+        name,
+        description: record["Short Description"] ?? "",
+        minPrice: override?.minPrice ?? (typeof minPriceRaw === "number" ? minPriceRaw : null),
+        maxPrice: override?.maxPrice ?? (typeof maxPriceRaw === "number" ? maxPriceRaw : null),
+        imageUrl: resolveImageUrl(record["Product image"]),
+        category: record["Categories"],
+        source: "diary" as const,
+        path: `/shop/${diaryId}`,
+      } satisfies SearchResult;
+    });
   }
 
   // Breadth-first traversal over the queued diary items for responsive ordering

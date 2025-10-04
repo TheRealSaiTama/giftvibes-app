@@ -3,51 +3,30 @@ import Footer from '@/components/sections/footer';
 import { Product } from '@prisma/client';
 import ShopClient from './ShopClient';
 import { getPriceOverride } from '@/lib/price-overrides';
-import { diaryCsvFiles } from '@/lib/diary-csv';
+import { getDiaryRows } from '@/lib/diary-data';
 
 async function getDiaries(): Promise<any[]> {
-  const fs = await import('fs');
-  const { parse } = await import('csv-parse/sync');
-
   const diaries: any[] = [];
   let idCounter = 100000;
-
-  for (const file of diaryCsvFiles) {
-    try {
-      const csvData = fs.readFileSync(file.path, 'utf-8');
-      const records = parse(csvData, {
-        columns: true,
-        skip_empty_lines: true,
-      }) as Record<string, string>[];
-
-      for (const record of records) {
-        if (!record['Product Name'] || record['Product Name'].trim() === '') {
-          continue;
-        }
-
-        const priceText = record['Price Range'] || '0';
-        const prices = priceText.match(/\d+/g)?.map(Number) || [0];
-        const minPrice = prices[0];
-        const maxPrice = prices.length > 1 ? prices[1] : prices[0];
-
-        const override = getPriceOverride(record['Product Name']);
-        const computedMin = isNaN(minPrice) ? null : minPrice;
-        const computedMax = isNaN(maxPrice) ? null : maxPrice;
-
-        diaries.push({
-          id: idCounter++,
-          name: record['Product Name'],
-          description: record['Short Description'],
-          minPrice: override?.minPrice ?? computedMin,
-          maxPrice: override?.maxPrice ?? computedMax,
-          imageUrl: record['Product image'],
-          category: record['Categories'],
-          tags: record['Tags'],
-        });
-      }
-    } catch (error) {
-      console.error(`Error reading diary CSV (${file.name}):`, error);
-    }
+  for (const record of getDiaryRows()) {
+    if (!record['Product Name'] || record['Product Name'].trim() === '') continue;
+    const priceText = record['Price Range'] || '0';
+    const prices = priceText.match(/\d+/g)?.map(Number) || [0];
+    const minPrice = prices[0];
+    const maxPrice = prices.length > 1 ? prices[1] : prices[0];
+    const override = getPriceOverride(record['Product Name']);
+    const computedMin = isNaN(minPrice) ? null : minPrice;
+    const computedMax = isNaN(maxPrice) ? null : maxPrice;
+    diaries.push({
+      id: idCounter++,
+      name: record['Product Name'],
+      description: record['Short Description'],
+      minPrice: override?.minPrice ?? computedMin,
+      maxPrice: override?.maxPrice ?? computedMax,
+      imageUrl: record['Product image'],
+      category: record['Categories'],
+      tags: record['Tags'],
+    });
   }
 
   return diaries;
