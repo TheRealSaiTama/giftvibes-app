@@ -13,9 +13,8 @@ import CashBackBottom from "@/components/sections/cash-back-bottom";
 import ServicesSection from "@/components/sections/services";
 import GiftVibeAbout from "@/components/sections/giftvibe-about";
 import Footer from "@/components/sections/footer";
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 
-const prisma = new PrismaClient();
 
 async function getProducts() {
   const products = await prisma.product.findMany();
