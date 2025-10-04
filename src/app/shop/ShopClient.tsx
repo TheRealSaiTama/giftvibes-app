@@ -220,10 +220,11 @@ export default function ShopClient({ initialDiaries, initialProducts }: { initia
               {results.map((product) => {
                 let imageIdentifier: string | null = null;
                 if (product.imageUrl) {
-                  // Try to parse it as a full URL first
-                  imageIdentifier = getFileIdFromUrl(product.imageUrl);
-                  // If that fails, assume it's a filename and use it directly
-                  if (!imageIdentifier) {
+                  if (product.imageUrl.includes('drive.google.com')) {
+                    // It's a Google Drive URL, so we MUST extract an ID.
+                    imageIdentifier = getFileIdFromUrl(product.imageUrl);
+                  } else {
+                    // It's not a Google Drive URL, so assume it's a filename.
                     imageIdentifier = product.imageUrl;
                   }
                 }
