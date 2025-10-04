@@ -6,6 +6,7 @@ import { useMemo, useState } from 'react';
 import { Diary, Product } from '@prisma/client';
 import { EnquiryFormContent } from '@/components/sections/enquiry-modal'; // Assuming this is the correct path
 import { Dialog, DialogTrigger, DialogContent } from '@/components/ui/dialog';
+import type { Product as ProductType } from '@/types/Product';
 
 type ShopProduct = {
   id: number;
@@ -89,6 +90,18 @@ export default function ShopClient({ initialDiaries, initialProducts }: { initia
       }
     });
   };
+
+  const formattedSelectedProducts: ProductType[] = useMemo(() => {
+    return selectedProducts.map(p => ({
+      id: p.id,
+      name: p.name,
+      image: p.imageUrl || '',
+      price: p.minPrice || 0,
+      currency: 'INR', // Assuming INR, adjust if needed
+      description: p.description || '',
+      category: p.category,
+    }));
+  }, [selectedProducts]);
 
   const combinedProducts = useMemo(() => {
     const diariesAsProducts: ShopProduct[] = initialDiaries.map(diary => ({
@@ -318,7 +331,7 @@ export default function ShopClient({ initialDiaries, initialProducts }: { initia
           <EnquiryFormContent 
             open={isEnquiryModalOpen} 
             onOpenChange={setIsEnquiryModalOpen} 
-            selectedProducts={selectedProducts}
+            selectedProducts={formattedSelectedProducts}
             onSubmitAfter={() => setSelectedProducts([])}
           />
         </DialogContent>
