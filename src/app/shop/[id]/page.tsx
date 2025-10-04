@@ -9,7 +9,6 @@ import { getPriceOverride } from '@/lib/price-overrides';
 
 async function getProduct(id: string): Promise<any | null> {
   const fs = await import('fs');
-  const path = await import('path');
   const { parse } = await import('csv-parse/sync');
 
   const diaryFiles = [
@@ -22,12 +21,8 @@ async function getProduct(id: string): Promise<any | null> {
 
   for (const file of diaryFiles) {
     try {
-      const csvPath = path.resolve(process.cwd(), `csv/${file}`);
-      if (!fs.existsSync(csvPath)) {
-        continue;
-      }
-
-      const csvData = fs.readFileSync(csvPath, 'utf-8');
+      const csvUrl = new URL(`../../../../csv/${file}`, import.meta.url);
+      const csvData = fs.readFileSync(csvUrl, 'utf-8');
       const records = parse(csvData, {
         columns: true,
         skip_empty_lines: true,
@@ -102,12 +97,8 @@ async function getRelatedProducts(category: string, currentId: number): Promise<
 
   for (const file of diaryFiles) {
     try {
-      const csvPath = path.resolve(process.cwd(), `csv/${file}`);
-      if (!fs.existsSync(csvPath)) {
-        continue;
-      }
-
-      const csvData = fs.readFileSync(csvPath, 'utf-8');
+      const csvUrl = new URL(`../../../../csv/${file}`, import.meta.url);
+      const csvData = fs.readFileSync(csvUrl, 'utf-8');
       const records = parse(csvData, {
         columns: true,
         skip_empty_lines: true,

@@ -43,7 +43,6 @@ function matchesQuery(value: string | null | undefined, query: string): boolean 
 
 async function searchDiaries(query: string, limit: number): Promise<SearchResult[]> {
   const fs = await import("fs");
-  const path = await import("path");
   const { parse } = await import("csv-parse/sync");
 
   const results: SearchResult[] = [];
@@ -52,12 +51,8 @@ async function searchDiaries(query: string, limit: number): Promise<SearchResult
 
   for (const file of diaryFiles) {
     try {
-      const csvPath = path.resolve(process.cwd(), `csv/${file}`);
-      if (!fs.existsSync(csvPath)) {
-        continue;
-      }
-
-      const csvData = fs.readFileSync(csvPath, "utf-8");
+      const csvUrl = new URL(`../../../../csv/${file}`, import.meta.url);
+      const csvData = fs.readFileSync(csvUrl, "utf-8");
       const records = parse(csvData, {
         columns: true,
         skip_empty_lines: true,

@@ -6,7 +6,6 @@ import { getPriceOverride } from '@/lib/price-overrides';
 
 async function getDiaries(): Promise<any[]> {
   const fs = await import('fs');
-  const path = await import('path');
   const { parse } = await import('csv-parse/sync');
 
   const diaryFiles = [
@@ -19,13 +18,8 @@ async function getDiaries(): Promise<any[]> {
 
   for (const file of diaryFiles) {
     try {
-      const csvPath = path.resolve(process.cwd(), `csv/${file}`);
-      if (!fs.existsSync(csvPath)) {
-        console.warn(`Diary CSV file not found: ${file}`);
-        continue;
-      }
-
-      const csvData = fs.readFileSync(csvPath, 'utf-8');
+      const csvUrl = new URL(`../../../csv/${file}`, import.meta.url);
+      const csvData = fs.readFileSync(csvUrl, 'utf-8');
       const records = parse(csvData, {
         columns: true,
         skip_empty_lines: true,
