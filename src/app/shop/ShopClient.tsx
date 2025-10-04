@@ -29,7 +29,7 @@ function getFileIdFromUrl(url: string): string | null {
     return null;
   }
   const match = url.match(/file\/d\/(.+?)\//);
-  return match ? match : null;
+  return match ? match[1] : null;
 }
 
 function filterAndSortProducts(products: ShopProduct[], filters: Filters): ShopProduct[] {
@@ -227,7 +227,7 @@ export default function ShopClient({ initialDiaries, initialProducts }: { initia
                       <div className="p-5">
                         <div className="flex items-center justify-between mb-3">
                           <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full font-medium">
-                            {product.category?.split(',').map(c => c.trim())}
+                            {product.category?.split(',').map(c => c.trim()).join(', ')}
                           </span>
                         </div>
                         <h3 className="text-base font-semibold text-gray-800 line-clamp-2 mb-2 hover:text-primary transition-colors">
