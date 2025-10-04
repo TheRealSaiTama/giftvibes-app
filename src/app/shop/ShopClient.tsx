@@ -28,8 +28,20 @@ function getFileIdFromUrl(url: string): string | null {
   if (!url || !url.includes('drive.google.com')) {
     return null;
   }
-  const match = url.match(/file\/d\/(.+?)\//);
-  return match ? match[1] : null;
+  
+  // Pattern 1: /file/d/FILE_ID/...
+  let match = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (match) {
+    return match[1];
+  }
+  
+  // Pattern 2: ?id=FILE_ID
+  match = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if (match) {
+    return match[1];
+  }
+
+  return null;
 }
 
 function filterAndSortProducts(products: ShopProduct[], filters: Filters): ShopProduct[] {
