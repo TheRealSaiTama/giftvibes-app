@@ -3,23 +3,18 @@ import Footer from '@/components/sections/footer';
 import { Product } from '@prisma/client';
 import ShopClient from './ShopClient';
 import { getPriceOverride } from '@/lib/price-overrides';
+import { diaryCsvFiles } from '@/lib/diary-csv';
 
 async function getDiaries(): Promise<any[]> {
   const fs = await import('fs');
   const { parse } = await import('csv-parse/sync');
 
-  const diaryFiles = [
-    'RE Products Page - Premium PU Leather Diaries.csv',
-    'RE Products Page - Hardbound Diaries.csv',
-  ];
-
   const diaries: any[] = [];
   let idCounter = 100000;
 
-  for (const file of diaryFiles) {
+  for (const file of diaryCsvFiles) {
     try {
-      const csvUrl = new URL(`../../../csv/${file}`, import.meta.url);
-      const csvData = fs.readFileSync(csvUrl, 'utf-8');
+      const csvData = fs.readFileSync(file.url, 'utf-8');
       const records = parse(csvData, {
         columns: true,
         skip_empty_lines: true,
@@ -51,7 +46,7 @@ async function getDiaries(): Promise<any[]> {
         });
       }
     } catch (error) {
-      console.error(`Error reading diary CSV (${file}):`, error);
+      console.error(`Error reading diary CSV (${file.name}):`, error);
     }
   }
 

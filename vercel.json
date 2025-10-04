@@ -1,9 +1,6 @@
 {
   "functions": {
-    "app/**/*": {
-      "includeFiles": "csv/**"
-    },
-    "api/**/*": {
+    "app/**/*.js": {
       "includeFiles": "csv/**"
     }
   }

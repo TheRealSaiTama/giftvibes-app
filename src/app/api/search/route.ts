@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPriceOverride } from "@/lib/price-overrides";
+import { diaryCsvFiles } from "@/lib/diary-csv";
 
 interface SearchResult {
   id: number;
@@ -12,11 +13,6 @@ interface SearchResult {
   source: "diary" | "product";
   path: string;
 }
-
-const diaryFiles = [
-  "RE Products Page - Premium PU Leather Diaries.csv",
-  "RE Products Page - Hardbound Diaries.csv",
-];
 
 const DRIVE_REGEX = /\/d\/([A-Za-z0-9_-]+)/;
 const DRIVE_QUERY_REGEX = /[?&]id=([A-Za-z0-9_-]+)/;
@@ -49,10 +45,9 @@ async function searchDiaries(query: string, limit: number): Promise<SearchResult
   let idCounter = 100000;
   const queue: Array<() => SearchResult | null> = [];
 
-  for (const file of diaryFiles) {
+  for (const file of diaryCsvFiles) {
     try {
-      const csvUrl = new URL(`../../../../csv/${file}`, import.meta.url);
-      const csvData = fs.readFileSync(csvUrl, "utf-8");
+      const csvData = fs.readFileSync(file.url, "utf-8");
       const records = parse(csvData, {
         columns: true,
         skip_empty_lines: true,
@@ -88,7 +83,7 @@ async function searchDiaries(query: string, limit: number): Promise<SearchResult
         });
       }
     } catch (error) {
-      console.error("Error searching diary CSV", { file, error });
+      console.error("Error searching diary CSV", { file: file.name, error });
     }
   }
 

@@ -6,23 +6,18 @@ import ProductGallery from '@/components/product/ProductGallery';
 import ProductInfo from '@/components/product/ProductInfo';
 import RelatedProducts from '@/components/product/RelatedProducts';
 import { getPriceOverride } from '@/lib/price-overrides';
+import { diaryCsvFiles } from '@/lib/diary-csv';
 
 async function getProduct(id: string): Promise<any | null> {
   const fs = await import('fs');
   const { parse } = await import('csv-parse/sync');
 
-  const diaryFiles = [
-    'RE Products Page - Premium PU Leather Diaries.csv',
-    'RE Products Page - Hardbound Diaries.csv',
-  ];
-
   let idCounter = 100000;
   const productId = parseInt(id, 10);
 
-  for (const file of diaryFiles) {
+  for (const file of diaryCsvFiles) {
     try {
-      const csvUrl = new URL(`../../../../csv/${file}`, import.meta.url);
-      const csvData = fs.readFileSync(csvUrl, 'utf-8');
+      const csvData = fs.readFileSync(file.url, 'utf-8');
       const records = parse(csvData, {
         columns: true,
         skip_empty_lines: true,
@@ -58,7 +53,7 @@ async function getProduct(id: string): Promise<any | null> {
         idCounter++;
       }
     } catch (error) {
-      console.error(`Error reading diary CSV (${file}):`, error);
+      console.error(`Error reading diary CSV (${file.name}):`, error);
     }
   }
 
@@ -87,18 +82,12 @@ async function getRelatedProducts(category: string, currentId: number): Promise<
   const path = await import('path');
   const { parse } = await import('csv-parse/sync');
 
-  const diaryFiles = [
-    'RE Products Page - Premium PU Leather Diaries.csv',
-    'RE Products Page - Hardbound Diaries.csv',
-  ];
-
   const relatedProducts: any[] = [];
   let idCounter = 100000;
 
-  for (const file of diaryFiles) {
+  for (const file of diaryCsvFiles) {
     try {
-      const csvUrl = new URL(`../../../../csv/${file}`, import.meta.url);
-      const csvData = fs.readFileSync(csvUrl, 'utf-8');
+      const csvData = fs.readFileSync(file.url, 'utf-8');
       const records = parse(csvData, {
         columns: true,
         skip_empty_lines: true,
@@ -138,7 +127,7 @@ async function getRelatedProducts(category: string, currentId: number): Promise<
         idCounter++;
       }
     } catch (error) {
-      console.error(`Error reading diary CSV (${file}):`, error);
+      console.error(`Error reading diary CSV (${file.name}):`, error);
     }
   }
 
