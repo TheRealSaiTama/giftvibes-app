@@ -72,45 +72,115 @@ export async function POST(request: NextRequest) {
     
     // Build HTML email body
     const htmlContent = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #124559;">New Product Enquiry Submission</h2>
-        <table border="1" cellpadding="12" cellspacing="0" style="border-collapse: collapse; width: 100%; border: 1px solid #ddd;">
-          <tr><td style="background: #f5f5f5; font-weight: bold; padding: 8px;"><strong>Full Name:</strong></td><td style="padding: 8px;">${fullName}</td></tr>
-          <tr><td style="background: #f5f5f5; font-weight: bold; padding: 8px;"><strong>Company Name:</strong></td><td style="padding: 8px;">${companyName}</td></tr>
-          <tr><td style="background: #f5f5f5; font-weight: bold; padding: 8px;"><strong>Phone:</strong></td><td style="padding: 8px;">${phone}</td></tr>
-          <tr><td style="background: #f5f5f5; font-weight: bold; padding: 8px;"><strong>Email:</strong></td><td style="padding: 8px;">${email}</td></tr>
-          <tr><td style="background: #f5f5f5; font-weight: bold; padding: 8px;"><strong>GST Number:</strong></td><td style="padding: 8px;">${gst}</td></tr>
-          <tr><td style="background: #f5f5f5; font-weight: bold; padding: 8px;"><strong>Quantity:</strong></td><td style="padding: 8px;">${quantity}</td></tr>
-          <tr><td style="background: #f5f5f5; font-weight: bold; padding: 8px;"><strong>Pincode:</strong></td><td style="padding: 8px;">${pincode}</td></tr>
-          <tr><td style="background: #f5f5f5; font-weight: bold; padding: 8px;"><strong>Address:</strong></td><td style="padding: 8px;">${address}</td></tr>
-          <tr><td style="background: #f5f5f5; font-weight: bold; padding: 8px;"><strong>Description/Requirements:</strong></td><td style="padding: 8px;">${description}</td></tr>
-          <tr><td style="background: #f5f5f5; font-weight: bold; padding: 8px;"><strong>Order Notes:</strong></td><td style="padding: 8px;">${orderNotes}</td></tr>
-        </table>
-        
-        ${selectedProducts.length > 0 ? `
-          <h3 style="color: #124559; margin-top: 20px;">Selected Products (${selectedProducts.length})</h3>
-          <ul style="padding-left: 20px;">
-            ${selectedProducts.map((prod: any, index: number) => `
-              <li style="margin-bottom: 10px;">
-                <strong>${prod.name}</strong> - ${prod.currency || '₹'}${prod.price}<br>
-                <small>Image Reference: ${prod.image}</small>
-              </li>
-            `).join('')}
-          </ul>
-        ` : '<p style="color: #666;"><em>No specific products selected.</em></p>'}
-        
-        <p style="margin-top: 20px; font-size: 12px; color: #666;">
-          <strong>Submitted on:</strong> ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}<br>
-          <em>This is an automated message from your website enquiry form.</em>
-        </p>
-      </div>
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>New Diary Enquiry</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                line-height: 1.6;
+                color: #333;
+            }
+            .container {
+                max-width: 600px;
+                margin: 20px auto;
+                padding: 20px;
+                border: 1px solid #ddd;
+                border-radius: 5px;
+            }
+            .header {
+                background-color: #f2f2f2;
+                padding: 10px;
+                text-align: center;
+                border-bottom: 1px solid #ddd;
+            }
+            .header h2 {
+                margin: 0;
+                color: #124559;
+            }
+            .content {
+                padding: 20px 0;
+            }
+            .content-table {
+                width: 100%;
+                border-collapse: collapse;
+            }
+            .content-table th, .content-table td {
+                padding: 10px;
+                border: 1px solid #ddd;
+                text-align: left;
+            }
+            .content-table th {
+                background-color: #f8f8f8;
+                font-weight: bold;
+                width: 30%;
+            }
+            .product-list {
+                list-style-type: none;
+                padding: 0;
+            }
+            .product-list li {
+                margin-bottom: 10px;
+                padding: 10px;
+                border: 1px solid #eee;
+                border-radius: 4px;
+            }
+            .footer {
+                text-align: center;
+                margin-top: 20px;
+                font-size: 12px;
+                color: #666;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h2>New Diary Enquiry</h2>
+            </div>
+            <div class="content">
+                <table class="content-table">
+                    <tr><th>Full Name</th><td>${fullName}</td></tr>
+                    <tr><th>Company Name</th><td>${companyName}</td></tr>
+                    <tr><th>Phone</th><td>${phone}</td></tr>
+                    <tr><th>Email</th><td>${email}</td></tr>
+                    <tr><th>GST Number</th><td>${gst}</td></tr>
+                    <tr><th>Quantity</th><td>${quantity}</td></tr>
+                    <tr><th>Pincode</th><td>${pincode}</td></tr>
+                    <tr><th>Address</th><td>${address}</td></tr>
+                    <tr><th>Description</th><td>${description}</td></tr>
+                    <tr><th>Order Notes</th><td>${orderNotes}</td></tr>
+                </table>
+                
+                ${selectedProducts.length > 0 ? `
+                    <h3 style="color: #124559; margin-top: 20px;">Selected Products (${selectedProducts.length})</h3>
+                    <ul class="product-list">
+                        ${selectedProducts.map((prod: any) => `
+                            <li>
+                                <strong>${prod.name}</strong> - ${prod.currency || '₹'}${prod.price}<br>
+                                <small>Image Reference: ${prod.image}</small>
+                            </li>
+                        `).join('')}
+                    </ul>
+                ` : '<p><em>No specific products selected.</em></p>'}
+            </div>
+            <div class="footer">
+                <p>Submitted on: ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}</p>
+                <p>This is an automated message from your website enquiry form.</p>
+            </div>
+        </div>
+    </body>
+    </html>
     `;
     
     const mailOptions = {
       from: `"Gift Vibes Diaries" <${process.env.GMAIL_EMAIL}>`,  // Sender name
-      to: process.env.GMAIL_EMAIL,  // Your inbox
+      to: 'giftvibes.in@gmail.com',  // Your inbox
       replyTo: email,  // Allow replies to customer
-      subject: `New Product Enquiry: ${fullName} - ${selectedProducts.length > 0 ? `${selectedProducts.length} Products` : 'General Enquiry'}`,
+      subject: `New Diary Enquiry: ${fullName} - ${selectedProducts.length > 0 ? `${selectedProducts.length} Products` : 'General Enquiry'}`,
       html: htmlContent,
       attachments: attachments.length > 0 ? attachments : undefined,
     };

@@ -21,6 +21,7 @@ async function getProducts(): Promise<Product[]> {
   return products;
 }
 
+// Re-trigger build to fetch latest seeded data
 export default async function ShopPage() {
   const allDiaries = await getDiaries();
   const allProducts = await getProducts();

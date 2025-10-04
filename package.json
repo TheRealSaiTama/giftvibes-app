@@ -11,6 +11,9 @@
         "db:seed": "npx tsx prisma/seed.ts",
         "postinstall": "prisma generate"
     },
+    "prisma": {
+        "seed": "npx tsx prisma/seed.ts"
+    },
     "dependencies": {
         "@babel/parser": "^7.28.4",
         "@headlessui/react": "^2.2.8",

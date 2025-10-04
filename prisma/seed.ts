@@ -33,10 +33,18 @@ async function seedDiaries() {
         }
 
         const priceRange = record['Price Range'] ? record['Price Range'].replace('/-', '').trim().split(' - ') : ['0'];
-        const minPrice = parseInt(priceRange, 10);
+        const minPrice = parseInt(priceRange[0], 10);
         
-        await prisma.diary.create({
-          data: {
+        await prisma.diary.upsert({
+          where: { name: record['Product Name'] },
+          update: {
+            description: record['Short Description'],
+            price: isNaN(minPrice) ? 0 : minPrice,
+            imageUrl: record['Product image'],
+            category: record['Categories'],
+            tags: record['Tags'],
+          },
+          create: {
             name: record['Product Name'],
             description: record['Short Description'],
             price: isNaN(minPrice) ? 0 : minPrice,
@@ -81,18 +89,27 @@ async function seedProducts() {
                 }
 
                 const priceRange = record['Price Range'] ? record['Price Range'].replace('/-', '').trim().split(' - ') : ['0', '0'];
-                const minPrice = parseInt(priceRange, 10);
-                const maxPrice = parseInt(priceRange, 10);
+                const minPrice = parseInt(priceRange[0], 10);
+                const maxPrice = parseInt(priceRange[1] || priceRange[0], 10);
 
-                await prisma.product.create({
-                    data: {
+                await prisma.product.upsert({
+                    where: { name: record['Product Name'] },
+                    update: {
+                        description: record['Short Description'],
+                        minPrice: isNaN(minPrice) ? null : minPrice,
+                        maxPrice: isNaN(maxPrice) ? null : maxPrice,
+                        imageUrl: record['Product image'],
+                        tags: record['Tags'],
+                        category: record['Categories'] || 'Corporate Gift Set',
+                    },
+                    create: {
                         name: record['Product Name'],
                         description: record['Short Description'],
                         minPrice: isNaN(minPrice) ? null : minPrice,
                         maxPrice: isNaN(maxPrice) ? null : maxPrice,
                         imageUrl: record['Product image'],
                         tags: record['Tags'],
-                        category: record['Categories'] || 'Corporate Gift Set', // Default category
+                        category: record['Categories'] || 'Corporate Gift Set',
                     },
                 });
             }
@@ -107,9 +124,10 @@ async function seedProducts() {
 async function main() {
   console.log('Start seeding...');
   
-  console.log('Clearing existing data...');
-  await prisma.diary.deleteMany({});
-  await prisma.product.deleteMany({});
+  // By using upsert, we no longer need to delete all data.
+  // console.log('Clearing existing data...');
+  // await prisma.diary.deleteMany({});
+  // await prisma.product.deleteMany({});
   
   await seedDiaries();
   await seedProducts();
