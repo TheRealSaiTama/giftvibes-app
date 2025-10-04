@@ -92,17 +92,20 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, className }) => {
 };
 
 export default function TabbedProducts({ products: dbProducts }: { products: DbProduct[] }) {
-  const products: Product[] = dbProducts.map(p => ({
-    id: p.id,
-    name: p.name,
-    price: p.minPrice || 0,
-    description: p.description || '',
-    image: p.imageUrl || '/diary/placeholder.png', // a placeholder image
-    rating: 5, // hardcoded for now
-    reviewCount: 121, // hardcoded for now
-    currency: 'INR',
-    category: p.category,
-  }));
+  const products: Product[] = dbProducts.map(p => {
+    const imageUrl = p.imageUrl ? `/api/images/${p.imageUrl.replace(/g$/, '')}` : '/diary/placeholder.png';
+    return {
+      id: p.id,
+      name: p.name,
+      price: p.minPrice || 0,
+      description: p.description || '',
+      image: imageUrl,
+      rating: 5, // hardcoded for now
+      reviewCount: 121, // hardcoded for now
+      currency: 'INR',
+      category: p.category,
+    };
+  });
 
   const categories = [...new Set(products.map(p => p.category).filter(Boolean))];
   const productsByCategory = categories.reduce((acc, category) => {

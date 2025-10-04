@@ -1,25 +1,32 @@
 import Header from '@/components/sections/header';
 import Footer from '@/components/sections/footer';
-import { Diary } from '@prisma/client';
+import { Diary, Product } from '@prisma/client';
 import ShopClient from './ShopClient';
 
 async function getDiaries(): Promise<Diary[]> {
-  const { PrismaClient } = await import('@prisma/client');
-  const prisma = new PrismaClient();
+  const { prisma } = await import('@/lib/prisma');
   const diaries = await prisma.diary.findMany({
     orderBy: { price: 'asc' }
   });
-  await prisma.$disconnect();
   return diaries;
+}
+
+async function getProducts(): Promise<Product[]> {
+  const { prisma } = await import('@/lib/prisma');
+  const products = await prisma.product.findMany({
+    orderBy: { minPrice: 'asc' }
+  });
+  return products;
 }
 
 export default async function ShopPage() {
   const allDiaries = await getDiaries();
+  const allProducts = await getProducts();
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
-      <ShopClient initialDiaries={allDiaries} />
+      <ShopClient initialDiaries={allDiaries} initialProducts={allProducts} />
       <Footer />
     </div>
   );

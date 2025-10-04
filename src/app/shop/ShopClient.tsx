@@ -3,7 +3,18 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
-import { Diary } from '@prisma/client';
+import { Diary, Product } from '@prisma/client';
+
+type ShopProduct = {
+  id: number;
+  name: string;
+  description: string | null;
+  imageUrl: string | null;
+  category: string | null;
+  tags: string | null;
+  minPrice: number | null;
+  maxPrice: number | null;
+};
 
 interface Filters {
   category: string[];
@@ -14,31 +25,34 @@ interface Filters {
 }
 
 function getFileIdFromUrl(url: string): string | null {
+  if (!url || !url.includes('drive.google.com')) {
+    return null;
+  }
   const match = url.match(/file\/d\/(.+?)\//);
-  return match ? match[1] : null;
+  return match ? match : null;
 }
 
-function filterAndSortDiaries(diaries: Diary[], filters: Filters): Diary[] {
-  let filtered: Diary[] = diaries;
+function filterAndSortProducts(products: ShopProduct[], filters: Filters): ShopProduct[] {
+  let filtered: ShopProduct[] = products;
 
   if (filters.category.length > 0) {
-    filtered = filtered.filter((diary: Diary) => 
-      filters.category.some((cat: string) => diary.category.includes(cat))
+    filtered = filtered.filter((product: ShopProduct) => 
+      product.category && filters.category.some((cat: string) => product.category!.includes(cat))
     );
   }
 
   if (filters.minPrice > 0) {
-    filtered = filtered.filter((diary: Diary) => diary.price >= filters.minPrice);
+    filtered = filtered.filter((product: ShopProduct) => product.minPrice && product.minPrice >= filters.minPrice);
   }
 
   if (filters.maxPrice > 0) {
-    filtered = filtered.filter((diary: Diary) => diary.price <= filters.maxPrice);
+    filtered = filtered.filter((product: ShopProduct) => product.maxPrice && product.maxPrice <= filters.maxPrice);
   }
 
-  return filtered.sort((a: Diary, b: Diary) => {
+  return filtered.sort((a: ShopProduct, b: ShopProduct) => {
     let comparison = 0;
     if (filters.sortBy === 'price') {
-      comparison = a.price - b.price;
+      comparison = (a.minPrice || 0) - (b.minPrice || 0);
     } else {
       comparison = a.name.localeCompare(b.name);
     }
@@ -46,7 +60,7 @@ function filterAndSortDiaries(diaries: Diary[], filters: Filters): Diary[] {
   });
 }
 
-export default function ShopClient({ initialDiaries }: { initialDiaries: Diary[] }) {
+export default function ShopClient({ initialDiaries, initialProducts }: { initialDiaries: Diary[], initialProducts: Product[] }) {
   const [filters, setFilters] = useState<Filters>({
     category: [],
     minPrice: 0,
@@ -55,7 +69,21 @@ export default function ShopClient({ initialDiaries }: { initialDiaries: Diary[]
     sortOrder: 'asc',
   });
 
-  const results = useMemo(() => filterAndSortDiaries(initialDiaries, filters), [initialDiaries, filters]);
+  const combinedProducts = useMemo(() => {
+    const diariesAsProducts: ShopProduct[] = initialDiaries.map(diary => ({
+      ...diary,
+      minPrice: diary.price,
+      maxPrice: diary.price,
+    }));
+    const productsAsShopProducts: ShopProduct[] = initialProducts.map(product => ({
+        ...product,
+        minPrice: product.minPrice,
+        maxPrice: product.maxPrice,
+    }));
+    return [...diariesAsProducts, ...productsAsShopProducts];
+  }, [initialDiaries, initialProducts]);
+
+  const results = useMemo(() => filterAndSortProducts(combinedProducts, filters), [combinedProducts, filters]);
 
   const handleCategoryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { value, checked } = e.target;
@@ -90,7 +118,7 @@ export default function ShopClient({ initialDiaries }: { initialDiaries: Diary[]
     });
   };
 
-  const uniqueCategories = useMemo(() => Array.from(new Set(initialDiaries.map((d: Diary) => d.category))), [initialDiaries]);
+  const uniqueCategories = useMemo(() => Array.from(new Set(combinedProducts.map((p: ShopProduct) => p.category).filter(Boolean) as string[])), [combinedProducts]);
 
   return (
     <main className="container mx-auto px-4 py-12">
@@ -148,7 +176,7 @@ export default function ShopClient({ initialDiaries }: { initialDiaries: Diary[]
         <div className="lg:w-4/5 order-1 lg:order-2">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
             <h1 className="text-3xl md:text-4xl font-bold text-gray-800">
-              Our Diaries ({results.length})
+              Our Products ({results.length})
             </h1>
             <select
               className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary min-w-[180px]"
@@ -166,8 +194,8 @@ export default function ShopClient({ initialDiaries }: { initialDiaries: Diary[]
               <div className="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
                 <span className="text-3xl">📓</span>
               </div>
-              <h2 className="text-2xl font-semibold text-gray-600 mb-2">No diaries match your search</h2>
-              <p className="text-gray-500 mb-6">Try adjusting your filters or clearing them to see all diaries.</p>
+              <h2 className="text-2xl font-semibold text-gray-600 mb-2">No products match your search</h2>
+              <p className="text-gray-500 mb-6">Try adjusting your filters or clearing them to see all products.</p>
               <button 
                 onClick={clearFilters} 
                 className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
@@ -177,17 +205,17 @@ export default function ShopClient({ initialDiaries }: { initialDiaries: Diary[]
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {results.map((diary) => {
-                const fileId = getFileIdFromUrl(diary.imageUrl);
+              {results.map((product) => {
+                const fileId = product.imageUrl ? getFileIdFromUrl(product.imageUrl) : null;
                 const imageUrl = fileId ? `/api/images/${fileId}` : 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
 
                 return (
-                  <Link key={diary.id} href={`/shop/${diary.id}`} className="block group">
+                  <Link key={product.id} href={`/shop/${product.id}`} className="block group">
                     <article className="bg-white rounded-xl shadow-md hover:shadow-xl overflow-hidden transition-all duration-300 border border-gray-100 hover:border-primary/30">
                       <div className="relative h-56 bg-gradient-to-br from-gray-50 to-white overflow-hidden">
                         <Image
                           src={imageUrl}
-                          alt={diary.name}
+                          alt={product.name}
                           fill
                           className="object-cover group-hover:scale-105 transition-transform duration-500"
                           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
@@ -199,22 +227,19 @@ export default function ShopClient({ initialDiaries }: { initialDiaries: Diary[]
                       <div className="p-5">
                         <div className="flex items-center justify-between mb-3">
                           <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full font-medium">
-                            {diary.category.split(',')[0].trim()}
+                            {product.category?.split(',').map(c => c.trim())}
                           </span>
-                          {diary.color && (
-                            <span className="text-xs text-gray-500 capitalize">{diary.color}</span>
-                          )}
                         </div>
                         <h3 className="text-base font-semibold text-gray-800 line-clamp-2 mb-2 hover:text-primary transition-colors">
-                          {diary.name}
+                          {product.name}
                         </h3>
-                        {diary.description && (
+                        {product.description && (
                           <p className="text-sm text-gray-600 line-clamp-2 mb-3">
-                            {diary.description.substring(0, 80)}{diary.description.length > 80 ? '...' : ''}
+                            {product.description.substring(0, 80)}{product.description.length > 80 ? '...' : ''}
                           </p>
                         )}
                         <div className="flex items-center justify-between">
-                          <span className="text-xl font-bold text-gray-900">₹{diary.price.toLocaleString()}</span>
+                          <span className="text-xl font-bold text-gray-900">₹{product.minPrice?.toLocaleString()}</span>
                           <button className="px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-1">
                             Add to Cart
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
