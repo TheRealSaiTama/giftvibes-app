@@ -218,7 +218,16 @@ export default function ShopClient({ initialDiaries, initialProducts }: { initia
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {results.map((product) => {
-                const fileId = product.imageUrl ? getFileIdFromUrl(product.imageUrl) : null;
+                let imageIdentifier: string | null = null;
+                if (product.imageUrl) {
+                  // Try to parse it as a full URL first
+                  imageIdentifier = getFileIdFromUrl(product.imageUrl);
+                  // If that fails, assume it's a filename and use it directly
+                  if (!imageIdentifier) {
+                    imageIdentifier = product.imageUrl;
+                  }
+                }
+
                 const placeholderSvg = `
                   <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 800 600">
                     <defs>
@@ -231,7 +240,7 @@ export default function ShopClient({ initialDiaries, initialProducts }: { initia
                     <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="24" fill="#9e9e9e">No Image Available</text>
                   </svg>
                 `;
-                const imageUrl = fileId ? `/api/images/${fileId}` : `data:image/svg+xml;base64,${Buffer.from(placeholderSvg).toString('base64')}`;
+                const imageUrl = imageIdentifier ? `/api/images/${encodeURIComponent(imageIdentifier)}` : `data:image/svg+xml;base64,${Buffer.from(placeholderSvg).toString('base64')}`;
 
                 return (
                   <Link key={product.id} href={`/shop/${product.id}`} className="block group">
