@@ -7,16 +7,10 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { fileId: string } }
 ) {
-  const fileName = decodeURIComponent(params.fileId);
+  const param = decodeURIComponent(params.fileId);
 
-  if (!fileName) {
-    return new NextResponse('File name is required', { status: 400 });
-  }
-
-  const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
-  if (!folderId) {
-    console.error("GOOGLE_DRIVE_FOLDER_ID is not set");
-    return new NextResponse('Server configuration error', { status: 500 });
+  if (!param) {
+    return new NextResponse('File identifier is required', { status: 400 });
   }
 
   try {
@@ -28,23 +22,39 @@ export async function GET(
 
     const drive = google.drive({ version: 'v3', auth });
 
-    const listResponse = await drive.files.list({
-      q: `name='${fileName}' and '${folderId}' in parents and trashed=false`,
-      fields: 'files(id)',
-      spaces: 'drive',
-    });
+    let fileIdToFetch: string | null = null;
 
-    if (!listResponse.data.files || listResponse.data.files.length === 0) {
-      return new NextResponse(`File not found in Drive: ${fileName}`, { status: 404 });
+    // Heuristic to check if the param is a File ID or a filename.
+    // Google Drive File IDs are typically alphanumeric (with - and _) and longer than 20 chars.
+    const isFileId = /^[a-zA-Z0-9_-]{20,}$/.test(param);
+
+    if (isFileId) {
+      fileIdToFetch = param;
+    } else {
+      // It's a filename, so search for it in the specified folder.
+      const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
+      if (!folderId) {
+        console.error("GOOGLE_DRIVE_FOLDER_ID is not set");
+        return new NextResponse('Server configuration error: Missing folder ID', { status: 500 });
+      }
+      
+      const listResponse = await drive.files.list({
+        q: `name='${param}' and '${folderId}' in parents and trashed=false`,
+        fields: 'files(id)',
+        spaces: 'drive',
+      });
+
+      if (listResponse.data.files && listResponse.data.files.length > 0) {
+        fileIdToFetch = listResponse.data.files[0].id ?? null;
+      }
     }
 
-    const fileId = listResponse.data.files[0].id;
-    if (!fileId) {
-        return new NextResponse(`File ID not found for: ${fileName}`, { status: 404 });
+    if (!fileIdToFetch) {
+      return new NextResponse(`File not found for identifier: ${param}`, { status: 404 });
     }
 
     const fileResponse = await drive.files.get(
-      { fileId: fileId, alt: 'media' },
+      { fileId: fileIdToFetch, alt: 'media' },
       { responseType: 'stream' }
     );
 
@@ -59,7 +69,11 @@ export async function GET(
       headers,
     });
 
-  } catch (error) {
+  } catch (error: any) {
+    // If the error is a 404 from Google API, it's a file not found error.
+    if (error.code === 404) {
+      return new NextResponse(`File not found in Drive for identifier: ${param}`, { status: 404 });
+    }
     console.error('Error fetching image from Google Drive:', error);
     return new NextResponse('Error fetching image', { status: 500 });
   }
