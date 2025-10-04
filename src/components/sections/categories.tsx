@@ -100,7 +100,7 @@ const categoryData: Category[] = [
 
 const Categories = () => {
   return (
-    <section className="bg-white py-[100px]">
+    <section id="our-products" className="bg-white py-[100px]">
       <div className="container">
         <div className="section-title-wrap">
           <motion.h3

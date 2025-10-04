@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Dialog,
   DialogTrigger,
@@ -21,6 +21,16 @@ import {
 import { EnquiryFormContent } from "./enquiry-modal";
 import { useSelectedProducts } from '@/context/ProductContext';
 import { Badge } from '@/components/ui/badge';
+
+type SearchResultItem = {
+  id: number;
+  name: string;
+  minPrice: number | null;
+  maxPrice: number | null;
+  imageUrl: string;
+  path: string;
+  source: "diary" | "product";
+};
 
 const megaMenuItems = [
   { name: 'CORPORATE GIFT SETS', items: 'Premium Packages Available', image: '/Giftvibes categories/CORPORATE GIFTSETS.png' },
@@ -40,6 +50,118 @@ const megaMenuItems = [
 const Header = () => {
   const [isEnquiryModalOpen, setIsEnquiryModalOpen] = React.useState(false);
   const { selectedProducts, clearSelected } = useSelectedProducts();
+  const router = useRouter();
+
+  const [searchTerm, setSearchTerm] = React.useState("");
+  const [searchResults, setSearchResults] = React.useState<SearchResultItem[]>([]);
+  const [searchLoading, setSearchLoading] = React.useState(false);
+  const [isSearchOpen, setIsSearchOpen] = React.useState(false);
+  const searchAbortRef = React.useRef<AbortController | null>(null);
+  const blurTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  React.useEffect(() => {
+    return () => {
+      searchAbortRef.current?.abort();
+      if (blurTimeoutRef.current) {
+        clearTimeout(blurTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  React.useEffect(() => {
+    if (searchAbortRef.current) {
+      searchAbortRef.current.abort();
+      searchAbortRef.current = null;
+    }
+
+    const trimmed = searchTerm.trim();
+    if (!trimmed) {
+      setSearchResults([]);
+      setSearchLoading(false);
+      return;
+    }
+
+    setSearchLoading(true);
+    const timer = setTimeout(async () => {
+      const controller = new AbortController();
+      searchAbortRef.current = controller;
+
+      try {
+        const response = await fetch(`/api/search?q=${encodeURIComponent(trimmed)}`, {
+          signal: controller.signal,
+          cache: "no-store",
+        });
+
+        if (!response.ok) {
+          throw new Error(`Search request failed: ${response.status}`);
+        }
+
+        const data = await response.json();
+        setSearchResults(Array.isArray(data?.results) ? data.results : []);
+      } catch (error: any) {
+        if (error?.name !== "AbortError") {
+          console.error("Search request error", error);
+          setSearchResults([]);
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setSearchLoading(false);
+        }
+      }
+    }, 250);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [searchTerm]);
+
+  const handleResultSelect = React.useCallback((item: SearchResultItem) => {
+    setIsSearchOpen(false);
+    setSearchTerm("");
+    setSearchResults([]);
+    router.push(item.path);
+  }, [router]);
+
+  const formatPriceLabel = React.useCallback((item: Pick<SearchResultItem, "minPrice" | "maxPrice">) => {
+    const { minPrice, maxPrice } = item;
+    if (typeof minPrice === "number" && typeof maxPrice === "number" && minPrice !== maxPrice) {
+      return `₹${minPrice.toLocaleString()} – ₹${maxPrice.toLocaleString()}`;
+    }
+    if (typeof minPrice === "number") {
+      return `₹${minPrice.toLocaleString()}`;
+    }
+    if (typeof maxPrice === "number") {
+      return `₹${maxPrice.toLocaleString()}`;
+    }
+    return "Price on request";
+  }, []);
+
+  const handleSearchSubmit = React.useCallback((event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (searchResults.length > 0) {
+      handleResultSelect(searchResults[0]);
+      return;
+    }
+    const trimmed = searchTerm.trim();
+    if (trimmed) {
+      setIsSearchOpen(false);
+      router.push(`/shop?search=${encodeURIComponent(trimmed)}`);
+    }
+  }, [handleResultSelect, router, searchResults, searchTerm]);
+
+  const handleInputBlur = React.useCallback(() => {
+    if (blurTimeoutRef.current) {
+      clearTimeout(blurTimeoutRef.current);
+    }
+    blurTimeoutRef.current = setTimeout(() => setIsSearchOpen(false), 150);
+  }, []);
+
+  const handleInputFocus = React.useCallback(() => {
+    if (blurTimeoutRef.current) {
+      clearTimeout(blurTimeoutRef.current);
+    }
+    setIsSearchOpen(true);
+  }, []);
 
   return (
     <header className="sticky top-0 z-50 bg-white">
@@ -98,19 +220,77 @@ const Header = () => {
               </DropdownMenuContent>
             </DropdownMenu>
             <Link href="/shop" className="hover:text-primary transition-colors">Shop</Link>
-            <Link href="#" className="hover:text-primary transition-colors">Bulk Orders</Link>
-            <Link href="#" className="hover:text-primary transition-colors">Custom Design</Link>
-            <Link href="#" className="hover:text-primary transition-colors">Quick Delivery</Link>
+            <Link href="#our-products" className="hover:text-primary transition-colors">Bulk Orders</Link>
+            <Link href="/custom-design" className="hover:text-primary transition-colors">Custom Design</Link>
+            <Link href="#about" className="hover:text-primary transition-colors">About Us</Link>
           </nav>
 
           <div className="flex items-center gap-6">
             <div className="relative hidden xl:block w-[300px]">
-              <Input 
-                type="search" 
-                placeholder="Search Diaries & Gifts" 
-                className="w-full rounded-md pr-10 h-11 border-gray-200 focus:border-ring focus:ring-ring"
-              />
-              <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <form onSubmit={handleSearchSubmit} className="relative">
+                <Input
+                  type="search"
+                  value={searchTerm}
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                  onFocus={handleInputFocus}
+                  onBlur={handleInputBlur}
+                  placeholder="Search Diaries & Gifts"
+                  className="w-full rounded-md pr-10 h-11 border-gray-200 focus:border-ring focus:ring-ring"
+                  aria-label="Search diaries and gifts"
+                />
+                <button
+                  type="submit"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-primary transition-colors"
+                  aria-label="Submit search"
+                >
+                  <Search className="w-5 h-5" />
+                </button>
+              </form>
+
+              {isSearchOpen && (searchLoading || searchResults.length > 0 || searchTerm.trim().length > 0) && (
+                <div
+                  className="absolute left-0 right-0 mt-2 rounded-lg border border-gray-200 bg-white shadow-lg overflow-hidden"
+                  onMouseDown={(event) => event.preventDefault()}
+                >
+                  <div className="max-h-80 overflow-y-auto">
+                    {searchLoading && (
+                      <div className="flex items-center justify-center py-6 text-sm text-gray-500">
+                        Searching…
+                      </div>
+                    )}
+
+                    {!searchLoading && searchResults.length === 0 && searchTerm.trim().length > 0 && (
+                      <div className="px-4 py-6 text-sm text-gray-500">No results found</div>
+                    )}
+
+                    {!searchLoading && searchResults.map((item) => (
+                      <button
+                        key={`${item.source}-${item.id}`}
+                        type="button"
+                        onClick={() => handleResultSelect(item)}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 transition-colors"
+                      >
+                        <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-md bg-gray-100">
+                          <Image
+                            src={item.imageUrl || "/file.svg"}
+                            alt={item.name}
+                            fill
+                            sizes="48px"
+                            className="object-cover"
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="truncate text-sm font-medium text-gray-900">{item.name}</p>
+                          <p className="text-xs text-gray-500">{formatPriceLabel(item)}</p>
+                        </div>
+                        <span className="text-[10px] uppercase tracking-wide text-gray-400">
+                          {item.source === "product" ? "Product" : "Diary"}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             <Dialog open={isEnquiryModalOpen} onOpenChange={setIsEnquiryModalOpen}>

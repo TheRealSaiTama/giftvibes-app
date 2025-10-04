@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation';
 import ProductGallery from '@/components/product/ProductGallery';
 import ProductInfo from '@/components/product/ProductInfo';
 import RelatedProducts from '@/components/product/RelatedProducts';
+import { getPriceOverride } from '@/lib/price-overrides';
 
 async function getProduct(id: string): Promise<any | null> {
   const fs = await import('fs');
@@ -43,12 +44,16 @@ async function getProduct(id: string): Promise<any | null> {
           const minPrice = prices[0];
           const maxPrice = prices.length > 1 ? prices[1] : prices[0];
 
+          const override = getPriceOverride(record['Product Name']);
+          const computedMin = isNaN(minPrice) ? null : minPrice;
+          const computedMax = isNaN(maxPrice) ? null : maxPrice;
+
           return {
             id: idCounter,
             name: record['Product Name'],
             description: record['Short Description'],
-            minPrice: isNaN(minPrice) ? null : minPrice,
-            maxPrice: isNaN(maxPrice) ? null : maxPrice,
+            minPrice: override?.minPrice ?? computedMin,
+            maxPrice: override?.maxPrice ?? computedMax,
             imageUrl: record['Product image'],
             category: record['Categories'],
             tags: record['Tags'],
@@ -59,6 +64,23 @@ async function getProduct(id: string): Promise<any | null> {
       }
     } catch (error) {
       console.error(`Error reading diary CSV (${file}):`, error);
+    }
+  }
+
+  if (!Number.isNaN(productId)) {
+    const { prisma } = await import('@/lib/prisma');
+    const dbProduct = await prisma.product.findUnique({ where: { id: productId } });
+    if (dbProduct) {
+      return {
+        id: dbProduct.id,
+        name: dbProduct.name,
+        description: dbProduct.description,
+        minPrice: dbProduct.minPrice ?? null,
+        maxPrice: dbProduct.maxPrice ?? null,
+        imageUrl: dbProduct.imageUrl ?? '',
+        category: dbProduct.category,
+        tags: dbProduct.tags,
+      };
     }
   }
 
@@ -102,12 +124,16 @@ async function getRelatedProducts(category: string, currentId: number): Promise<
           const minPrice = prices[0];
           const maxPrice = prices.length > 1 ? prices[1] : prices[0];
 
+          const override = getPriceOverride(record['Product Name']);
+          const computedMin = isNaN(minPrice) ? null : minPrice;
+          const computedMax = isNaN(maxPrice) ? null : maxPrice;
+
           relatedProducts.push({
             id: idCounter,
             name: record['Product Name'],
             description: record['Short Description'],
-            minPrice: isNaN(minPrice) ? null : minPrice,
-            maxPrice: isNaN(maxPrice) ? null : maxPrice,
+            minPrice: override?.minPrice ?? computedMin,
+            maxPrice: override?.maxPrice ?? computedMax,
             imageUrl: record['Product image'],
             category: record['Categories'],
             tags: record['Tags'],
@@ -122,6 +148,31 @@ async function getRelatedProducts(category: string, currentId: number): Promise<
       }
     } catch (error) {
       console.error(`Error reading diary CSV (${file}):`, error);
+    }
+  }
+
+  if (relatedProducts.length < 8 && category) {
+    const { prisma } = await import('@/lib/prisma');
+    const remaining = 8 - relatedProducts.length;
+    const dbRelated = await prisma.product.findMany({
+      where: {
+        id: { not: currentId },
+        category: { contains: category, mode: 'insensitive' },
+      },
+      take: remaining,
+    });
+
+    for (const item of dbRelated) {
+      relatedProducts.push({
+        id: item.id,
+        name: item.name,
+        description: item.description,
+        minPrice: item.minPrice ?? null,
+        maxPrice: item.maxPrice ?? null,
+        imageUrl: item.imageUrl ?? '',
+        category: item.category,
+        tags: item.tags,
+      });
     }
   }
 

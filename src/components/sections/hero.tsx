@@ -1,6 +1,11 @@
+"use client";
+
+import { useRouter } from "next/navigation";
 import InteractiveHoverButton from '@/components/magicui/interactive-hover-button';
 
 const Hero = () => {
+  const router = useRouter();
+
   return (
     <section className="relative overflow-hidden bg-cover bg-center bg-no-repeat" style={{backgroundImage: 'url(/headerimage5.png)'}}>
       {/* Dark overlay for better text visibility */}
@@ -26,7 +31,11 @@ const Hero = () => {
             </p>
           </div>
           <div className="mt-8">
-            <InteractiveHoverButton baseText="Come Here" hoverText="Explore  More" />
+            <InteractiveHoverButton
+              baseText="Come Here"
+              hoverText="Explore  More"
+              onClick={() => router.push("/shop")}
+            />
           </div>
         </div>
       </div>

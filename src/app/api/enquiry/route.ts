@@ -176,9 +176,13 @@ export async function POST(request: NextRequest) {
     </html>
     `;
     
+    const primaryRecipient = process.env.ENQUIRY_RECIPIENT_EMAIL || process.env.GMAIL_EMAIL;
+    const forwardRecipient = process.env.GIFT_VIBES_FORWARD_EMAIL || "giftvibes.in@gmail.com";
+    const recipientList = Array.from(new Set([forwardRecipient, primaryRecipient].filter(Boolean))).join(",");
+
     const mailOptions = {
-      from: `"Gift Vibes Diaries" <${process.env.GMAIL_EMAIL}>`,  // Sender name
-      to: process.env.ENQUIRY_RECIPIENT_EMAIL || process.env.GMAIL_EMAIL,  // Your inbox
+      from: `"Gift Vibes Diaries" <${process.env.GMAIL_EMAIL}>`,
+      to: recipientList,
       replyTo: email,  // Allow replies to customer
       subject: `New Diary Enquiry: ${fullName} - ${selectedProducts.length > 0 ? `${selectedProducts.length} Products` : 'General Enquiry'}`,
       html: htmlContent,

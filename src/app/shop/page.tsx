@@ -2,6 +2,7 @@ import Header from '@/components/sections/header';
 import Footer from '@/components/sections/footer';
 import { Product } from '@prisma/client';
 import ShopClient from './ShopClient';
+import { getPriceOverride } from '@/lib/price-overrides';
 
 async function getDiaries(): Promise<any[]> {
   const fs = await import('fs');
@@ -40,12 +41,16 @@ async function getDiaries(): Promise<any[]> {
         const minPrice = prices[0];
         const maxPrice = prices.length > 1 ? prices[1] : prices[0];
 
+        const override = getPriceOverride(record['Product Name']);
+        const computedMin = isNaN(minPrice) ? null : minPrice;
+        const computedMax = isNaN(maxPrice) ? null : maxPrice;
+
         diaries.push({
           id: idCounter++,
           name: record['Product Name'],
           description: record['Short Description'],
-          minPrice: isNaN(minPrice) ? null : minPrice,
-          maxPrice: isNaN(maxPrice) ? null : maxPrice,
+          minPrice: override?.minPrice ?? computedMin,
+          maxPrice: override?.maxPrice ?? computedMax,
           imageUrl: record['Product image'],
           category: record['Categories'],
           tags: record['Tags'],

@@ -42,7 +42,7 @@ const GiftVibeAbout = () => {
   // Features moved to dedicated WhyChooseUsSection component
 
   return (
-    <div className="relative bg-white overflow-hidden">
+    <div id="about" className="relative bg-white overflow-hidden">
       {/* Sophisticated Midnight Green Background Effects */}
       <div className="absolute inset-0 overflow-hidden">
         {/* Elegant gradient orbs with midnight green theme */}

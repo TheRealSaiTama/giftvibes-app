@@ -7,35 +7,43 @@ import type { Product } from '@/types/Product';
 
 const products: Product[] = [
   {
-    id: 1,
-    name: 'NEXA ECO Paper Diary 2026',
-    price: 106.0,
-    description: 'Eco‑friendly 2026 diary with premium PU cover, 80 GSM ruled pages, and ribbon bookmark.',
-    image: '/diary/image.png',
+    id: 1001,
+    name: 'Management Premium PU Leather Diary 2026',
+    price: 240,
+    minPrice: 240,
+    maxPrice: 300,
+    description: 'Magnetic flap executive diary with soft-touch PU cover and premium natural shade paper.',
+    image: 'https://drive.google.com/uc?id=11sbS-XW7D6BsdoMYkXkINTHFsxp2NVx-',
     currency: 'INR',
   },
   {
-    id: 2,
-    name: 'Prime A5 Premium Leather Diary 2026',
-    price: 125.00,
-    description: 'Premium A5 leather diary with soft-touch cover, 100 GSM ruled pages, elastic closure, pen loop, and ribbon bookmark.',
-    image: '/diary/2026.png',
+    id: 1002,
+    name: 'DIRECTORS Premium Leather Diary 2026',
+    price: 172,
+    minPrice: 172,
+    maxPrice: 195,
+    description: 'Director edition PU leather diary with sponge padding and elegant magnetic flap finish.',
+    image: 'https://drive.google.com/uc?id=1YqUkhJ9YX33wuuJcH_qGCaAsZ0GIDNNZ',
     currency: 'INR',
   },
   {
-    id: 3,
-    name: 'Regular Leather Engineering Diary 2026',
-    price: 140.00,
-    description: 'Classic hardbound PU leather engineering diary with 100 GSM ruled pages, monthly planner and index, ribbon bookmark.',
-    image: '/diary/regularleather.png',
+    id: 1003,
+    name: 'Heritage Leather Executive Diary 2026',
+    price: 137,
+    minPrice: 137,
+    maxPrice: 153,
+    description: 'Heritage inspired PU leather diary with foam padding and one-date-per-page layout.',
+    image: 'https://drive.google.com/uc?id=1ntl6n5DQpoF-FkfxYO1Rs49nJHl-NWsF',
     currency: 'INR',
   },
   {
-    id: 4,
-    name: 'Blue Ocean Leather Diary With Magnet Flap',
-    price: 155.00,
-    description: 'Premium blue PU leather diary with magnetic flap closure, stitched edges, 100 GSM ruled pages and ribbon bookmark.',
-    image: '/diary/blueocean.png',
+    id: 1004,
+    name: 'Paipin Brown Executive Leather Diary',
+    price: 154,
+    minPrice: 154,
+    maxPrice: 176,
+    description: 'Two-tone brown magnetic flap diary crafted in soft PU with premium writing paper.',
+    image: 'https://drive.google.com/uc?id=1lfIN2mDTjNwAMYX1xbnPBkqkl95OTuzL',
     currency: 'INR',
   },
 ];
@@ -77,9 +85,21 @@ const ProductCard = ({ product }: { product: Product }) => {
       <div className="p-6 flex flex-col flex-grow">
         <div className="flex justify-between items-start mb-1.5">
           <h3 className="text-[18px] font-semibold text-dark-gray leading-tight mr-2">{product.name}</h3>
-          <p className="price-text whitespace-nowrap">{product.currency === 'INR' ? '₹' : '$'}{product.price.toFixed(2)}</p>
+          <p className="price-text whitespace-nowrap">
+            {(() => {
+              const hasRange = typeof product.minPrice === 'number' && typeof product.maxPrice === 'number' && product.minPrice !== product.maxPrice;
+              const baseValue = typeof product.minPrice === 'number' ? product.minPrice : product.price;
+              if (hasRange) {
+                return `${product.currency === 'INR' ? '₹' : '$'}${product.minPrice!.toLocaleString()} – ${product.currency === 'INR' ? '₹' : '$'}${product.maxPrice!.toLocaleString()}`;
+              }
+              if (typeof baseValue === 'number' && !Number.isNaN(baseValue)) {
+                return `${product.currency === 'INR' ? '₹' : '$'}${baseValue.toLocaleString()}`;
+              }
+              return 'On request';
+            })()}
+          </p>
         </div>
-        <p className="text-sm text-medium-gray mb-3.5 h-10">{product.description}</p>
+        <p className="text-sm text-medium-gray mb-3.5">{product.description}</p>
         <div className="flex items-center mb-5">
           <div className="flex items-center">
             {Array(5).fill(0).map((_, i) => (
