@@ -91,17 +91,48 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, className }) => {
   );
 };
 
+function getFileIdFromUrl(url: string): string | null {
+  if (!url) return null;
+  const regex = /(?:\/d\/|\?id=|&id=)([a-zA-Z0-9_-]{28,})/;
+  const match = url.match(regex);
+  return match ? match[1] : null;
+}
+
 export default function TabbedProducts({ products: dbProducts }: { products: DbProduct[] }) {
   const products: Product[] = dbProducts.map(p => {
-    const imageUrl = p.imageUrl ? `/api/images/${p.imageUrl.replace(/g$/, '')}` : '/diary/placeholder.png';
+    let imageIdentifier: string | null = null;
+    const url = p.imageUrl?.trim();
+    if (url) {
+      if (url.includes('drive.google.com')) {
+        imageIdentifier = getFileIdFromUrl(url);
+      } else {
+        imageIdentifier = url;
+      }
+    }
+    
+    const placeholderSvg = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 800 600">
+        <defs>
+          <pattern id="p" width="100" height="100" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <path d="M50 0 v100 M0 50 h100" stroke="#e0e0e0" stroke-width="1"/>
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="#f5f5f5"/>
+        <rect width="100%" height="100%" fill="url(#p)"/>
+        <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="24" fill="#9e9e9e">No Image Available</text>
+      </svg>
+    `;
+
+    const imageUrl = imageIdentifier ? `/api/images/${imageIdentifier}` : `data:image/svg+xml;base64,${Buffer.from(placeholderSvg).toString('base64')}`;
+
     return {
       id: p.id,
       name: p.name,
       price: p.minPrice || 0,
       description: p.description || '',
       image: imageUrl,
-      rating: 5, // hardcoded for now
-      reviewCount: 121, // hardcoded for now
+      rating: 5,
+      reviewCount: 121,
       currency: 'INR',
       category: p.category,
     };
