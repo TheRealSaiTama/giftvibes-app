@@ -16,6 +16,7 @@ import { useState } from "react";
 import {
   Dialog,
   DialogTrigger,
+  DialogContent, // Make sure to import DialogContent
 } from "@/components/ui/dialog";
 import { EnquiryFormContent } from "./enquiry-modal";
 import { useSelectedProducts } from '@/context/ProductContext';
@@ -37,7 +38,7 @@ const megaMenuItems = [
 ];
 
 const Header = () => {
-  const [open, setOpen] = React.useState(false);
+  const [isEnquiryModalOpen, setIsEnquiryModalOpen] = React.useState(false);
   const { selectedProducts, clearSelected } = useSelectedProducts();
 
   return (
@@ -117,33 +118,27 @@ const Header = () => {
               <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
             </div>
 
-            <div className="flex items-center gap-4">
-              <Dialog open={open} onOpenChange={setOpen}>
-                <DialogTrigger asChild>
-                  <Button variant="ghost" size="sm" className="nav-text flex items-center gap-2 hover:text-primary transition-colors">
-                    <MessageCircle className="w-5 h-5" />
-                    <span className="hidden md:inline">Enquiry</span>
-                  </Button>
-                </DialogTrigger>
-                <EnquiryFormContent open={open} onOpenChange={setOpen} selectedProducts={[]} />
-              </Dialog>
-              {(() => {
-                const count = selectedProducts.length;
-                if (count === 0) return null;
-                return (
-                  <Dialog open={open} onOpenChange={setOpen}>
-                    <DialogTrigger asChild>
-                      <Button variant="ghost" size="sm" className="nav-text flex items-center gap-2 hover:text-primary transition-colors relative">
-                        <MessageCircle className="w-5 h-5" />
-                        <span className="hidden md:inline pr-0">Enquire Selected ({count})</span>
-                        <Badge className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] h-4 w-4 flex items-center justify-center">{count}</Badge>
-                      </Button>
-                    </DialogTrigger>
-                    <EnquiryFormContent open={open} onOpenChange={setOpen} selectedProducts={selectedProducts} onSubmitAfter={() => clearSelected()} />
-                  </Dialog>
-                );
-              })()}
-            </div>
+            <Dialog open={isEnquiryModalOpen} onOpenChange={setIsEnquiryModalOpen}>
+              <DialogTrigger asChild>
+                <Button variant="ghost" size="sm" className="nav-text flex items-center gap-2 hover:text-primary transition-colors relative">
+                  <MessageCircle className="w-5 h-5" />
+                  <span className="hidden md:inline">Enquiry</span>
+                  {selectedProducts.length > 0 && (
+                    <Badge className="absolute -top-2 -right-2 bg-red-500 text-white h-5 w-5 flex items-center justify-center p-0">
+                      {selectedProducts.length}
+                    </Badge>
+                  )}
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <EnquiryFormContent 
+                  open={isEnquiryModalOpen} 
+                  onOpenChange={setIsEnquiryModalOpen} 
+                  selectedProducts={selectedProducts} 
+                  onSubmitAfter={clearSelected} 
+                />
+              </DialogContent>
+            </Dialog>
             
             <button className="lg:hidden">
               <Menu className="h-6 w-6 text-dark-gray" />

@@ -7,6 +7,7 @@ import { Diary, Product } from '@prisma/client';
 import { EnquiryFormContent } from '@/components/sections/enquiry-modal'; // Assuming this is the correct path
 import { Dialog, DialogTrigger, DialogContent } from '@/components/ui/dialog';
 import type { Product as ProductType } from '@/types/Product';
+import { useSelectedProducts } from '@/context/ProductContext';
 
 type ShopProduct = {
   id: number;
@@ -77,26 +78,37 @@ export default function ShopClient({ initialDiaries, initialProducts }: { initia
     sortOrder: 'asc',
   });
 
-  const [selectedProducts, setSelectedProducts] = useState<ShopProduct[]>([]);
+  const {
+    selectedProducts,
+    selectProduct,
+    deselectProduct,
+    isSelected,
+    clearSelected,
+  } = useSelectedProducts();
   const [isEnquiryModalOpen, setIsEnquiryModalOpen] = useState(false);
 
   const handleProductSelect = (product: ShopProduct) => {
-    setSelectedProducts((prevSelected) => {
-      const isSelected = prevSelected.find((p) => p.id === product.id);
-      if (isSelected) {
-        return prevSelected.filter((p) => p.id !== product.id);
-      } else {
-        return [...prevSelected, product];
-      }
-    });
+    if (isSelected(product.id)) {
+      deselectProduct(product.id);
+    } else {
+      selectProduct({
+        id: product.id,
+        name: product.name,
+        image: product.imageUrl || '',
+        price: product.minPrice || 0,
+        currency: 'INR',
+        description: product.description || '',
+        category: product.category,
+      });
+    }
   };
 
   const formattedSelectedProducts: ProductType[] = useMemo(() => {
     return selectedProducts.map(p => ({
       id: p.id,
       name: p.name,
-      image: p.imageUrl || '',
-      price: p.minPrice || 0,
+      image: p.image || '',
+      price: p.price,
       currency: 'INR', // Assuming INR, adjust if needed
       description: p.description || '',
       category: p.category,
@@ -274,8 +286,6 @@ export default function ShopClient({ initialDiaries, initialProducts }: { initia
                   `;
                   const imageUrl = imageIdentifier ? `/api/images/${imageIdentifier}` : `data:image/svg+xml;base64,${Buffer.from(placeholderSvg).toString('base64')}`;
 
-                  const isSelected = selectedProducts.some((p) => p.id === product.id);
-
                   return (
                     <article key={product.id} className="bg-white rounded-xl shadow-md hover:shadow-xl overflow-hidden transition-all duration-300 border border-gray-100 hover:border-primary/30">
                       <Link href={`/shop/${product.id}`} className="block group">
@@ -311,12 +321,12 @@ export default function ShopClient({ initialDiaries, initialProducts }: { initia
                           <button 
                             onClick={() => handleProductSelect(product)}
                             className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors flex items-center gap-1 ${
-                              isSelected
+                              isSelected(product.id)
                                 ? 'bg-green-600 text-white hover:bg-green-700'
                                 : 'bg-primary text-white hover:bg-primary/90'
                             }`}
                           >
-                            {isSelected ? 'Selected' : 'Enquire Now'}
+                            {isSelected(product.id) ? 'Selected' : 'Enquire Now'}
                           </button>
                         </div>
                       </div>
@@ -331,8 +341,8 @@ export default function ShopClient({ initialDiaries, initialProducts }: { initia
           <EnquiryFormContent 
             open={isEnquiryModalOpen} 
             onOpenChange={setIsEnquiryModalOpen} 
-            selectedProducts={formattedSelectedProducts}
-            onSubmitAfter={() => setSelectedProducts([])}
+            selectedProducts={selectedProducts}
+            onSubmitAfter={clearSelected}
           />
         </DialogContent>
       </Dialog>
