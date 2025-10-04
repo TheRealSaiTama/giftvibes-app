@@ -235,7 +235,7 @@ export default function ShopClient({ initialDiaries, initialProducts }: { initia
                     <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="24" fill="#9e9e9e">No Image Available</text>
                   </svg>
                 `;
-                const imageUrl = imageIdentifier ? `/api/images/${encodeURIComponent(imageIdentifier)}` : `data:image/svg+xml;base64,${Buffer.from(placeholderSvg).toString('base64')}`;
+                const imageUrl = imageIdentifier ? `/api/images/${imageIdentifier}` : `data:image/svg+xml;base64,${Buffer.from(placeholderSvg).toString('base64')}`;
 
                 return (
                   <Link key={product.id} href={`/shop/${product.id}`} className="block group">
