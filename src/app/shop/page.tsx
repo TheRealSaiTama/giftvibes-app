@@ -6,7 +6,8 @@ import ShopClient from './ShopClient';
 async function getDiaries(): Promise<Diary[]> {
   const { prisma } = await import('@/lib/prisma');
   const diaries = await prisma.diary.findMany({
-    orderBy: { price: 'asc' }
+    orderBy: { price: 'asc' },
+    take: 1000,
   });
   return diaries;
 }
@@ -14,7 +15,8 @@ async function getDiaries(): Promise<Diary[]> {
 async function getProducts(): Promise<Product[]> {
   const { prisma } = await import('@/lib/prisma');
   const products = await prisma.product.findMany({
-    orderBy: { minPrice: 'asc' }
+    orderBy: { minPrice: 'asc' },
+    take: 1000,
   });
   return products;
 }
