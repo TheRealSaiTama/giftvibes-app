@@ -77,6 +77,15 @@ export default function ShopClient({ initialDiaries, initialProducts }: { initia
     sortBy: 'price',
     sortOrder: 'asc',
   });
+  const pricePresets = useMemo(
+    () => [
+      { label: 'Under ₹200', min: 0, max: 200 },
+      { label: '₹200 - ₹350', min: 200, max: 350 },
+      { label: '₹350 - ₹500', min: 350, max: 500 },
+      { label: '₹500+', min: 500, max: 0 },
+    ],
+    []
+  );
 
   const {
     selectedProducts,
@@ -149,6 +158,14 @@ export default function ShopClient({ initialDiaries, initialProducts }: { initia
     }));
   };
 
+  const handlePresetSelect = (min: number, max: number) => {
+    setFilters((prev) => ({
+      ...prev,
+      minPrice: min,
+      maxPrice: max,
+    }));
+  };
+
   const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const [sortBy, sortOrder] = e.target.value.split('-') as ['name' | 'price', 'asc' | 'desc'];
     setFilters((prevFilters: Filters) => ({ ...prevFilters, sortBy, sortOrder }));
@@ -170,53 +187,94 @@ export default function ShopClient({ initialDiaries, initialProducts }: { initia
     <main className="container mx-auto px-4 py-12">
       <Dialog open={isEnquiryModalOpen} onOpenChange={setIsEnquiryModalOpen}>
         <div className="flex flex-col lg:flex-row gap-8">
-          <aside className="lg:w-1/5 order-2 lg:order-1">
-            <div className="bg-white rounded-xl shadow-lg p-6 sticky top-4">
-              <h2 className="text-2xl font-bold text-gray-800 mb-6">Filters</h2>
-              <div className="space-y-6">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-700 mb-3">Category</h3>
-                  <div className="space-y-2 max-h-48 overflow-y-auto">
-                    {uniqueCategories.map((cat) => (
-                      <label key={cat} className="flex items-center cursor-pointer p-1 rounded hover:bg-gray-50">
+          <aside className="lg:w-72 order-2 lg:order-1">
+            <div className="sticky top-4 space-y-6">
+              <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-md">
+                <p className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-400">Refine</p>
+                <h2 className="mt-2 text-xl font-semibold text-slate-800">Curate your picks</h2>
+                <p className="mt-1 text-sm text-slate-500">Mix and match diaries that suit your gifting mood.</p>
+
+                <div className="mt-6 space-y-6">
+                  <div>
+                    <p className="text-sm font-medium text-slate-600 mb-3">Categories</p>
+                    <div className="space-y-2 max-h-44 overflow-y-auto pr-1 custom-scrollbar">
+                      {uniqueCategories.map((cat) => (
+                        <label
+                          key={cat}
+                          className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50/60 px-3 py-2 text-sm text-slate-600 transition hover:border-primary/30 hover:bg-primary/5"
+                        >
+                          <span className="truncate pr-3">{cat}</span>
+                          <input
+                            type="checkbox"
+                            className="h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary"
+                            value={cat}
+                            onChange={handleCategoryChange}
+                          />
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-medium text-slate-600">Price range</p>
+                      <span className="text-xs uppercase tracking-wide text-primary/70">Crafted in ₹</span>
+                    </div>
+                    <div className="mt-3 grid grid-cols-2 gap-3">
+                      <div className="relative">
+                        <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400">Min</span>
                         <input
-                          type="checkbox"
-                          className="rounded border-gray-300 text-primary focus:ring-primary h-4 w-4"
-                          value={cat}
-                          onChange={handleCategoryChange}
+                          type="number"
+                          name="minPrice"
+                          className="w-full rounded-xl border border-slate-200 bg-white px-3 pt-5 pb-2 text-sm font-semibold text-slate-700 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                          value={filters.minPrice || ''}
+                          onChange={handlePriceChange}
                         />
-                        <span className="ml-2 text-sm text-gray-600 truncate max-w-[150px]">{cat}</span>
-                      </label>
-                    ))}
+                      </div>
+                      <div className="relative">
+                        <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400">Max</span>
+                        <input
+                          type="number"
+                          name="maxPrice"
+                          className="w-full rounded-xl border border-slate-200 bg-white px-3 pt-5 pb-2 text-sm font-semibold text-slate-700 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                          value={filters.maxPrice || ''}
+                          onChange={handlePriceChange}
+                        />
+                      </div>
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {pricePresets.map((preset) => {
+                        const isActive =
+                          filters.minPrice === preset.min &&
+                          (preset.max === 0 ? filters.maxPrice === 0 : filters.maxPrice === preset.max);
+                        return (
+                          <button
+                            key={preset.label}
+                            type="button"
+                            onClick={() => handlePresetSelect(preset.min, preset.max)}
+                            className={`rounded-full border px-4 py-1.5 text-xs font-semibold transition ${
+                              isActive
+                                ? 'border-primary bg-primary text-white shadow-sm'
+                                : 'border-slate-200 bg-white text-slate-500 hover:border-primary/40 hover:text-primary'
+                            }`}
+                          >
+                            {preset.label}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
+
+                  <button
+                    onClick={clearFilters}
+                    className="w-full rounded-xl border border-primary px-5 py-3 text-sm font-semibold text-primary transition hover:bg-primary hover:text-white"
+                  >
+                    Reset filters
+                    <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">
+                      {filters.category.length + (filters.minPrice > 0 ? 1 : 0) + (filters.maxPrice > 0 ? 1 : 0)} active
+                    </span>
+                  </button>
                 </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-700 mb-3">Price Range</h3>
-                  <div className="space-y-3">
-                    <input
-                      type="number"
-                      placeholder="Min (₹)"
-                      name="minPrice"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary"
-                      value={filters.minPrice || ''}
-                      onChange={handlePriceChange}
-                    />
-                    <input
-                      type="number"
-                      placeholder="Max (₹)"
-                      name="maxPrice"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary"
-                      value={filters.maxPrice || ''}
-                      onChange={handlePriceChange}
-                    />
-                  </div>
-                </div>
-                <button
-                  onClick={clearFilters}
-                  className="w-full py-3 px-4 bg-primary text-white font-medium rounded-lg hover:bg-primary/90 transition-colors"
-                >
-                  Clear Filters ({filters.category.length + (filters.minPrice > 0 ? 1 : 0) + (filters.maxPrice > 0 ? 1 : 0)} active)
-                </button>
               </div>
             </div>
           </aside>
@@ -260,17 +318,7 @@ export default function ShopClient({ initialDiaries, initialProducts }: { initia
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {results.map((product) => {
-                  let imageIdentifier: string | null = null;
                   const url = product.imageUrl?.trim();
-                  if (url) {
-                    if (url.includes('drive.google.com')) {
-                      // It's a Google Drive URL, so we MUST extract an ID.
-                      imageIdentifier = getFileIdFromUrl(url);
-                    } else {
-                      // It's not a Google Drive URL, so assume it's a filename.
-                      imageIdentifier = url;
-                    }
-                  }
 
                   const placeholderSvg = `
                     <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 800 600">
@@ -284,7 +332,18 @@ export default function ShopClient({ initialDiaries, initialProducts }: { initia
                       <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="24" fill="#9e9e9e">No Image Available</text>
                     </svg>
                   `;
-                  const imageUrl = imageIdentifier ? `/api/images/${imageIdentifier}` : `data:image/svg+xml;base64,${Buffer.from(placeholderSvg).toString('base64')}`;
+                  let imageUrl = `data:image/svg+xml;base64,${Buffer.from(placeholderSvg).toString('base64')}`;
+
+                  if (url) {
+                    if (url.includes('drive.google.com')) {
+                      const fileId = getFileIdFromUrl(url);
+                      if (fileId) {
+                        imageUrl = `https://drive.google.com/uc?id=${fileId}`;
+                      }
+                    } else if (/^https?:\/\//i.test(url)) {
+                      imageUrl = url;
+                    }
+                  }
 
                   return (
                     <article key={product.id} className="bg-white rounded-xl shadow-md hover:shadow-xl overflow-hidden transition-all duration-300 border border-gray-100 hover:border-primary/30">
@@ -303,28 +362,30 @@ export default function ShopClient({ initialDiaries, initialProducts }: { initia
                         </div>
                       </Link>
                       <div className="p-5">
-                        <div className="flex items-center justify-between mb-3">
-                          <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full font-medium">
-                            {product.category?.split(',').map(c => c.trim()).join(', ')}
-                          </span>
-                        </div>
-                        <h3 className="text-base font-semibold text-gray-800 line-clamp-2 mb-2 hover:text-primary transition-colors">
+                        <h3 className="text-base font-semibold text-gray-800 line-clamp-2 mb-4 hover:text-primary transition-colors">
                           <Link href={`/shop/${product.id}`}>{product.name}</Link>
                         </h3>
-                        {product.description && (
-                          <p className="text-sm text-gray-600 line-clamp-2 mb-3">
-                            {product.description.substring(0, 80)}{product.description.length > 80 ? '...' : ''}
-                          </p>
-                        )}
                         <div className="flex items-center justify-between">
-                          <span className="text-xl font-bold text-gray-900">
-                            {product.minPrice && product.maxPrice && product.minPrice !== product.maxPrice
-                              ? `₹${product.minPrice.toLocaleString()} - ₹${product.maxPrice.toLocaleString()}`
-                              : product.minPrice
-                                ? `₹${product.minPrice.toLocaleString()}`
-                                : 'Price on request'
-                            }
-                          </span>
+                          {(() => {
+                            const hasRange =
+                              typeof product.minPrice === 'number' &&
+                              typeof product.maxPrice === 'number' &&
+                              product.minPrice !== product.maxPrice;
+                            const hasSingle = typeof product.minPrice === 'number' && product.minPrice !== null;
+                            const priceLabel = hasRange
+                              ? `₹${product.minPrice!.toLocaleString()} – ₹${product.maxPrice!.toLocaleString()}`
+                              : hasSingle
+                                ? `₹${product.minPrice!.toLocaleString()}`
+                                : 'On request';
+                            const badgeClass = hasSingle
+                              ? 'bg-primary/10 text-primary border border-primary/10'
+                              : 'bg-amber-50 text-amber-600 border border-amber-200';
+                            return (
+                              <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-semibold ${badgeClass}`}>
+                                {priceLabel}
+                              </span>
+                            );
+                          })()}
                           <button
                             onClick={() => handleProductSelect(product)}
                             className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors flex items-center gap-1 ${

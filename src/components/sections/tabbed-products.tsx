@@ -18,6 +18,19 @@ interface ProductCardProps {
 const ProductCard: React.FC<ProductCardProps> = ({ product, className }) => {
   const { selectProduct, deselectProduct, isSelected } = useSelectedProducts();
   const selected = isSelected(product.id);
+  const hasRange =
+    typeof product.minPrice === 'number' &&
+    typeof product.maxPrice === 'number' &&
+    product.minPrice !== product.maxPrice;
+  const hasSingle = typeof product.minPrice === 'number' && product.minPrice !== null;
+  const priceLabel = hasRange
+    ? `₹${product.minPrice!.toLocaleString()} – ₹${product.maxPrice!.toLocaleString()}`
+    : hasSingle
+      ? `₹${product.minPrice!.toLocaleString()}`
+      : 'On request';
+  const priceBadgeClass = hasSingle
+    ? 'bg-primary/10 text-primary border border-primary/10'
+    : 'bg-amber-50 text-amber-600 border border-amber-200';
 
   return (
     <div
@@ -31,7 +44,10 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, className }) => {
           checked={selected}
           onCheckedChange={(checked) => {
             if (checked) {
-              selectProduct(product);
+              selectProduct({
+                ...product,
+                price: product.minPrice ?? 0,
+              });
             } else {
               deselectProduct(product.id);
             }
@@ -57,25 +73,11 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, className }) => {
         </button>
       </div>
       <div className="flex flex-col flex-grow">
-        <div className="flex justify-between items-start gap-2 mb-1">
+        <div className="flex justify-between items-start gap-2 mb-4">
           <h3 className="text-base font-semibold text-dark-gray leading-tight">{product.name}</h3>
-          <p className="text-lg font-bold text-dark-gray whitespace-nowrap">{product.currency === 'INR' ? '₹' : '$'}{product.price.toFixed(2)}</p>
-        </div>
-        <p className="text-sm text-medium-gray mb-2">{product.description}</p>
-        <div className="flex items-center gap-1.5 mt-2 mb-4">
-          <div className="flex gap-0.5">
-            {Array.from({ length: 5 }).map((_, index) => (
-              <Image
-                key={index}
-                src="https://cdn.prod.website-files.com/63e857eaeaf853471d5335ff/63e9d9ee08987e0ffb064bca_Star.svg"
-                alt="star"
-                width={16}
-                height={16}
-                className={index < (product.rating ?? 0) ? "" : "opacity-20"}
-              />
-            ))}
-          </div>
-          <span className="text-xs text-muted-foreground ml-2">({product.reviewCount ?? 0})</span>
+          <span className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold whitespace-nowrap ${priceBadgeClass}`}>
+            {priceLabel}
+          </span>
         </div>
         <Button
           onClick={() => {
@@ -100,15 +102,7 @@ function getFileIdFromUrl(url: string): string | null {
 
 export default function TabbedProducts({ products: dbProducts }: { products: DbProduct[] }) {
   const products: Product[] = dbProducts.map(p => {
-    let imageIdentifier: string | null = null;
     const url = p.imageUrl?.trim();
-    if (url) {
-      if (url.includes('drive.google.com')) {
-        imageIdentifier = getFileIdFromUrl(url);
-      } else {
-        imageIdentifier = url;
-      }
-    }
     
     const placeholderSvg = `
       <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 800 600">
@@ -122,13 +116,25 @@ export default function TabbedProducts({ products: dbProducts }: { products: DbP
         <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="24" fill="#9e9e9e">No Image Available</text>
       </svg>
     `;
+    let imageUrl = `data:image/svg+xml;base64,${Buffer.from(placeholderSvg).toString('base64')}`;
 
-    const imageUrl = imageIdentifier ? `/api/images/${imageIdentifier}` : `data:image/svg+xml;base64,${Buffer.from(placeholderSvg).toString('base64')}`;
+    if (url) {
+      if (url.includes('drive.google.com')) {
+        const fileId = getFileIdFromUrl(url);
+        if (fileId) {
+          imageUrl = `https://drive.google.com/uc?id=${fileId}`;
+        }
+      } else if (/^https?:\/\//i.test(url)) {
+        imageUrl = url;
+      }
+    }
 
     return {
       id: p.id,
       name: p.name,
-      price: p.minPrice || 0,
+      minPrice: p.minPrice ?? null,
+      maxPrice: p.maxPrice ?? null,
+      price: p.minPrice ?? undefined,
       description: p.description || '',
       image: imageUrl,
       rating: 5,

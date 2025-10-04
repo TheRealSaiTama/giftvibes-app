@@ -5,9 +5,10 @@ import { Readable } from 'stream';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { fileId: string } }
+  context: { params: Promise<{ fileId: string }> } | { params: { fileId: string } }
 ) {
-  const param = decodeURIComponent(params.fileId);
+  const resolvedParams = await Promise.resolve((context as any).params);
+  const param = decodeURIComponent(resolvedParams.fileId);
 
   if (!param) {
     return new NextResponse('File identifier is required', { status: 400 });
@@ -73,6 +74,10 @@ export async function GET(
     // If the error is a 404 from Google API, it's a file not found error.
     if (error.code === 404) {
       return new NextResponse(`File not found in Drive for identifier: ${param}`, { status: 404 });
+    }
+    if (error.code === 'ERR_OSSL_UNSUPPORTED') {
+      console.error('OpenSSL error when fetching image:', error);
+      return new NextResponse('Image download failed due to SSL configuration', { status: 502 });
     }
     console.error('Error fetching image from Google Drive:', error);
     return new NextResponse('Error fetching image', { status: 500 });
