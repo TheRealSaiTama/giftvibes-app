@@ -17,6 +17,7 @@ function getFileIdFromUrl(url: string): string | null {
 
 export default function ProductGallery({ imageUrl, productName }: ProductGalleryProps) {
   const [selectedImage, setSelectedImage] = useState(0);
+  const [isZoomed, setIsZoomed] = useState(false);
 
   const url = imageUrl?.trim();
   let finalImageUrl = '/placeholder-product.jpg';
@@ -36,27 +37,33 @@ export default function ProductGallery({ imageUrl, productName }: ProductGallery
 
   return (
     <div className="space-y-4">
-      <div className="relative aspect-square bg-gradient-to-br from-gray-50 to-white rounded-2xl overflow-hidden shadow-lg border border-gray-100">
-        <div className="absolute left-4 top-4 bottom-4 flex flex-col gap-3 z-10">
-          <div className="bg-[#1a5f7a] text-white text-xs font-bold px-3 py-8 rounded-lg shadow-md">
-            <div className="writing-mode-vertical text-center tracking-wider">
+      <div className="relative aspect-square bg-white rounded-xl overflow-hidden border border-gray-200 group">
+        <div className="absolute left-3 top-3 bottom-3 flex flex-col gap-2 z-10">
+          <div className="bg-[#1a5f7a] text-white text-xs font-bold px-2.5 py-10 rounded-lg shadow-lg">
+            <div className="writing-mode-vertical text-center tracking-[0.15em]">
               EXECUTIVE SIZE
             </div>
           </div>
         </div>
-        <div className="relative w-full h-full flex items-center justify-center p-12">
+        <div className="relative w-full h-full flex items-center justify-center p-8">
           <Image
             src={images[selectedImage]}
             alt={productName}
             fill
-            className="object-contain"
+            className={`object-contain transition-transform duration-300 ${
+              isZoomed ? 'scale-150' : 'scale-100'
+            }`}
             sizes="(max-width: 768px) 100vw, 50vw"
             priority
           />
         </div>
-        <button className="absolute top-4 right-4 bg-white/90 hover:bg-white p-2 rounded-full shadow-md transition-colors">
+        <button
+          onClick={() => setIsZoomed(!isZoomed)}
+          className="absolute top-4 right-4 bg-white hover:bg-gray-50 p-2.5 rounded-full shadow-lg border border-gray-200 transition-all opacity-0 group-hover:opacity-100"
+          aria-label="Zoom image"
+        >
           <svg
-            className="w-6 h-6 text-gray-700"
+            className="w-5 h-5 text-gray-700"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -75,11 +82,14 @@ export default function ProductGallery({ imageUrl, productName }: ProductGallery
         {images.map((img, idx) => (
           <button
             key={idx}
-            onClick={() => setSelectedImage(idx)}
+            onClick={() => {
+              setSelectedImage(idx);
+              setIsZoomed(false);
+            }}
             className={`relative w-20 h-20 rounded-lg overflow-hidden border-2 transition-all ${
               selectedImage === idx
-                ? 'border-[#1a5f7a] shadow-md scale-105'
-                : 'border-gray-200 hover:border-gray-300 opacity-70 hover:opacity-100'
+                ? 'border-[#1a5f7a] shadow-md ring-2 ring-[#1a5f7a]/20'
+                : 'border-gray-200 hover:border-gray-300 opacity-60 hover:opacity-100'
             }`}
           >
             <Image
