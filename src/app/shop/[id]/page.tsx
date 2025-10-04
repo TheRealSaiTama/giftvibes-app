@@ -17,7 +17,7 @@ async function getProduct(id: string): Promise<any | null> {
 
   for (const file of diaryCsvFiles) {
     try {
-      const csvData = fs.readFileSync(file.url, 'utf-8');
+      const csvData = fs.readFileSync(file.path, 'utf-8');
       const records = parse(csvData, {
         columns: true,
         skip_empty_lines: true,
@@ -87,7 +87,7 @@ async function getRelatedProducts(category: string, currentId: number): Promise<
 
   for (const file of diaryCsvFiles) {
     try {
-      const csvData = fs.readFileSync(file.url, 'utf-8');
+      const csvData = fs.readFileSync(file.path, 'utf-8');
       const records = parse(csvData, {
         columns: true,
         skip_empty_lines: true,

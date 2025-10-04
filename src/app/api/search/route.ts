@@ -47,7 +47,7 @@ async function searchDiaries(query: string, limit: number): Promise<SearchResult
 
   for (const file of diaryCsvFiles) {
     try {
-      const csvData = fs.readFileSync(file.url, "utf-8");
+      const csvData = fs.readFileSync(file.path, "utf-8");
       const records = parse(csvData, {
         columns: true,
         skip_empty_lines: true,
