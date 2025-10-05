@@ -34,7 +34,7 @@ type SearchResultItem = {
 
 const megaMenuItems = [
   { name: 'CORPORATE GIFT SETS', items: 'Premium Packages Available', image: '/Giftvibes categories/CORPORATE GIFTSETS.png' },
-  { name: 'NEW YEAR DIARY BOOKS', items: 'Fresh Designs 2025', image: '/Giftvibes categories/NEW YEAR DIARYpng' },
+  { name: 'NEW YEAR DIARY BOOKS', items: 'Fresh Designs 2025', image: '/Giftvibes categories/NEW YEAR DIARY.png' },
   { name: 'LEATHER GIFT ITEMS', items: 'Luxury Options', image: '/Giftvibes categories/LEATHER GIFT ITEMS.png' },
   { name: 'LEATHER BAGS', items: 'Elegant Styles', image: '/Giftvibes categories/LEATHER BAGS.png' },
   { name: 'JUTE BAGS', items: 'Eco-Friendly Choices', image: '/Giftvibes categories/JUTE BAGS.png' },

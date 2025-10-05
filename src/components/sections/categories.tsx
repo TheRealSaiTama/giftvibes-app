@@ -22,7 +22,7 @@ const categoryData: Category[] = [
   {
     name: 'NEW YEAR DIARY',
     subtitle: '80+ Styles Available',
-    image: '/Giftvibes categories/NEW YEAR DIARYpng',
+    image: '/Giftvibes categories/NEW YEAR DIARY.png',
     bgColor: '#1a5d73',
     alt: 'Premium New Year themed diaries and planners',
   },
