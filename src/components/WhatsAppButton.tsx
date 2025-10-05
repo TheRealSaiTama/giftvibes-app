@@ -9,8 +9,36 @@ const WhatsAppButton = () => {
 
   const handleWhatsAppClick = () => {
     const encodedMessage = encodeURIComponent(message);
-    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
-    window.open(whatsappUrl, '_blank');
+    const whatsappAppUrl = `whatsapp://send?phone=${phoneNumber}&text=${encodedMessage}`;
+    const whatsappWebUrl = `https://web.whatsapp.com/send?phone=${phoneNumber}&text=${encodedMessage}`;
+    const whatsappFallbackUrl = `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
+
+    const isMobileDevice =
+      typeof navigator !== 'undefined' &&
+      /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+        navigator.userAgent
+      );
+
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    if (isMobileDevice) {
+      const fallbackTimer = window.setTimeout(() => {
+        window.location.href = whatsappFallbackUrl;
+      }, 1500);
+
+      const clearFallback = () => window.clearTimeout(fallbackTimer);
+
+      window.addEventListener('pagehide', clearFallback, { once: true });
+      window.addEventListener('blur', clearFallback, { once: true });
+
+      window.location.href = whatsappAppUrl;
+
+      return;
+    }
+
+    window.open(whatsappWebUrl, '_blank', 'noopener');
   };
 
   return (
