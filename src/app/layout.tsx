@@ -9,7 +9,7 @@ import { Toaster } from "sonner";
 import { ProductProvider } from '@/context/ProductContext';
 
 export const metadata: Metadata = {
-  title: "GiftVibes | One Stop for Diaries",
+  title: "GiftVibes| Customised Diaries 2026 | Customised Note Books | Customised Corporate Gifts",
   description: "Premium diaries, planners, and corporate gifting curated by GiftVibes.",
   icons: {
     icon: "/favicon/favicon.png",
