@@ -13,6 +13,7 @@ import CashBackBottom from "@/components/sections/cash-back-bottom";
 import ServicesSection from "@/components/sections/services";
 import GiftVibeAbout from "@/components/sections/giftvibe-about";
 import Footer from "@/components/sections/footer";
+import CorporateShowcase from "@/components/sections/corporate-showcase";
 import { prisma } from '@/lib/prisma';
 
 
@@ -43,6 +44,7 @@ export default async function HomePage() {
         <CustomerSatisfaction />
         <CashBackBottom />
         <ServicesSection />
+        <CorporateShowcase />
       </main>
       
       <Footer />
