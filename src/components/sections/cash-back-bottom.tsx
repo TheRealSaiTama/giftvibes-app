@@ -21,7 +21,7 @@ const CashBackBottom = () => {
               <br />
               <span className="text-xl lg:text-2xl xl:text-3xl">Customised Corporate Gifts at Best price</span>
             </h2>
-            <Link href="#" className="learn-more">
+            <Link href="/custom-design" className="learn-more">
               Learn More
             </Link>
           </div>

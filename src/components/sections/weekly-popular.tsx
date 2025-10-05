@@ -1,12 +1,13 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useSelectedProducts } from '@/context/ProductContext';
 import { Checkbox } from '@/components/ui/checkbox';
 
 const popularProducts = [
   {
-    id: 2001,
+    id: 1,
     name: "Primo A5 Corporate Diary and Pen Set",
     price: 225,
     minPrice: 225,
@@ -16,7 +17,7 @@ const popularProducts = [
     image: "https://drive.google.com/uc?id=1UcB8Gmh4knL15Su_DsD5D0WihKEFN6pH",
   },
   {
-    id: 2002,
+    id: 2,
     name: "Wooden A5 Corporate Diary and Pen Set",
     price: 230,
     minPrice: 230,
@@ -26,7 +27,7 @@ const popularProducts = [
     image: "https://drive.google.com/uc?id=1gfUUIhJoA_fhUtO5q8cosOqV9I8fGkVV",
   },
   {
-    id: 2003,
+    id: 3,
     name: "Polo A5 Corporate Diary and Pen Set",
     price: 220,
     minPrice: 220,
@@ -36,7 +37,7 @@ const popularProducts = [
     image: "https://drive.google.com/uc?id=11pKAL_jh7Af3IQxxa49_MIbMXOT0tx7e",
   },
   {
-    id: 2004,
+    id: 4,
     name: "50-50 B5 Diary Calendar with Pen Combo Set",
     price: 315,
     minPrice: 315,
@@ -46,7 +47,7 @@ const popularProducts = [
     image: "https://drive.google.com/uc?id=1ZHcdURpLfDV5ZQsoXlrRjttX_d5IT_86",
   },
   {
-    id: 2005,
+    id: 5,
     name: "Oval Leather B5 Diary with Pen Gift Set",
     price: 300,
     minPrice: 300,
@@ -95,7 +96,7 @@ const WeeklyPopularProducts = () => {
                     className="data-[state=checked]:bg-[#124559] data-[state=checked]:border-[#124559]"
                   />
                 </div>
-                <div className="relative bg-white p-6 flex items-center justify-center aspect-square overflow-hidden product-image-container pt-8 pl-8">
+                <Link href={`/shop/${product.id}`} className="relative bg-white p-6 flex items-center justify-center aspect-square overflow-hidden product-image-container pt-8 pl-8 block">
                   <Image
                     src={product.image}
                     alt={product.name}
@@ -103,18 +104,20 @@ const WeeklyPopularProducts = () => {
                     height={200}
                     className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105"
                   />
-                  <button className="absolute top-4 right-4 bg-white w-9 h-9 flex items-center justify-center rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  <span className="absolute top-4 right-4 bg-white w-9 h-9 flex items-center justify-center rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                      <Image 
                       src="https://cdn.prod.website-files.com/63e857eaeaf853471d5335ff/63e9df775b939f51a0b22f6d_Icon.svg" 
                       alt="wishlist icon" 
                       width={16} 
                       height={16} 
                     />
-                  </button>
-                </div>
+                  </span>
+                </Link>
                 <div className="pt-4 flex flex-col flex-grow">
                   <div className="flex justify-between items-start gap-2">
-                    <h4 className="text-base font-semibold text-[#333333] leading-tight">{product.name}</h4>
+                    <Link href={`/shop/${product.id}`} className="text-base font-semibold text-[#333333] leading-tight hover:text-primary transition-colors">
+                      {product.name}
+                    </Link>
                     <p className="text-lg font-bold text-[#333333] whitespace-nowrap">{displayPrice}</p>
                   </div>
                   <p className="text-sm text-[#666666] mt-2 min-h-[40px]">{product.description}</p>
@@ -132,17 +135,16 @@ const WeeklyPopularProducts = () => {
                     </div>
                     <span className="text-xs text-[#888888]">({REVIEWS})</span>
                   </div>
-                  <a 
-                    href="#"
-                    onClick={(e) => { 
-                      e.preventDefault(); 
+                  <button 
+                    type="button"
+                    onClick={() => { 
                       selectProduct(product);
                       console.log('Enquire for:', product.name); 
                     }}
                     className="w-full mt-auto block text-center py-2.5 px-4 rounded-md border border-[#e5e5e5] text-sm font-medium text-white bg-[#124559] hover:bg-[#0f3d4a] transition-colors duration-200"
                   >
                     Enquire Now
-                  </a>
+                  </button>
                 </div>
               </div>
             );

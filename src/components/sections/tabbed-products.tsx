@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
@@ -55,7 +56,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, className }) => {
           className="data-[state=checked]:bg-[#124559] data-[state=checked]:border-[#124559]"
         />
       </div>
-      <div className="relative bg-white flex items-center justify-center p-5 mb-5 h-[230px] overflow-hidden product-image-container pt-8 pl-8">
+      <Link href={`/shop/${product.id}`} className="relative bg-white flex items-center justify-center p-5 mb-5 h-[230px] overflow-hidden product-image-container pt-8 pl-8 block">
         <Image
           src={product.image}
           alt={product.name}
@@ -63,18 +64,20 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, className }) => {
           className="object-contain transition-transform duration-300 group-hover:scale-105"
           sizes="(max-width: 640px) 90vw, (max-width: 1024px) 45vw, 22vw"
         />
-        <button className="absolute top-2.5 right-2.5 bg-white rounded-full w-8 h-8 flex items-center justify-center cursor-pointer shadow-sm z-10 transition-transform hover:scale-110">
+        <span className="absolute top-2.5 right-2.5 bg-white rounded-full w-8 h-8 flex items-center justify-center cursor-pointer shadow-sm z-10 transition-transform group-hover:scale-110">
           <Image
             src="https://cdn.prod.website-files.com/63e857eaeaf853471d5335ff/63e9df775b939f51a0b22f6d_Icon.svg"
             alt="wishlist"
             width={16}
             height={16}
           />
-        </button>
-      </div>
+        </span>
+      </Link>
       <div className="flex flex-col flex-grow">
         <div className="flex justify-between items-start gap-2 mb-4">
-          <h3 className="text-base font-semibold text-dark-gray leading-tight">{product.name}</h3>
+          <Link href={`/shop/${product.id}`} className="text-base font-semibold text-dark-gray leading-tight hover:text-primary transition-colors">
+            {product.name}
+          </Link>
           <span className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold whitespace-nowrap ${priceBadgeClass}`}>
             {priceLabel}
           </span>

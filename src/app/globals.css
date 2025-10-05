@@ -340,6 +340,7 @@ nextjs-portal {
   cursor: pointer;
   -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
   position: relative;
+  display: inline-flex;
   border-radius: 100em;
   background-color: rgba(101, 67, 33, 0.75); /* Dark brown base */
   box-shadow:
@@ -370,6 +371,7 @@ nextjs-portal {
 .neumorphic-btn .button-outer {
   position: relative;
   z-index: 1;
+  display: inline-flex;
   border-radius: inherit;
   transition: box-shadow 300ms ease;
   will-change: box-shadow;
@@ -390,6 +392,9 @@ nextjs-portal {
   --inset: 0.035em;
   position: relative;
   z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border-radius: inherit;
   padding: 1em 1.5em;
   background-image: linear-gradient(

@@ -7,7 +7,6 @@ import { ChevronDown, Menu, Search, MessageCircle } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
@@ -21,6 +20,7 @@ import {
 import { EnquiryFormContent } from "./enquiry-modal";
 import { useSelectedProducts } from '@/context/ProductContext';
 import { Badge } from '@/components/ui/badge';
+import { getCategoryHref } from '@/lib/category-links';
 
 type SearchResultItem = {
   id: number;
@@ -198,7 +198,7 @@ const Header = () => {
                 <div className="font-semibold text-dark-gray mb-4">Our Products</div>
                 <div className="grid grid-cols-3 gap-x-6 gap-y-4">
                   {megaMenuItems.map((item) => (
-                    <Link href="#" key={item.name} className="group">
+                    <Link href={getCategoryHref(item.name)} key={item.name} className="group">
                       <div className="flex items-start gap-3">
                         <div className="w-[60px] h-[60px] bg-gray-100 rounded-md flex-shrink-0 relative overflow-hidden">
                           <Image 
@@ -217,11 +217,16 @@ const Header = () => {
                     </Link>
                   ))}
                 </div>
+                <div className="mt-4 flex justify-end">
+                  <Link href="/shop" className="text-sm font-medium text-primary hover:underline">
+                    View All Products
+                  </Link>
+                </div>
               </DropdownMenuContent>
             </DropdownMenu>
             <Link href="/shop" className="hover:text-primary transition-colors">Shop</Link>
             <Link href="#our-products" className="hover:text-primary transition-colors">Bulk Orders</Link>
-            <Link href="/custom-design" className="hover:text-primary transition-colors">Custom Design</Link>
+            <Link href="/custom-design" className="hover:text-primary transition-colors">Custom Print</Link>
             <Link href="#about" className="hover:text-primary transition-colors">About Us</Link>
           </nav>
 

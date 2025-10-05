@@ -2,6 +2,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'motion/react';
+import { getCategoryHref } from '@/lib/category-links';
 
 interface Category {
   name: string;
@@ -123,7 +124,7 @@ const Categories = () => {
               transition={{ duration: 0.5, delay: index * 0.06, ease: [0.22, 1, 0.36, 1] }}
               className="w-[240px] flex-shrink-0"
             >
-            <Link href="#" className="block group">
+            <Link href={getCategoryHref(category.name)} className="block group">
               <div
                 className="relative h-[280px] rounded-[16px] overflow-hidden transition-all duration-500 ease-out hover:scale-105 hover:shadow-2xl hover:shadow-black/20"
                 style={{ backgroundColor: category.bgColor }}

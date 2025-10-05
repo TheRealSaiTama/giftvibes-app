@@ -2,8 +2,9 @@
 import * as React from "react";
 
 import Image from 'next/image';
-import { useState } from 'react';
+import Link from 'next/link';
 import { PolicyDrawer } from '@/components/ui/policy-drawer';
+import { getCategoryHref } from '@/lib/category-links';
 
 // Footer link data – matches client's requested columns (excluding MegaShop)
 const informationLinks = [
@@ -428,7 +429,9 @@ export default function Footer() {
             <ul className="space-y-4">
               {productLinks.map((label, i) => (
                 <li key={i}>
-                  <a href="#" className="text-sm text-medium-gray hover:text-primary transition-colors">{label}</a>
+                  <Link href={getCategoryHref(label)} className="text-sm text-medium-gray hover:text-primary transition-colors">
+                    {label}
+                  </Link>
                 </li>
               ))}
             </ul>

@@ -60,9 +60,7 @@ const CustomerSatisfaction: React.FC = () => {
           <button className="inline-flex items-center px-6 py-3 text-lg font-black text-white bg-[#124559] border-4 border-black rounded-md shadow-[0.1em_0.1em_0_black] hover:translate-x-[-0.05em] hover:translate-y-[-0.05em] hover:shadow-[0.15em_0.15em_0_black] active:translate-x-[0.05em] active:translate-y-[0.05em] active:shadow-[0.05em_0.05em_0_black] transition-all duration-200 cursor-pointer">
             <span className="mr-2">✨</span>
             Experience Excellence Today
-            <svg className="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-            </svg>
+            <span className="ml-2 text-2xl leading-none">...</span>
           </button>
         </motion.div>
       </div>

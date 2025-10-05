@@ -1,5 +1,6 @@
 "use client";
 import Image from 'next/image';
+import Link from 'next/link';
 import { Button } from "@/components/ui/button";
 import { useSelectedProducts } from '@/context/ProductContext';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -7,7 +8,7 @@ import type { Product } from '@/types/Product';
 
 const products: Product[] = [
   {
-    id: 1001,
+    id: 100000,
     name: 'Management Premium PU Leather Diary 2026',
     price: 240,
     minPrice: 240,
@@ -17,7 +18,7 @@ const products: Product[] = [
     currency: 'INR',
   },
   {
-    id: 1002,
+    id: 100001,
     name: 'DIRECTORS Premium Leather Diary 2026',
     price: 172,
     minPrice: 172,
@@ -27,7 +28,7 @@ const products: Product[] = [
     currency: 'INR',
   },
   {
-    id: 1003,
+    id: 100002,
     name: 'Heritage Leather Executive Diary 2026',
     price: 137,
     minPrice: 137,
@@ -37,7 +38,7 @@ const products: Product[] = [
     currency: 'INR',
   },
   {
-    id: 1004,
+    id: 100003,
     name: 'Paipin Brown Executive Leather Diary',
     price: 154,
     minPrice: 154,
@@ -70,21 +71,25 @@ const ProductCard = ({ product }: { product: Product }) => {
           className="data-[state=checked]:bg-[#124559] data-[state=checked]:border-[#124559]"
         />
       </div>
-      <div className="relative bg-white aspect-square overflow-hidden product-image-container pt-8 pl-8">
+      <Link href={`/shop/${product.id}`} className="relative bg-white aspect-square overflow-hidden product-image-container pt-8 pl-8 block">
         <Image 
           src={product.image} 
           alt={product.name} 
           fill
           sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw" 
-          className="object-contain"
+          className="object-contain transition-transform duration-300 group-hover:scale-105"
         />
-        <button className="absolute top-4 right-4 bg-white rounded-full p-2.5 shadow-sm hover:bg-gray-100 transition-all duration-300 opacity-0 translate-y-1 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto">
+        <span className="absolute top-4 right-4 bg-white rounded-full p-2.5 shadow-sm transition-all duration-300 opacity-0 translate-y-1 group-hover:opacity-100 group-hover:translate-y-0">
           <Image src={heartIconUrl} alt="Add to wishlist" width={16} height={16} />
-        </button>
-      </div>
+        </span>
+      </Link>
       <div className="p-6 flex flex-col flex-grow">
         <div className="flex justify-between items-start mb-1.5">
-          <h3 className="text-[18px] font-semibold text-dark-gray leading-tight mr-2">{product.name}</h3>
+          <h3 className="text-[18px] font-semibold text-dark-gray leading-tight mr-2">
+            <Link href={`/shop/${product.id}`} className="hover:text-primary transition-colors">
+              {product.name}
+            </Link>
+          </h3>
           <p className="price-text whitespace-nowrap">
             {(() => {
               const hasRange = typeof product.minPrice === 'number' && typeof product.maxPrice === 'number' && product.minPrice !== product.maxPrice;
@@ -128,7 +133,7 @@ const BestDealsSection = () => {
   return (
     <section className="bg-background py-16">
       <div className="container">
-        <h2 className="mb-10">Latest Collections 2026</h2>
+        <h2 className="mb-10">Latest 2026 Diaries</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
           {products.map((product) => (
             <ProductCard key={product.id} product={product} />

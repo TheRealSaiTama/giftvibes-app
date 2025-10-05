@@ -8,8 +8,10 @@ const Hero = () => {
 
   return (
     <section className="relative overflow-hidden bg-cover bg-center bg-no-repeat" style={{backgroundImage: 'url(/headerimage5.png)'}}>
-      {/* Dark overlay for better text visibility */}
-      <div className="absolute inset-0 bg-black/30 z-0"></div>
+      <div className="absolute inset-0 z-0">
+        <div className="absolute inset-0 bg-white/0 mix-blend-screen" />
+        <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-transparent to-[#124559]/20" />
+      </div>
       <div className="mx-auto max-w-[1200px] px-[20px] md:px-[0px] py-[60px] md:py-[80px] min-h-[500px] md:min-h-[600px] flex items-center">
         <div className="relative z-10 w-full md:w-3/5 lg:w-1/2">
           <div className="overflow-hidden">

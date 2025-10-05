@@ -2,7 +2,8 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Diary, Product } from '@prisma/client';
 import { EnquiryFormContent } from '@/components/sections/enquiry-modal'; // Assuming this is the correct path
 import { Dialog, DialogTrigger, DialogContent } from '@/components/ui/dialog';
@@ -27,6 +28,13 @@ interface Filters {
   sortBy: 'name' | 'price';
   sortOrder: 'asc' | 'desc';
 }
+
+const arraysEqual = (a: string[], b: string[]) => {
+  if (a.length !== b.length) return false;
+  const normalizedA = [...a].sort();
+  const normalizedB = [...b].sort();
+  return normalizedA.every((value, index) => value === normalizedB[index]);
+};
 
 function getFileIdFromUrl(url: string): string | null {
   if (!url) return null;
@@ -70,6 +78,7 @@ function filterAndSortProducts(products: ShopProduct[], filters: Filters): ShopP
 }
 
 export default function ShopClient({ initialDiaries, initialProducts }: { initialDiaries: Diary[], initialProducts: Product[] }) {
+  const searchParams = useSearchParams();
   const [filters, setFilters] = useState<Filters>({
     category: [],
     minPrice: 0,
@@ -137,6 +146,27 @@ export default function ShopClient({ initialDiaries, initialProducts }: { initia
     }));
     return [...diariesAsProducts, ...productsAsShopProducts];
   }, [initialDiaries, initialProducts]);
+
+  useEffect(() => {
+    if (!searchParams) return;
+    const categoryParams = searchParams.getAll('category');
+    let nextCategories = categoryParams.filter(Boolean);
+    if (nextCategories.length === 0) {
+      const single = searchParams.get('category');
+      if (single) {
+        nextCategories = single.split(',').map((item) => item.trim()).filter(Boolean);
+      }
+    }
+    setFilters((prev) => {
+      if (arraysEqual(prev.category, nextCategories)) {
+        return prev;
+      }
+      return {
+        ...prev,
+        category: nextCategories,
+      };
+    });
+  }, [searchParams]);
 
   const results = useMemo(() => filterAndSortProducts(combinedProducts, filters), [combinedProducts, filters]);
 
