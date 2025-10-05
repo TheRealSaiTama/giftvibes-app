@@ -1,18 +1,26 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { EnquiryFormContent } from '@/components/sections/enquiry-modal';
 import { useSelectedProducts } from '@/context/ProductContext';
 
+const TAG_VARIANTS = [
+  { accent: '#1a5f7a', bg: 'bg-[#1a5f7a]/[0.03]', border: 'border-[#1a5f7a]/20' },
+  { accent: '#7c2d12', bg: 'bg-[#7c2d12]/[0.03]', border: 'border-[#7c2d12]/20' },
+  { accent: '#15803d', bg: 'bg-[#15803d]/[0.03]', border: 'border-[#15803d]/20' },
+  { accent: '#6b21a8', bg: 'bg-[#6b21a8]/[0.03]', border: 'border-[#6b21a8]/20' },
+];
+
 interface Product {
   id: number;
   name: string;
-  category: string;
+  category?: string | null;
   minPrice: number | null;
   maxPrice: number | null;
   imageUrl: string;
   description: string;
+  tags?: string[] | string | null;
 }
 
 interface ProductInfoProps {
@@ -27,6 +35,18 @@ interface Specification {
 export default function ProductInfo({ product }: ProductInfoProps) {
   const [isEnquiryModalOpen, setIsEnquiryModalOpen] = useState(false);
   const { selectProduct, clearSelected } = useSelectedProducts();
+
+  const tags = useMemo(() => {
+    if (!product.tags) return [] as string[];
+    if (Array.isArray(product.tags)) {
+      return product.tags.filter(Boolean);
+    }
+
+    return product.tags
+      .split(',')
+      .map((tag) => tag.replace(/\s+/g, ' ').trim())
+      .filter(Boolean);
+  }, [product.tags]);
 
   const handleEnquire = () => {
     selectProduct({
@@ -170,6 +190,34 @@ export default function ProductInfo({ product }: ProductInfoProps) {
             }
           })()}
         </div>
+
+        {tags.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-[0.65rem] uppercase tracking-[0.25em] font-medium text-gray-400 mb-4">
+              Tags
+            </h2>
+            <div className="flex flex-wrap gap-2.5">
+              {tags.map((tag, index) => {
+                const variant = TAG_VARIANTS[index % TAG_VARIANTS.length];
+                return (
+                  <span
+                    key={`${tag}-${index}`}
+                    className={`group inline-flex items-center gap-2 ${variant.bg} ${variant.border} border px-4 py-2 rounded-sm transition-all duration-200 hover:shadow-sm hover:-translate-y-0.5`}
+                  >
+                    <span
+                      className="w-1 h-1 rounded-full transition-transform duration-200 group-hover:scale-125"
+                      style={{ backgroundColor: variant.accent }}
+                      aria-hidden
+                    />
+                    <span className="text-[0.8125rem] font-medium text-gray-700 tracking-tight">
+                      {tag}
+                    </span>
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {highlights && (
           <div className="mb-8">

@@ -8,6 +8,15 @@ import RelatedProducts from '@/components/product/RelatedProducts';
 import { getPriceOverride } from '@/lib/price-overrides';
 import { getDiaryRows } from '@/lib/diary-data';
 
+function normalizeTags(value?: string | null): string[] {
+  if (!value) return [];
+  const tags = value
+    .split(',')
+    .map((tag) => tag.replace(/\s+/g, ' ').trim())
+    .filter(Boolean);
+  return Array.from(new Set(tags));
+}
+
 async function getProduct(id: string): Promise<any | null> {
   let idCounter = 100000;
   const productId = parseInt(id, 10);
@@ -33,7 +42,7 @@ async function getProduct(id: string): Promise<any | null> {
         maxPrice: override?.maxPrice ?? computedMax,
         imageUrl: record['Product image'],
         category: record['Categories'],
-        tags: record['Tags'],
+        tags: normalizeTags(record['Tags']),
       };
     }
     idCounter++;
@@ -51,7 +60,7 @@ async function getProduct(id: string): Promise<any | null> {
         maxPrice: dbProduct.maxPrice ?? null,
         imageUrl: dbProduct.imageUrl ?? '',
         category: dbProduct.category,
-        tags: dbProduct.tags,
+        tags: normalizeTags(dbProduct.tags),
       };
     }
   }
@@ -81,7 +90,7 @@ async function getRelatedProducts(category: string, currentId: number): Promise<
         maxPrice: override?.maxPrice ?? computedMax,
         imageUrl: record['Product image'],
         category: record['Categories'],
-        tags: record['Tags'],
+        tags: normalizeTags(record['Tags']),
       });
       if (relatedProducts.length >= 8) return relatedProducts;
     }
@@ -108,7 +117,7 @@ async function getRelatedProducts(category: string, currentId: number): Promise<
         maxPrice: item.maxPrice ?? null,
         imageUrl: item.imageUrl ?? '',
         category: item.category,
-        tags: item.tags,
+        tags: normalizeTags(item.tags),
       });
     }
   }
