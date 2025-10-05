@@ -5,7 +5,7 @@ import { useState } from 'react';
 const WhatsAppButton = () => {
   const [isHovered, setIsHovered] = useState(false);
   const phoneNumber = '919899223130';
-  const message = 'Hi, I want to enquire about your products...';
+  const message = 'Hello GiftVibes, Contacting through your website "www.Giftvibes.in" regarding order. Please get back asap. Thank you.!.';
 
   const handleWhatsAppClick = () => {
     const encodedMessage = encodeURIComponent(message);
