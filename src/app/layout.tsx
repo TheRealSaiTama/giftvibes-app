@@ -8,9 +8,53 @@ import Script from "next/script";
 import { Toaster } from "sonner";
 import { ProductProvider } from '@/context/ProductContext';
 
+const defaultTitle = "GiftVibes| Customised Diaries 2026 | Customised Note Books | Customised Corporate Gifts";
+const defaultDescription = "GiftVibes crafts personalised diaries, notebooks, planners, and premium corporate gifts for 2026 with bespoke branding and nationwide delivery.";
+
 export const metadata: Metadata = {
-  title: "GiftVibes| Customised Diaries 2026 | Customised Note Books | Customised Corporate Gifts",
-  description: "Premium diaries, planners, and corporate gifting curated by GiftVibes.",
+  metadataBase: new URL("https://www.giftvibes.in"),
+  title: {
+    default: defaultTitle,
+    template: "%s | GiftVibes",
+  },
+  description: defaultDescription,
+  keywords: [
+    "customised diaries",
+    "personalised notebooks",
+    "corporate gifts india",
+    "diary printing 2026",
+    "giftvibes",
+    "custom planners",
+  ],
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    title: "GiftVibes | Customised Diaries, Notebooks & Corporate Gifts 2026",
+    description: defaultDescription,
+    url: "/",
+    siteName: "GiftVibes",
+    locale: "en_IN",
+    type: "website",
+    images: [
+      {
+        url: "/logo.png",
+        width: 1200,
+        height: 630,
+        alt: "GiftVibes customised diaries, notebooks, and corporate gifts",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "GiftVibes | Customised Diaries, Notebooks & Corporate Gifts 2026",
+    description: defaultDescription,
+    images: ["/logo.png"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
   icons: {
     icon: "/favicon/favicon.png",
   },
