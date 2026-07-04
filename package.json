@@ -1,0 +1,18 @@
+{
+  "name": "giftvibes-ultimate",
+  "private": true,
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "dev": "concurrently -n admin,storefront -c blue,green \"bun run dev:admin\" \"bun run dev:storefront\"",
+    "dev:admin": "cd apps/admin && bun run dev",
+    "dev:storefront": "cd apps/storefront && bun run dev",
+    "build": "bun run build:admin && bun run build:storefront",
+    "build:admin": "cd apps/admin && bun run build",
+    "build:storefront": "cd apps/storefront && bun run build",
+    "lint": "bun run --filter '*' lint",
+    "typecheck": "bun run --filter '*' typecheck"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

@@ -1,0 +1,7 @@
+[install]
+# 24h supply-chain guard: skip package versions published less than a day ago
+minimumReleaseAge = 86400
+
+# Workspace root - install deps in respective workspace folders
+[save]
+# Prefer lockfile only at root level

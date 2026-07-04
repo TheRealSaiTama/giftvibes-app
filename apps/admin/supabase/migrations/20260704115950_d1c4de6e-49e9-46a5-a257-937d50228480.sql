@@ -1,0 +1,1 @@
+DROP FUNCTION IF EXISTS public.owner_exists();

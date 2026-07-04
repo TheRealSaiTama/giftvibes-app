@@ -1,0 +1,41 @@
+# Dependencies
+node_modules/
+bun.lock
+package-lock.json
+yarn.lock
+
+# Build outputs
+.next/
+dist/
+.turbo/
+*.tsbuildinfo
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Admin specific
+apps/admin/.wrangler/
+
+# Storefront specific
+apps/storefront/.vercel/
+apps/storefront/public/images/
+
+# Backup files
+*.bak
+*.tar.gz
