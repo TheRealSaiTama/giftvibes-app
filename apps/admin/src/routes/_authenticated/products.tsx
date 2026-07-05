@@ -186,6 +186,7 @@ function getSubcategory(item: CatalogItem, category: string): string {
 function ProductsPage() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(null);
+  const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [editing, setEditing] = useState<CatalogItem | null>(null);
   const qc = useQueryClient();
@@ -320,15 +321,12 @@ function ProductsPage() {
             <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
             <button
               onClick={() => {
+                setExpandedCategory(selectedCategory);
+                setSelectedCategory(null);
                 setSelectedSubcategory(null);
                 setSearch("");
               }}
-              className={
-                "flex items-center gap-1 px-2 py-1 rounded-md transition-colors shrink-0 " +
-                (isCategoryOpen
-                  ? "text-foreground font-medium"
-                  : "text-muted-foreground hover:text-foreground hover:bg-surface-2")
-              }
+              className="flex items-center gap-1 px-2 py-1 rounded-md transition-colors shrink-0 text-muted-foreground hover:text-foreground hover:bg-surface-2"
             >
               <Folder className="h-3.5 w-3.5 shrink-0" />
               {selectedCategory === "__uncategorised__" ? "Uncategorised" : selectedCategory}
@@ -351,13 +349,11 @@ function ProductsPage() {
             ? `${filtered.length} search result${filtered.length === 1 ? "" : "s"}`
             : isRoot
               ? `${allItems.length} total items`
-              : isCategoryOpen
-                ? `${subcategoriesList.length} subcategories`
-                : `${filtered.length} product${filtered.length === 1 ? "" : "s"}`}
+              : `${filtered.length} product${filtered.length === 1 ? "" : "s"}`}
         </span>
       </nav>
 
-      {/* ── ROOT VIEW: main categories ── */}
+      {/* ── ROOT VIEW: main categories (Accordion/Dropdown format) ── */}
       {isRoot && !search && (
         <div className="gv-panel overflow-hidden mb-4">
           <div className="px-4 py-2.5 border-b border-border bg-surface text-xs uppercase tracking-wider text-muted-foreground font-medium">
@@ -368,25 +364,56 @@ function ProductsPage() {
               <div className="py-10 text-center text-sm text-muted-foreground">Loading categories…</div>
             )}
             {!isLoading &&
-              STOREFRONT_CATEGORIES.map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => setSelectedCategory(cat)}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-surface/60 transition-colors text-left group"
-                >
-                  <Folder className="h-4 w-4 text-primary/70 group-hover:text-primary shrink-0" />
-                  <span className="flex-1 text-sm font-medium">{cat}</span>
-                  <span className="text-xs text-muted-foreground tabular-nums">
-                    {categoryCounts[cat] ?? 0} items
-                  </span>
-                  <ChevronRight className="h-3.5 w-3.5 text-muted-foreground group-hover:text-foreground shrink-0" />
-                </button>
-              ))}
+              STOREFRONT_CATEGORIES.map((cat) => {
+                const isExpanded = expandedCategory === cat;
+                const subcats = STOREFRONT_SUBCATEGORIES[cat] || [];
+                return (
+                  <div key={cat} className="transition-all">
+                    <button
+                      onClick={() => setExpandedCategory(isExpanded ? null : cat)}
+                      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-surface/60 transition-colors text-left group"
+                    >
+                      <Folder className={`h-4 w-4 transition-colors shrink-0 ${isExpanded ? 'text-amber-500' : 'text-primary/70 group-hover:text-primary'}`} />
+                      <span className="flex-1 text-sm font-semibold">{cat}</span>
+                      <span className="text-xs text-muted-foreground tabular-nums mr-1">
+                        {categoryCounts[cat] ?? 0} items
+                      </span>
+                      <ChevronRight className={`h-3.5 w-3.5 text-muted-foreground transition-transform duration-200 shrink-0 ${isExpanded ? 'rotate-90' : ''}`} />
+                    </button>
+                    {isExpanded && (
+                      <div className="bg-surface/30 pl-10 pr-4 py-1 divide-y divide-border/20 border-t border-b border-border/10">
+                        {subcats.map((subcat) => {
+                          const count = allItems.filter(item => matchCategory(item.category, cat) && getSubcategory(item, cat) === subcat).length;
+                          return (
+                            <button
+                              key={subcat}
+                              onClick={() => {
+                                setSelectedCategory(cat);
+                                setSelectedSubcategory(subcat);
+                              }}
+                              className="w-full flex items-center justify-between py-2.5 text-xs hover:text-primary text-muted-foreground hover:bg-surface-2/10 transition-all text-left group/sub"
+                            >
+                              <span className="group-hover/sub:translate-x-1 transition-transform">{subcat}</span>
+                              <span className="text-[10px] bg-surface-2 px-1.5 py-0.5 rounded border border-border/85 text-muted-foreground font-mono">{count} items</span>
+                            </button>
+                          );
+                        })}
+                        {subcats.length === 0 && (
+                          <div className="py-3 text-xs text-muted-foreground italic">No subcategories predefined</div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
 
             {!isLoading && uncategorisedCount > 0 && (
               <button
-                onClick={() => setSelectedCategory("__uncategorised__")}
-                className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-surface/60 transition-colors text-left group"
+                onClick={() => {
+                  setSelectedCategory("__uncategorised__");
+                  setSelectedSubcategory("General / Others");
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-surface/60 transition-colors text-left group"
               >
                 <Folder className="h-4 w-4 text-muted-foreground/60 group-hover:text-muted-foreground shrink-0" />
                 <span className="flex-1 text-sm text-muted-foreground italic">Uncategorised</span>
@@ -395,46 +422,6 @@ function ProductsPage() {
                 </span>
                 <ChevronRight className="h-3.5 w-3.5 text-muted-foreground group-hover:text-foreground shrink-0" />
               </button>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* ── CATEGORY VIEW: subcategories ── */}
-      {isCategoryOpen && !search && (
-        <div className="gv-panel overflow-hidden mb-4">
-          <div className="px-4 py-2.5 border-b border-border bg-surface flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground font-medium">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setSelectedCategory(null)}
-              className="h-6 px-1.5 text-xs text-muted-foreground hover:text-foreground"
-            >
-              <ArrowLeft className="h-3 w-3 mr-1" />
-              Back
-            </Button>
-            <span>Subcategories of {selectedCategory === "__uncategorised__" ? "Uncategorised" : selectedCategory}</span>
-          </div>
-          <div className="divide-y divide-border">
-            {subcategoriesList.length === 0 ? (
-              <div className="py-10 text-center text-sm text-muted-foreground">
-                No subcategories found. Click "New product / diary" to add items to this folder.
-              </div>
-            ) : (
-              subcategoriesList.map((subcat) => (
-                <button
-                  key={subcat}
-                  onClick={() => setSelectedSubcategory(subcat)}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-surface/60 transition-colors text-left group"
-                >
-                  <Folder className="h-4 w-4 text-amber-500/70 group-hover:text-amber-500 shrink-0" />
-                  <span className="flex-1 text-sm font-medium">{subcat}</span>
-                  <span className="text-xs text-muted-foreground tabular-nums">
-                    {subcategoryCounts[subcat] ?? 0} items
-                  </span>
-                  <ChevronRight className="h-3.5 w-3.5 text-muted-foreground group-hover:text-foreground shrink-0" />
-                </button>
-              ))
             )}
           </div>
         </div>
