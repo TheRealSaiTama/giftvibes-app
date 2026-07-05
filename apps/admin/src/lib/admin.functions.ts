@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { notifyStorefront } from "@/lib/revalidate";
 
 /**
  * All admin write server functions.
@@ -31,6 +32,7 @@ export const updateSection = createServerFn({ method: "POST" })
       })
       .eq("id", data.id);
     if (error) throw new Error(error.message);
+    await notifyStorefront(["/", "/shop"]);
     return { ok: true };
   });
 
@@ -49,10 +51,11 @@ export const reorderSections = createServerFn({ method: "POST" })
       const { error } = await context.supabase
         .from("page_sections")
         .update({ sort_order: row.sort_order })
-        .eq("id", row.id)
-        .eq("page_key", data.pageKey);
+      .eq("id", row.id)
+      .eq("page_key", data.pageKey);
       if (error) throw new Error(error.message);
     }
+    await notifyStorefront(["/", "/shop"]);
     return { ok: true };
   });
 
@@ -80,6 +83,7 @@ export const updateSiteSettings = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { error } = await context.supabase.from("site_settings").update(data).eq("id", 1);
     if (error) throw new Error(error.message);
+    await notifyStorefront(["/"]);
     return { ok: true };
   });
 
@@ -99,6 +103,7 @@ export const upsertSeo = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { error } = await context.supabase.from("page_seo").upsert(data);
     if (error) throw new Error(error.message);
+    await notifyStorefront([data.page_key === "home" ? "/" : `/${data.page_key}`]);
     return { ok: true };
   });
 
@@ -148,6 +153,7 @@ export const saveNavLinks = createServerFn({ method: "POST" })
         if (error) throw new Error(error.message);
       }
     }
+    await notifyStorefront(["/"]);
     return { ok: true };
   });
 
@@ -174,6 +180,7 @@ export const saveProduct = createServerFn({ method: "POST" })
     if (data.id) {
       const { error } = await context.supabase.from("products").update(data.values).eq("id", data.id);
       if (error) throw new Error(error.message);
+      await notifyStorefront(["/", "/shop", `/shop/${data.id}`, `/shop/${data.values.slug}`]);
       return { ok: true, id: data.id };
     }
     const { data: row, error } = await context.supabase
@@ -182,6 +189,7 @@ export const saveProduct = createServerFn({ method: "POST" })
       .select("id")
       .single();
     if (error) throw new Error(error.message);
+    await notifyStorefront(["/", "/shop", `/shop/${row.id}`]);
     return { ok: true, id: row.id };
   });
 
@@ -191,6 +199,7 @@ export const deleteProduct = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { error } = await context.supabase.from("products").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
+    await notifyStorefront(["/", "/shop", `/shop/${data.id}`]);
     return { ok: true };
   });
 
@@ -221,6 +230,7 @@ export const saveDiary = createServerFn({ method: "POST" })
     if (data.id) {
       const { error } = await context.supabase.from("diaries").update(data.values).eq("id", data.id);
       if (error) throw new Error(error.message);
+      await notifyStorefront(["/", "/shop", `/shop/${data.id}`, `/shop/${data.values.slug}`]);
       return { ok: true, id: data.id };
     }
     const { data: row, error } = await context.supabase
@@ -229,6 +239,7 @@ export const saveDiary = createServerFn({ method: "POST" })
       .select("id")
       .single();
     if (error) throw new Error(error.message);
+    await notifyStorefront(["/", "/shop", `/shop/${row.id}`]);
     return { ok: true, id: row.id };
   });
 
@@ -238,6 +249,7 @@ export const deleteDiary = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { error } = await context.supabase.from("diaries").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
+    await notifyStorefront(["/", "/shop", `/shop/${data.id}`]);
     return { ok: true };
   });
 
@@ -663,6 +675,7 @@ export const seedHomeSections = createServerFn({ method: "POST" })
       if (error) throw new Error(`Error inserting ${section.section_key}: ${error.message}`);
     }
 
+    await notifyStorefront(["/"]);
     return { ok: true };
   });
 

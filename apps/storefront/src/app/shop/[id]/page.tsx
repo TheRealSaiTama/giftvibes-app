@@ -7,6 +7,10 @@ import ProductInfo from '@/components/product/ProductInfo';
 import RelatedProducts from '@/components/product/RelatedProducts';
 import { getPriceOverride } from '@/lib/price-overrides';
 import { getDiaryRows } from '@/lib/diary-data';
+import { getStorefrontData } from "@/lib/site";
+
+// ponytail: revalidate=0 so /api/revalidate can bust this page after admin edits.
+export const revalidate = 0;
 
 function normalizeTags(value?: string | null): string[] {
   if (!value) return [];
@@ -137,7 +141,10 @@ export default async function ProductDetailPage({
   params: Promise<{ id: string }> | { id: string };
 }) {
   const resolvedParams = 'then' in params ? await params : params;
-  const product = await getProduct(resolvedParams.id);
+  const [product, { settings, headerNav }] = await Promise.all([
+    getProduct(resolvedParams.id),
+    getStorefrontData(),
+  ]);
 
   if (!product) {
     notFound();
@@ -147,7 +154,7 @@ export default async function ProductDetailPage({
 
   return (
     <div className="min-h-screen bg-white">
-      <Header />
+      <Header nav={headerNav} />
       <main className="container mx-auto px-4 py-4">
         <nav className="flex items-center space-x-2 text-sm text-gray-600 mb-6">
           <Link href="/" className="hover:text-primary transition-colors">
@@ -206,7 +213,7 @@ export default async function ProductDetailPage({
           <RelatedProducts products={relatedProducts} />
         )}
       </main>
-      <Footer />
+      <Footer settings={settings} />
     </div>
   );
 }

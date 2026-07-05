@@ -70,3 +70,48 @@ model PageSection {
   @@unique([pageKey, sectionKey])
   @@map("page_sections")
 }
+
+// ponytail: read-only views onto admin-owned tables (no migrations; tables already exist).
+// Singleton row (id=1). socials is JSONB; site_url/preview_url added by later admin migration.
+model SiteSetting {
+  id             Int      @id @default(1)
+  brandName      String   @map("brand_name")
+  tagline        String?
+  logoUrl        String?  @map("logo_url")
+  faviconUrl     String?  @map("favicon_url")
+  primaryColor   String?  @map("primary_color")
+  whatsappNumber String?  @map("whatsapp_number")
+  phone          String?
+  email          String?
+  address        String?
+  socials        Json     @default("{}")
+  siteUrl        String?  @map("site_url")
+  previewUrl     String?  @map("preview_url")
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@map("site_settings")
+}
+
+model NavLink {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  groupKey  String   @map("group_key")
+  label     String
+  href      String
+  sortOrder Int      @default(0) @map("sort_order")
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@index([groupKey, sortOrder(sort: Asc)])
+  @@map("nav_links")
+}
+
+model PageSeo {
+  pageKey    String   @id @map("page_key")
+  title      String?
+  description String?
+  ogImageUrl String?  @map("og_image_url")
+  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@map("page_seo")
+}

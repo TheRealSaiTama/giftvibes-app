@@ -333,7 +333,25 @@ const AcceptedPayments = () => (
 );
 
 
-export default function Footer() {
+// ponytail: optional settings prop drives the contact block + logo from the admin's
+// site_settings table. When undefined (legacy callers) the hardcoded values still render.
+export default function Footer({
+  settings,
+}: {
+  settings?: {
+    brandName: string;
+    phone: string | null;
+    email: string | null;
+    address: string | null;
+    logoUrl: string | null;
+    socials: Record<string, string>;
+  };
+}) {
+  const brand = settings?.brandName ?? "Ravindra Enterprises";
+  const phone = settings?.phone ?? "+91 9899223130";
+  const email = settings?.email ?? "support@giftvibes.in";
+  const address = settings?.address ?? "4487, Roshan Pura(Daiwara), Near Metro Station, Nai Sarak, Delhi 110006";
+  const logoSrc = settings?.logoUrl ?? "/logo3.png";
   const [isDrawerOpen, setDrawerOpen] = React.useState(false);
   const [drawerContent, setDrawerContent] = React.useState<React.ReactNode>(null);
   const [drawerTitle, setDrawerTitle] = React.useState("");
@@ -377,14 +395,14 @@ export default function Footer() {
           {/* Contact Info */}
           <div>
             <a href="#" className="inline-block mb-6">
-              <Image src="/logo3.png" alt="Gift Vibes Diaries Logo" width={140} height={34} />
+              <Image src={logoSrc} alt={`${brand} logo`} width={140} height={34} />
             </a>
             <h3 className="text-base font-bold text-foreground mb-4">CONTACT INFO</h3>
             <ul className="space-y-4 text-sm text-medium-gray">
-              <li>Ravindra Enterprises</li>
-              <li>4487, Roshan Pura(Daiwara), Near Metro Station, Nai Sarak, Delhi 110006</li>
-              <li>+91 9899223130</li>
-              <li>support@giftvibes.in</li>
+              <li>{brand}</li>
+              <li>{address}</li>
+              <li>{phone}</li>
+              <li>{email}</li>
               <li>Open Time: 10:30AM - 8:00PM</li>
             </ul>
           </div>

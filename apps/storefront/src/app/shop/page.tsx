@@ -4,6 +4,10 @@ import { Product } from '@prisma/client';
 import ShopClient from './ShopClient';
 import { getPriceOverride } from '@/lib/price-overrides';
 import { getDiaryRows } from '@/lib/diary-data';
+import { getStorefrontData } from "@/lib/site";
+
+// ponytail: revalidate=0 so /api/revalidate can bust this page after admin edits.
+export const revalidate = 0;
 
 async function getDiaries(): Promise<any[]> {
   const diaries: any[] = [];
@@ -41,16 +45,19 @@ async function getProducts(): Promise<Product[]> {
   return products;
 }
 
-// Re-trigger build to fetch latest seeded data
+// ponytail: revalidate=0 above + admin webhook means no more "re-trigger build" dance.
 export default async function ShopPage() {
-  const allDiaries = await getDiaries();
-  const allProducts = await getProducts();
+  const [allDiaries, allProducts, { settings, headerNav }] = await Promise.all([
+    getDiaries(),
+    getProducts(),
+    getStorefrontData(),
+  ]);
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header />
+      <Header nav={headerNav} />
       <ShopClient initialDiaries={allDiaries} initialProducts={allProducts} />
-      <Footer />
+      <Footer settings={settings} />
     </div>
   );
 }

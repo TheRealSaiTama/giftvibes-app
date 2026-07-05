@@ -7,58 +7,56 @@ import WhatsAppButton from "@/components/WhatsAppButton";
 import Script from "next/script";
 import { Toaster } from "sonner";
 import { ProductProvider } from '@/context/ProductContext';
+import { getSettings, getSeo } from "@/lib/site";
 
-const defaultTitle = "GiftVibes| Customised Diaries 2026 | Customised Note Books | Customised Corporate Gifts";
-const defaultDescription = "GiftVibes crafts personalised diaries, notebooks, planners, and premium corporate gifts for 2026 with bespoke branding and nationwide delivery.";
+// ponytail: metadata now comes from admin's site_settings + page_seo (home) with the previous
+// hardcoded values as fallback. DB down → site still ships SEO.
+export async function generateMetadata(): Promise<Metadata> {
+  const [settings, homeSeo] = await Promise.all([getSettings(), getSeo("home")]);
 
-export const metadata: Metadata = {
-  metadataBase: new URL("https://www.giftvibes.in"),
-  title: {
-    default: defaultTitle,
-    template: "%s | GiftVibes",
-  },
-  description: defaultDescription,
-  keywords: [
-    "customised diaries",
-    "personalised notebooks",
-    "corporate gifts india",
-    "diary printing 2026",
-    "giftvibes",
-    "custom planners",
-  ],
-  alternates: {
-    canonical: "/",
-  },
-  openGraph: {
-    title: "GiftVibes | Customised Diaries, Notebooks & Corporate Gifts 2026",
+  const defaultTitle = homeSeo?.title
+    ?? `${settings.brandName} | Customised Diaries 2026 | Customised Note Books | Customised Corporate Gifts`;
+  const defaultDescription = homeSeo?.description
+    ?? `${settings.brandName} crafts personalised diaries, notebooks, planners, and premium corporate gifts for 2026 with bespoke branding and nationwide delivery.`;
+  const siteUrl = settings.siteUrl ?? "https://www.giftvibes.in";
+  const ogImage = homeSeo?.ogImageUrl ?? settings.logoUrl ?? "/logo.png";
+  const favicon = settings.faviconUrl ?? "/favicon/favicon.png";
+
+  return {
+    metadataBase: new URL(siteUrl),
+    title: {
+      default: defaultTitle,
+      template: `%s | ${settings.brandName}`,
+    },
     description: defaultDescription,
-    url: "/",
-    siteName: "GiftVibes",
-    locale: "en_IN",
-    type: "website",
-    images: [
-      {
-        url: "/logo.png",
-        width: 1200,
-        height: 630,
-        alt: "GiftVibes customised diaries, notebooks, and corporate gifts",
-      },
+    keywords: [
+      "customised diaries",
+      "personalised notebooks",
+      "corporate gifts india",
+      "diary printing 2026",
+      settings.brandName.toLowerCase(),
+      "custom planners",
     ],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "GiftVibes | Customised Diaries, Notebooks & Corporate Gifts 2026",
-    description: defaultDescription,
-    images: ["/logo.png"],
-  },
-  robots: {
-    index: true,
-    follow: true,
-  },
-  icons: {
-    icon: "/favicon/favicon.png",
-  },
-};
+    alternates: { canonical: "/" },
+    openGraph: {
+      title: defaultTitle,
+      description: defaultDescription,
+      url: "/",
+      siteName: settings.brandName,
+      locale: "en_IN",
+      type: "website",
+      images: [{ url: ogImage, width: 1200, height: 630, alt: `${settings.brandName} customised diaries, notebooks, and corporate gifts` }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: defaultTitle,
+      description: defaultDescription,
+      images: [ogImage],
+    },
+    robots: { index: true, follow: true },
+    icons: { icon: favicon },
+  };
+}
 
 export default function RootLayout({
   children,

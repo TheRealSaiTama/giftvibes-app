@@ -15,7 +15,11 @@ import GiftVibeAbout from "@/components/sections/giftvibe-about";
 import Footer from "@/components/sections/footer";
 import CorporateShowcase from "@/components/sections/corporate-showcase";
 import { prisma } from '@/lib/prisma';
+import { getStorefrontData } from "@/lib/site";
 
+// ponytail: revalidate=0 → page re-renders on every request after admin calls /api/revalidate.
+// Without this the webhook no-ops (page would be fully static).
+export const revalidate = 0;
 
 async function getProducts() {
   const products = await prisma.product.findMany();
@@ -35,13 +39,16 @@ async function getHomeSections() {
 }
 
 export default async function HomePage() {
-  const products = await getProducts();
-  const sections = await getHomeSections();
+  const [products, sections, { settings, headerNav }] = await Promise.all([
+    getProducts(),
+    getHomeSections(),
+    getStorefrontData(),
+  ]);
 
   return (
     <div className="min-h-screen">
-      <Header />
-      
+      <Header nav={headerNav} />
+
       <main>
         <Hero content={sections.hero} />
         <GiftVibeAbout content={sections.about} />
@@ -59,8 +66,8 @@ export default async function HomePage() {
         <ServicesSection content={sections.services} />
         <CorporateShowcase content={sections.corporate_showcase} />
       </main>
-      
-      <Footer />
+
+      <Footer settings={settings} />
     </div>
   );
 }

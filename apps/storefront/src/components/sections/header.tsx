@@ -47,7 +47,17 @@ const megaMenuItems = [
   { name: "EXHIBITION VISITOR'S GIFT IDEAS", items: 'Event Specials', image: '/Giftvibes categories/EXHIBITION GIVEAWAY IDEAS.png' },
 ];
 
-const Header = () => {
+// ponytail: optional nav prop renders the admin-managed header links (nav_links where
+// group_key='header'). When undefined, the hardcoded list below is used.
+const FALLBACK_NAV = [
+  { label: "Shop", href: "/shop" },
+  { label: "Bulk Orders", href: "#our-products" },
+  { label: "Custom Print", href: "/custom-design" },
+  { label: "About Us", href: "#about" },
+];
+
+const Header = ({ nav }: { nav?: { label: string; href: string }[] }) => {
+  const navLinks = nav && nav.length ? nav : FALLBACK_NAV;
   const [isEnquiryModalOpen, setIsEnquiryModalOpen] = React.useState(false);
   const { selectedProducts, clearSelected } = useSelectedProducts();
   const router = useRouter();
@@ -225,9 +235,9 @@ const Header = () => {
               </DropdownMenuContent>
             </DropdownMenu>
             <Link href="/shop" className="hover:text-primary transition-colors">Shop</Link>
-            <Link href="#our-products" className="hover:text-primary transition-colors">Bulk Orders</Link>
-            <Link href="/custom-design" className="hover:text-primary transition-colors">Custom Print</Link>
-            <Link href="#about" className="hover:text-primary transition-colors">About Us</Link>
+            {navLinks.filter(l => l.href !== "/shop").map((l, i) => (
+              <Link key={i} href={l.href} className="hover:text-primary transition-colors">{l.label}</Link>
+            ))}
           </nav>
 
           <div className="flex items-center gap-6">
