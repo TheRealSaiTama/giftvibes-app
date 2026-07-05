@@ -152,7 +152,9 @@ export function AdminShell({ children }: { children: ReactNode }) {
         </nav>
         <div className="p-3 border-t border-border-strong">
           <a
-            href="/"
+            href="https://giftvibe.in"
+            target="_blank"
+            rel="noopener noreferrer"
             className="flex items-center justify-between text-xs text-muted-foreground hover:text-foreground rounded-md px-2 py-2 hover:bg-surface-2 transition"
           >
             <span>View storefront</span>
@@ -180,7 +182,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
           </div>
           <div className="flex items-center gap-2">
             <Button asChild variant="outline" size="sm">
-              <a href="/" target="_blank" rel="noreferrer">
+              <a href="https://giftvibe.in" target="_blank" rel="noopener noreferrer">
                 <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
                 View site
               </a>
