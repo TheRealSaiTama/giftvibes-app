@@ -23,7 +23,7 @@ import { Badge } from '@/components/ui/badge';
 import { getCategoryHref } from '@/lib/category-links';
 
 type SearchResultItem = {
-  id: number;
+  id: string | number;
   name: string;
   minPrice: number | null;
   maxPrice: number | null;

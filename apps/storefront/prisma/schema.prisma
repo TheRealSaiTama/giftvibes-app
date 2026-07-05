@@ -15,27 +15,43 @@ datasource db {
 }
 
 model Product {
-  id          Int      @id @default(autoincrement())
-  name        String   @unique
-  imageUrl    String?
-  minPrice    Int?
-  maxPrice    Int?
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  slug        String   @unique
+  name        String
   description String?
-  tags        String?
+  minPrice    Int?     @map("min_price")
+  maxPrice    Int?     @map("max_price")
   category    String?
+  tags        String[]
+  imageUrl    String?  @map("image_url")
+  gallery     Json     @default("[]")
+  featured    Boolean  @default(false)
+  enabled     Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@map("products")
 }
 
 model Diary {
-  id          Int      @id @default(autoincrement())
-  name        String   @unique
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  slug        String   @unique
+  name        String
   description String?
-  minPrice    Int?
-  maxPrice    Int?
-  imageUrl    String
-  category    String
-  tags        String?
+  minPrice    Int?     @map("min_price")
+  maxPrice    Int?     @map("max_price")
+  imageUrl    String?  @map("image_url")
+  gallery     Json     @default("[]")
+  category    String?
+  tags        String[]
   color       String?
   size        String?
   pages       Int?
-  coverType   String?
+  coverType   String?  @map("cover_type")
+  featured    Boolean  @default(false)
+  enabled     Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@map("diaries")
 }

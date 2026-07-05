@@ -6,9 +6,9 @@ import type { Product } from '@/types/Product';
 interface ProductContextType {
   selectedProducts: Product[];
   selectProduct: (productLike: Partial<Product> | any) => void;
-  deselectProduct: (id: number) => void;
+  deselectProduct: (id: string | number) => void;
   clearSelected: () => void;
-  isSelected: (id: number) => boolean;
+  isSelected: (id: string | number) => boolean;
 }
 
 const ProductContext = createContext<ProductContextType | undefined>(undefined);
@@ -34,7 +34,7 @@ export function ProductProvider({ children }: { children: ReactNode }) {
     );
   };
 
-  const deselectProduct = (id: number) => {
+  const deselectProduct = (id: string | number) => {
     setSelectedProducts(prev => prev.filter(p => p.id !== id));
   };
 
@@ -42,7 +42,7 @@ export function ProductProvider({ children }: { children: ReactNode }) {
     setSelectedProducts([]);
   };
 
-  const isSelected = (id: number) => {
+  const isSelected = (id: string | number) => {
     return selectedProducts.some(p => p.id === id);
   };
 

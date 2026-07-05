@@ -21,36 +21,40 @@ async function getProduct(id: string): Promise<any | null> {
   let idCounter = 100000;
   const productId = parseInt(id, 10);
 
-  for (const record of getDiaryRows()) {
-    if (!record['Product Name'] || record['Product Name'].trim() === '') {
+  // If it's a short numeric ID, try the CSV fallback first
+  if (id.length < 10 && !Number.isNaN(productId)) {
+    for (const record of getDiaryRows()) {
+      if (!record['Product Name'] || record['Product Name'].trim() === '') {
+        idCounter++;
+        continue;
+      }
+      if (idCounter === productId) {
+        const priceText = record['Price Range'] || '0';
+        const prices = priceText.match(/\d+/g)?.map(Number) || [0];
+        const minPrice = prices[0];
+        const maxPrice = prices.length > 1 ? prices[1] : prices[0];
+        const override = getPriceOverride(record['Product Name']);
+        const computedMin = isNaN(minPrice) ? null : minPrice;
+        const computedMax = isNaN(maxPrice) ? null : maxPrice;
+        return {
+          id: idCounter,
+          name: record['Product Name'],
+          description: record['Short Description'],
+          minPrice: override?.minPrice ?? computedMin,
+          maxPrice: override?.maxPrice ?? computedMax,
+          imageUrl: record['Product image'],
+          category: record['Categories'],
+          tags: normalizeTags(record['Tags']),
+        };
+      }
       idCounter++;
-      continue;
     }
-    if (idCounter === productId) {
-      const priceText = record['Price Range'] || '0';
-      const prices = priceText.match(/\d+/g)?.map(Number) || [0];
-      const minPrice = prices[0];
-      const maxPrice = prices.length > 1 ? prices[1] : prices[0];
-      const override = getPriceOverride(record['Product Name']);
-      const computedMin = isNaN(minPrice) ? null : minPrice;
-      const computedMax = isNaN(maxPrice) ? null : maxPrice;
-      return {
-        id: idCounter,
-        name: record['Product Name'],
-        description: record['Short Description'],
-        minPrice: override?.minPrice ?? computedMin,
-        maxPrice: override?.maxPrice ?? computedMax,
-        imageUrl: record['Product image'],
-        category: record['Categories'],
-        tags: normalizeTags(record['Tags']),
-      };
-    }
-    idCounter++;
   }
 
-  if (!Number.isNaN(productId)) {
+  // Try DB lookup (works for both UUIDs and strings)
+  try {
     const { prisma } = await import('@/lib/prisma');
-    const dbProduct = await prisma.product.findUnique({ where: { id: productId } });
+    const dbProduct = await prisma.product.findUnique({ where: { id: id } });
     if (dbProduct) {
       return {
         id: dbProduct.id,
@@ -60,15 +64,17 @@ async function getProduct(id: string): Promise<any | null> {
         maxPrice: dbProduct.maxPrice ?? null,
         imageUrl: dbProduct.imageUrl ?? '',
         category: dbProduct.category,
-        tags: normalizeTags(dbProduct.tags),
+        tags: dbProduct.tags || [],
       };
     }
+  } catch (e) {
+    console.error("DB lookup failed", e);
   }
 
   return null;
 }
 
-async function getRelatedProducts(category: string, currentId: number): Promise<any[]> {
+async function getRelatedProducts(category: string, currentId: string | number): Promise<any[]> {
   const relatedProducts: any[] = [];
   let idCounter = 100000;
 

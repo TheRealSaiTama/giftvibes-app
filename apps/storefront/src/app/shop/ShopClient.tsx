@@ -11,7 +11,7 @@ import type { Product as ProductType } from '@/types/Product';
 import { useSelectedProducts } from '@/context/ProductContext';
 
 type ShopProduct = {
-  id: number;
+  id: string | number;
   name: string;
   description: string | null;
   imageUrl: string | null;

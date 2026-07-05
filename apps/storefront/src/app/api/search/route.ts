@@ -3,7 +3,7 @@ import { getPriceOverride } from "@/lib/price-overrides";
 import { getDiaryRows } from "@/lib/diary-data";
 
 interface SearchResult {
-  id: number;
+  id: string | number;
   name: string;
   description?: string | null;
   minPrice: number | null;

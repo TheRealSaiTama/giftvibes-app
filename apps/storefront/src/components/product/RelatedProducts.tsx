@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 
 interface Product {
-  id: number;
+  id: string | number;
   name: string;
   imageUrl: string;
   minPrice: number | null;

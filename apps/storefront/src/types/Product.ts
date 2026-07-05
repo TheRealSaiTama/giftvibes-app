@@ -1,6 +1,6 @@
 // src/types/Product.ts
 export interface Product {
-  id: number;
+  id: string | number;
   name: string;
   image: string;
   minPrice?: number | null;

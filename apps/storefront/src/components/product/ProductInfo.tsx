@@ -13,7 +13,7 @@ const TAG_VARIANTS = [
 ];
 
 interface Product {
-  id: number;
+  id: string | number;
   name: string;
   category?: string | null;
   minPrice: number | null;
@@ -61,7 +61,7 @@ export default function ProductInfo({ product }: ProductInfoProps) {
     setIsEnquiryModalOpen(true);
   };
 
-  const generateSKU = (id: number) => {
+  const generateSKU = (id: string | number) => {
     return `71 ${id.toString().slice(-6).toUpperCase()} OP | LEATHER`;
   };
 
