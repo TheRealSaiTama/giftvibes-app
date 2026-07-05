@@ -99,7 +99,10 @@ const categoryData: Category[] = [
   },
 ];
 
-const Categories = () => {
+const Categories = ({ content }: { content?: any }) => {
+  const heading = content?.heading || "Our Products";
+  const items: Category[] = content?.items || categoryData;
+
   return (
     <section id="our-products" className="bg-white py-[100px]">
       <div className="container">
@@ -111,11 +114,11 @@ const Categories = () => {
             transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
             className="text-[32px] font-bold text-[#1a1a1a] leading-[48px] mb-10"
           >
-            Our Products
+            {heading}
           </motion.h3>
         </div>
         <div className="flex overflow-x-auto gap-6 pb-4 custom-scrollbar">
-          {categoryData.map((category, index) => (
+          {items.map((category, index) => (
             <motion.div
               key={category.name}
               initial={{ opacity: 0, y: 50 }}

@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
-import { registerMedia, deleteMedia } from "@/lib/admin.functions";
+import { registerMedia, deleteMedia, ensureSiteMediaBucket } from "@/lib/admin.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -50,6 +50,14 @@ export function MediaPicker({
   const fileRef = useRef<HTMLInputElement>(null);
   const qc = useQueryClient();
   const runRegister = useServerFn(registerMedia);
+  const runEnsureBucket = useServerFn(ensureSiteMediaBucket);
+
+  async function handleOpen(isOpen: boolean) {
+    if (isOpen) {
+      try { await runEnsureBucket({ data: undefined }); } catch { /* service role key missing locally */ }
+    }
+    setOpen(isOpen);
+  }
 
   async function handleFile(file: File) {
     setUploading(true);
@@ -86,7 +94,7 @@ export function MediaPicker({
       </div>
       <div className="flex-1 space-y-2">
         <div className="flex gap-2">
-          <Dialog open={open} onOpenChange={setOpen}>
+          <Dialog open={open} onOpenChange={handleOpen}>
             <DialogTrigger asChild>
               <Button variant="outline" size="sm">
                 <ImageIcon className="h-3.5 w-3.5 mr-1.5" />

@@ -111,8 +111,26 @@ function PageEditor() {
           {isLoading && <div className="text-sm text-muted-foreground">Loading sections…</div>}
 
           {sections && sections.length === 0 && (
-            <Card className="p-8 text-center text-sm text-muted-foreground">
-              No sections defined for this page yet.
+            <Card className="p-8 text-center text-sm text-muted-foreground flex flex-col items-center justify-center gap-4">
+              <p>No sections defined for this page yet.</p>
+              {page === 'home' && (
+                <Button 
+                  onClick={async () => {
+                    const { seedHomeSections } = await import('@/lib/admin.functions');
+                    try {
+                      await seedHomeSections();
+                      qc.invalidateQueries({ queryKey: ["sections", page] });
+                      toast.success("Home sections seeded successfully.");
+                    } catch (e) {
+                      toast.error(e instanceof Error ? e.message : "Seed failed");
+                    }
+                  }}
+                  variant="outline"
+                >
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Seed Default Home Sections
+                </Button>
+              )}
             </Card>
           )}
 

@@ -3,8 +3,22 @@
 import { motion } from "motion/react";
 import Image from "next/image";
 
-const GiftVibeAbout = () => {
-  const stats = [
+const GiftVibeAbout = ({ content }: { content?: any }) => {
+  const heading_title = content?.heading_title || "Ravindra Enterprises";
+  const heading_subtitle = content?.heading_subtitle || "Manufacturers of Diaries, Note Books and Corporate Gifts <br/>Crafting Excellence Since 1999 - Your Premier Partner for Corporate Gifting Solutions";
+  const heading_1 = content?.heading_1 || "Our Journey of";
+  const heading_highlight = content?.heading_highlight || "Excellence";
+  const paragraph_1 = content?.paragraph_1 || "Incorporated in 1999, Ravindra Enterprises stands as one of the industry's most trusted names in manufacturing and exporting premium Corporate Diaries and Gifts. From our state-of-the-art facilities, we deliver excellence to clients worldwide.";
+  const paragraph_2 = content?.paragraph_2 || "Our comprehensive range includes Desk Calendars, Art Cover Diaries, Corporate Diaries, Executive Planners, Promotional Pens, and specialized diaries for professionals. Each product reflects our commitment to quality and innovation.";
+  const paragraph_3 = content?.paragraph_3 || "Under the visionary leadership of our Founders, we've established ourselves as industry leaders through client-centered approaches and unwavering dedication to excellence.";
+  const image_url = content?.image_url || "/about.png";
+  const dynamicStats = content?.stats || [
+    { number: "25+", label: "Years of Excellence" },
+    { number: "10K+", label: "Happy Clients" },
+    { number: "50K+", label: "Products Delivered" },
+    { number: "100%", label: "Quality Assured" }
+  ];
+  const baseStats = [
     { 
         number: "25+", 
         label: "Years of Excellence", 
@@ -38,6 +52,16 @@ const GiftVibeAbout = () => {
         ) 
     },
   ];
+
+  // Merge the dynamic stats strings with the static icons/delays
+  const stats = baseStats.map((stat, i) => {
+    const dyn = dynamicStats[i];
+    return {
+      ...stat,
+      number: dyn?.number || stat.number,
+      label: dyn?.label || stat.label
+    };
+  });
 
   // Features moved to dedicated WhyChooseUsSection component
 
@@ -102,7 +126,7 @@ const GiftVibeAbout = () => {
             transition={{ duration: 0.8, delay: 0.4 }}
             className="text-4xl md:text-5xl lg:text-6xl font-semibold mb-6 text-[#124559] leading-tight tracking-tight"
           >
-            Ravindra Enterprises
+            {heading_title}
           </motion.h1>
           
           <motion.div
@@ -112,9 +136,7 @@ const GiftVibeAbout = () => {
             transition={{ duration: 0.8, delay: 0.6 }}
             className="relative inline-block"
           >
-            <p className="text-lg md:text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed font-medium">
-              Manufacturers of Diaries, Note Books and Corporate Gifts <br/>Crafting Excellence Since 1999 - Your Premier Partner for Corporate Gifting Solutions
-            </p>
+            <p className="text-lg md:text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed font-medium" dangerouslySetInnerHTML={{__html: heading_subtitle}} />
             <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-24 h-0.5 bg-gradient-to-r from-[#124559]/50 to-[#2a6b80]/50 rounded-full"></div>
           </motion.div>
         </motion.div>
@@ -160,8 +182,8 @@ const GiftVibeAbout = () => {
             className="space-y-6"
           >
             <h2 className="text-4xl md:text-5xl font-black text-[#124559] mb-8 leading-tight">
-              Our Journey of 
-              <span className="bg-gradient-to-r from-[#2a6b80] to-[#4a9eb8] bg-clip-text text-transparent"> Excellence</span>
+              {heading_1}{" "}
+              <span className="bg-gradient-to-r from-[#2a6b80] to-[#4a9eb8] bg-clip-text text-transparent">{heading_highlight}</span>
             </h2>
             <div className="space-y-6 text-lg text-gray-700 leading-relaxed">
               <motion.p
@@ -171,7 +193,7 @@ const GiftVibeAbout = () => {
                 transition={{ duration: 0.6, delay: 0.2 }}
                 className="text-xl font-medium"
               >
-                Incorporated in 1999, Ravindra Enterprises stands as one of the industry's most trusted names in manufacturing and exporting premium Corporate Diaries and Gifts. From our state-of-the-art facilities, we deliver excellence to clients worldwide.
+                {paragraph_1}
               </motion.p>
               <motion.p
                 initial={{ opacity: 0, y: 20 }}
@@ -179,7 +201,7 @@ const GiftVibeAbout = () => {
                 viewport={{ once: true }}
                 transition={{ duration: 0.6, delay: 0.4 }}
               >
-                Our comprehensive range includes Desk Calendars, Art Cover Diaries, Corporate Diaries, Executive Planners, Promotional Pens, and specialized diaries for professionals. Each product reflects our commitment to quality and innovation.
+                {paragraph_2}
               </motion.p>
               <motion.p
                 initial={{ opacity: 0, y: 20 }}
@@ -188,7 +210,7 @@ const GiftVibeAbout = () => {
                 transition={{ duration: 0.6, delay: 0.6 }}
                 className="font-semibold text-[#124559]"
               >
-                Under the visionary leadership of our Founders, we've established ourselves as industry leaders through client-centered approaches and unwavering dedication to excellence.
+                {paragraph_3}
               </motion.p>
             </div>
           </motion.div>
@@ -203,7 +225,7 @@ const GiftVibeAbout = () => {
             <div className="absolute inset-0 bg-gradient-to-br from-blue-500/30 to-purple-600/30 rounded-3xl blur-2xl group-hover:blur-3xl transition-all duration-500"></div>
             <div className="absolute inset-0 bg-gradient-to-br from-cyan-400/20 to-blue-600/20 rounded-3xl blur-xl animate-pulse"></div>
             <Image
-              src="/about.png"
+              src={image_url}
               alt="GiftVibe About Us"
               width={700}
               height={500}

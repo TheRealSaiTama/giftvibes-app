@@ -31,7 +31,10 @@ const BrandLogo = ({ brand }: { brand: Brand }) => (
   </div>
 );
 
-const BrandsSection = () => {
+const BrandsSection = ({ content }: { content?: any }) => {
+  const heading = content?.heading || "Trusted by Leading Brands";
+  const items = content?.items || brandsData;
+
   return (
     <section className="py-[100px]">
       <div className="container overflow-hidden">
@@ -40,7 +43,7 @@ const BrandsSection = () => {
             className="!text-[#161c2d] !bg-gradient-to-r !from-transparent !via-[#161c2d]/80 !via-50% !to-transparent !max-w-none !mx-0"
             shimmerWidth={150}
           >
-            Trusted by Leading Brands
+            {heading}
           </AnimatedShinyText>
         </h2>
         {/* Seamless marquee */}
@@ -51,7 +54,7 @@ const BrandsSection = () => {
             animate={{ x: ['0%', '-50%'] }}
             transition={{ duration: 25, repeat: Infinity, ease: 'linear' }}
           >
-            {[...brandsData, ...brandsData].map((brand, idx) => (
+            {[...items, ...items].map((brand: Brand, idx: number) => (
               <BrandLogo key={`marquee-${brand.name}-${idx}`} brand={brand} />
             ))}
           </motion.div>

@@ -67,7 +67,20 @@ const features = [
   },
 ];
 
-const WhyChooseUsSection: React.FC = () => {
+const WhyChooseUsSection = ({ content }: { content?: any }) => {
+  const heading = content?.heading || "Why Choose Us?";
+  const subheading = content?.subheading || "We are more than just a Diary Manufacturers; we are your partners in success. Here’s why discerning clients choose Ravindra Enterprises.";
+  const dynamicFeatures = content?.features || [];
+
+  const displayFeatures = features.map((feature, i) => {
+    const dyn = dynamicFeatures[i];
+    return {
+      ...feature,
+      title: dyn?.title || feature.title,
+      description: dyn?.description || feature.description
+    };
+  });
+
   return (
     <section className="text-center py-16">
       <motion.h2
@@ -77,7 +90,7 @@ const WhyChooseUsSection: React.FC = () => {
         transition={{ duration: 0.8, ease: "easeOut" }}
         className="text-4xl md:text-5xl font-semibold mb-6 text-[#124559]"
       >
-        Why Choose Us?
+        {heading}
       </motion.h2>
       <motion.p
         initial={{ opacity: 0, y: 20 }}
@@ -86,10 +99,10 @@ const WhyChooseUsSection: React.FC = () => {
         transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
         className="text-lg text-gray-600 max-w-2xl mx-auto mb-16"
       >
-        We are more than just a Diary Manufacturers; we are your partners in success. Here’s why discerning clients choose Ravindra Enterprises.
+        {subheading}
       </motion.p>
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {features.map((feature) => (
+        {displayFeatures.map((feature) => (
           <motion.div
             key={feature.title}
             initial={{ opacity: 0, y: 40, scale: 0.95 }}

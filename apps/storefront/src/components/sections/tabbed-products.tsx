@@ -103,7 +103,8 @@ function getFileIdFromUrl(url: string): string | null {
   return match ? match[1] : null;
 }
 
-export default function TabbedProducts({ products: dbProducts }: { products: DbProduct[] }) {
+export default function TabbedProducts({ products: dbProducts, content }: { products: DbProduct[], content?: any }) {
+  const heading = content?.heading || "Todays Best Deals for you!";
   const products: Product[] = dbProducts.map(p => {
     const url = p.imageUrl?.trim();
     
@@ -161,7 +162,7 @@ export default function TabbedProducts({ products: dbProducts }: { products: DbP
     <section className="py-20 bg-background">
       <div className="container">
         <h3 className="text-2xl font-semibold text-dark-gray mb-6">
-          Todays Best Deals for you!
+          {heading}
         </h3>
         <Tabs defaultValue={tabs[0]} className="w-full">
           <TabsList className="flex flex-wrap justify-start gap-x-3 gap-y-2 mb-10 bg-transparent p-0 h-auto">

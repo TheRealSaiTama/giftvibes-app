@@ -22,29 +22,42 @@ async function getProducts() {
   return products;
 }
 
+async function getHomeSections() {
+  const sections = await prisma.pageSection.findMany({
+    where: { pageKey: 'home', enabled: true },
+    orderBy: { sortOrder: 'asc' }
+  });
+  // Convert array to a keyed object for easy access
+  return sections.reduce((acc, curr) => {
+    acc[curr.sectionKey] = curr.content;
+    return acc;
+  }, {} as Record<string, any>);
+}
+
 export default async function HomePage() {
   const products = await getProducts();
+  const sections = await getHomeSections();
 
   return (
     <div className="min-h-screen">
       <Header />
       
       <main>
-        <Hero />
-        <GiftVibeAbout />
-        <BestDiscountsBanner />
-        <Categories />
-        <BestDealsSection />
-        <BrandsSection />
-        <WeeklyPopularProducts />
-        <CashBackSection />
-        <TabbedProducts products={products} />
+        <Hero content={sections.hero} />
+        <GiftVibeAbout content={sections.about} />
+        <BestDiscountsBanner content={sections.discounts} />
+        <Categories content={sections.categories} />
+        <BestDealsSection content={sections.deals} />
+        <BrandsSection content={sections.brands} />
+        <WeeklyPopularProducts content={sections.popular} />
+        <CashBackSection content={sections.cashback} />
+        <TabbedProducts products={products} content={sections.tabbed_products} />
         {/* Move these two sections just above the special discount banner */}
-        <WhyChooseUsSection />
-        <CustomerSatisfaction />
-        <CashBackBottom />
-        <ServicesSection />
-        <CorporateShowcase />
+        <WhyChooseUsSection content={sections.why_choose_us} />
+        <CustomerSatisfaction content={sections.satisfaction} />
+        <CashBackBottom content={sections.cashback_bottom} />
+        <ServicesSection content={sections.services} />
+        <CorporateShowcase content={sections.corporate_showcase} />
       </main>
       
       <Footer />

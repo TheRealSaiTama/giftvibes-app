@@ -24,20 +24,23 @@ const servicesData = [
   },
 ];
 
-const ServicesSection = () => {
+const ServicesSection = ({ content }: { content?: any }) => {
+  const heading = content?.heading || "Our Premium Services";
+  const items = content?.services || servicesData;
+
   return (
     <section className="bg-background py-24">
       <div className="container">
         <div className="text-center">
           <h3 className="text-3xl font-bold text-dark-gray mb-10">
-            Our Premium Services
+            {heading}
           </h3>
         </div>
         <div className="mt-12 grid grid-cols-1 gap-8 md:grid-cols-3">
-          {servicesData.map((service, index) => (
+          {items.map((service: any, index: number) => (
             <div
               key={index}
-              className={`group ${service.bgColorClass} rounded-2xl p-8 text-white relative overflow-hidden min-h-[220px] transition-all duration-300 ease-in-out hover:shadow-2xl hover:shadow-black/25`}
+              className={`group ${service.bgColorClass || 'bg-[#124559]'} rounded-2xl p-8 text-white relative overflow-hidden min-h-[220px] transition-all duration-300 ease-in-out hover:shadow-2xl hover:shadow-black/25`}
             >
               <div className="relative z-10">
                 <h4 className="text-2xl font-semibold tracking-tight">
@@ -52,7 +55,7 @@ const ServicesSection = () => {
               <div className="absolute -bottom-10 -right-10 w-40 h-40 rounded-full overflow-hidden transition-all duration-500 ease-in-out group-hover:scale-110">
                 <Image
                   src={service.image}
-                  alt={service.alt}
+                  alt={service.alt || service.title}
                   fill
                   className="object-cover transition-transform duration-500 ease-in-out group-hover:scale-125"
                 />

@@ -61,16 +61,18 @@ const popularProducts = [
 const RATING = 5;
 const REVIEWS = 121;
 
-const WeeklyPopularProducts = () => {
+const WeeklyPopularProducts = ({ content }: { content?: any }) => {
   const { selectProduct, deselectProduct, isSelected } = useSelectedProducts();
+  const heading = content?.heading || "Trending Diary Giftsets";
+  const items = content?.items || popularProducts;
 
   return (
     <section className="py-16 bg-white">
       <div className="container">
-        <h3 className="text-2xl font-semibold text-[#333333] mb-10">Trending Diary Giftsets</h3>
+        <h3 className="text-2xl font-semibold text-[#333333] mb-10">{heading}</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-          {popularProducts.map((product) => {
-            const selected = isSelected(product.id);
+          {items.map((product: any, index: number) => {
+            const selected = isSelected(product.id || index);
             const displayPrice = (() => {
               const hasRange = typeof product.minPrice === "number" && typeof product.maxPrice === "number" && product.minPrice !== product.maxPrice;
               if (hasRange) {
@@ -82,7 +84,7 @@ const WeeklyPopularProducts = () => {
                 : 'On request';
             })();
             return (
-              <div key={product.id} className="flex flex-col group relative">
+              <div key={product.id || index} className="flex flex-col group relative">
                 <div className="absolute top-2 left-2 z-10">
                   <Checkbox
                     checked={selected}
@@ -90,13 +92,13 @@ const WeeklyPopularProducts = () => {
                       if (checked) {
                         selectProduct(product);
                       } else {
-                        deselectProduct(product.id);
+                        deselectProduct(product.id || index);
                       }
                     }}
                     className="data-[state=checked]:bg-[#124559] data-[state=checked]:border-[#124559]"
                   />
                 </div>
-                <Link href={`/shop/${product.id}`} className="relative bg-white p-6 flex items-center justify-center aspect-square overflow-hidden product-image-container pt-8 pl-8 block">
+                <Link href={`/shop/${product.id || index}`} className="relative bg-white p-6 flex items-center justify-center aspect-square overflow-hidden product-image-container pt-8 pl-8 block">
                   <Image
                     src={product.image}
                     alt={product.name}
@@ -115,7 +117,7 @@ const WeeklyPopularProducts = () => {
                 </Link>
                 <div className="pt-4 flex flex-col flex-grow">
                   <div className="flex justify-between items-start gap-2">
-                    <Link href={`/shop/${product.id}`} className="text-base font-semibold text-[#333333] leading-tight hover:text-primary transition-colors">
+                    <Link href={`/shop/${product.id || index}`} className="text-base font-semibold text-[#333333] leading-tight hover:text-primary transition-colors">
                       {product.name}
                     </Link>
                     <p className="text-lg font-bold text-[#333333] whitespace-nowrap">{displayPrice}</p>

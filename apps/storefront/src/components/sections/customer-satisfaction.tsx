@@ -3,7 +3,11 @@ import * as React from "react";
 
 import { motion } from "motion/react";
 
-const CustomerSatisfaction: React.FC = () => {
+const CustomerSatisfaction = ({ content }: { content?: any }) => {
+  const heading = content?.heading || "Customer Satisfaction";
+  const description = content?.description || "Our commitment to excellence drives us to exceed expectations at every step. With our extensive merchant network and quality-first approach, we ensure every product meets global standards while satisfying the diverse needs of our valued clients.";
+  const btnText = content?.cta?.text || "Experience Excellence Today";
+
   return (
     <motion.section
       initial={{ opacity: 0, y: 50 }}
@@ -35,7 +39,7 @@ const CustomerSatisfaction: React.FC = () => {
           transition={{ duration: 0.8, delay: 0.2 }}
         >
           <span className="relative inline-block">
-            Customer Satisfaction
+            {heading}
             <span className="absolute -bottom-2 left-0 w-full h-1 bg-white/30 rounded-full transform skew-x-12"></span>
           </span>
         </motion.h2>
@@ -47,7 +51,7 @@ const CustomerSatisfaction: React.FC = () => {
           viewport={{ once: true }}
           transition={{ duration: 0.8, delay: 0.4 }}
         >
-          Our commitment to excellence drives us to exceed expectations at every step. With our extensive merchant network and quality-first approach, we ensure every product meets global standards while satisfying the diverse needs of our valued clients.
+          {description}
         </motion.p>
         
         <motion.div
@@ -59,7 +63,7 @@ const CustomerSatisfaction: React.FC = () => {
         >
           <button className="inline-flex items-center px-6 py-3 text-lg font-black text-white bg-[#124559] border-4 border-black rounded-md shadow-[0.1em_0.1em_0_black] hover:translate-x-[-0.05em] hover:translate-y-[-0.05em] hover:shadow-[0.15em_0.15em_0_black] active:translate-x-[0.05em] active:translate-y-[0.05em] active:shadow-[0.05em_0.05em_0_black] transition-all duration-200 cursor-pointer">
             <span className="mr-2">✨</span>
-            Experience Excellence Today
+            {btnText}
             <span className="ml-2 text-2xl leading-none">...</span>
           </button>
         </motion.div>

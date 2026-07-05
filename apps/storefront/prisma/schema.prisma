@@ -55,3 +55,18 @@ model Diary {
 
   @@map("diaries")
 }
+
+model PageSection {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  pageKey    String   @map("page_key")
+  sectionKey String   @map("section_key")
+  title      String?
+  sortOrder  Int      @default(0) @map("sort_order")
+  enabled    Boolean  @default(true)
+  content    Json     @default("{}")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@unique([pageKey, sectionKey])
+  @@map("page_sections")
+}

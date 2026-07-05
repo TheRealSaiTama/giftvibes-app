@@ -129,14 +129,17 @@ const ProductCard = ({ product }: { product: Product }) => {
   );
 };
 
-const BestDealsSection = () => {
+const BestDealsSection = ({ content }: { content?: any }) => {
+  const heading = content?.heading || "Latest 2026 Diaries";
+  const items = content?.items || products;
+
   return (
     <section className="bg-background py-16">
       <div className="container">
-        <h2 className="mb-10">Latest 2026 Diaries</h2>
+        <h2 className="mb-10">{heading}</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-          {products.map((product) => (
-            <ProductCard key={product.id} product={product} />
+          {items.map((product: Product, index: number) => (
+            <ProductCard key={product.id || index} product={product} />
           ))}
         </div>
       </div>

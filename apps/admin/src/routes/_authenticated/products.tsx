@@ -61,7 +61,6 @@ const empty: CatalogItem = {
   cover_type: "",
 };
 
-// Canonical category list sourced from the storefront categories section.
 const STOREFRONT_CATEGORIES = [
   "CORPORATE GIFT SETS",
   "NEW YEAR DIARY",
@@ -76,6 +75,21 @@ const STOREFRONT_CATEGORIES = [
   "CALENDARS",
   "EXHIBITION VISITOR'S GIFT IDEAS",
 ];
+
+const STOREFRONT_SUBCATEGORIES: Record<string, string[]> = {
+  "CORPORATE GIFT SETS": ["Diary & Pen Sets", "Calendar Sets", "Giftsets", "General / Others"],
+  "NEW YEAR DIARY": ["Eco-Friendly & Green", "Leather Diaries", "Hard Bound Diaries", "Planners & Themes", "Economy & Regular", "General / Others"],
+  "LEATHER GIFT ITEMS": ["Bags & Portfolios", "Leather Accessories"],
+  "LEATHER BAGS": ["Executive Bags"],
+  "JUTE BAGS": ["Eco Jute Bags"],
+  "BOTTLES GIFT SET": ["Bottle & Flask Sets"],
+  "POWER BANK DIARIES": ["Tech Power Bank Diaries"],
+  "PEN STANDS": ["Desktop Accessories"],
+  "PROMOTIONAL UMBRELLAS": ["Umbrellas"],
+  "CUSTOMISED DIARY & NOTE BOOKS": ["Eco-Friendly & Green", "Leather Diaries", "Hard Bound Diaries", "Planners & Themes", "Economy & Regular", "General / Others"],
+  "CALENDARS": ["Desktop & Wall Calendars"],
+  "EXHIBITION VISITOR'S GIFT IDEAS": ["Giveaways & Promos"],
+};
 
 /** Normalise a category string for comparison */
 function normCat(s: string) {
@@ -99,6 +113,14 @@ function matchCategory(productCat: string | null, targetCat: string): boolean {
 /** Determine the subcategory mapping dynamically based on tags and product details */
 function getSubcategory(item: CatalogItem, category: string): string {
   const categoryNorm = category.trim().toUpperCase();
+  
+  // First, check if the item has an explicit subcategory tag saved from the dropdown
+  const predefined = STOREFRONT_SUBCATEGORIES[categoryNorm];
+  if (predefined) {
+    const explicitMatch = predefined.find(sub => (item.tags || []).includes(sub));
+    if (explicitMatch) return explicitMatch;
+  }
+
   const nameLower = item.name.toLowerCase();
   const tagsLower = (item.tags || []).map((t) => t.toLowerCase());
 
@@ -684,6 +706,20 @@ function ProductForm({
     ? allCategories.filter((c) => c.toLowerCase().includes(catSearch.toLowerCase()))
     : allCategories;
 
+  // Subcategory multi-select
+  const availableSubcats = Array.from(new Set(
+    selectedCats.flatMap(cat => STOREFRONT_SUBCATEGORIES[cat.toUpperCase()] || [])
+  ));
+
+  const selectedSubcats = (values.tags || []).filter(t => availableSubcats.includes(t));
+
+  function toggleSubcat(subcat: string) {
+    const nextTags = (values.tags || []).includes(subcat)
+      ? (values.tags || []).filter(t => t !== subcat)
+      : [...(values.tags || []), subcat];
+    set("tags", nextTags);
+  }
+
   return (
     <div className="space-y-5 pt-5">
       {/* Type Selector (only for new items) */}
@@ -877,10 +913,70 @@ function ProductForm({
         </details>
       </div>
 
+      {availableSubcats.length > 0 && (
+        <div>
+          <Label>Sub Category</Label>
+          <p className="text-xs text-muted-foreground mt-0.5 mb-2">Select one or more subcategories for this item.</p>
+
+          {/* Selected pills */}
+          {selectedSubcats.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              {selectedSubcats.map((cat) => (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => toggleSubcat(cat)}
+                  className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-amber-500 text-amber-950 hover:bg-amber-500/80 transition-colors"
+                >
+                  {cat}
+                  <span className="ml-0.5 opacity-70">×</span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* List */}
+          <div className="rounded-md border border-border overflow-hidden">
+            <div className="max-h-48 overflow-y-auto divide-y divide-border">
+              {availableSubcats.map((cat) => {
+                const checked = selectedSubcats.includes(cat);
+                return (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => toggleSubcat(cat)}
+                    className={
+                      "w-full flex items-center gap-2.5 px-3 py-2 text-xs text-left transition-colors " +
+                      (checked
+                        ? "bg-amber-500/10 text-amber-500 font-medium"
+                        : "hover:bg-surface/60 text-foreground")
+                    }
+                  >
+                    <span
+                      className={
+                        "h-3.5 w-3.5 rounded border flex items-center justify-center shrink-0 " +
+                        (checked ? "bg-amber-500 border-amber-500 text-amber-950" : "border-border")
+                      }
+                    >
+                      {checked && (
+                        <svg viewBox="0 0 12 12" fill="none" className="h-2.5 w-2.5">
+                          <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      )}
+                    </span>
+                    {cat}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
       <div>
         <Label>Tags (comma-separated)</Label>
         <Input
-          value={values.tags.join(", ")}
+          value={(values.tags || []).join(", ")}
           onChange={(e) => set("tags", e.target.value.split(",").map((t) => t.trim()).filter(Boolean))}
           className="mt-1.5"
         />
