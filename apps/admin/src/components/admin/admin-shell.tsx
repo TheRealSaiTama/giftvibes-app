@@ -106,7 +106,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
             <Gift className="h-4 w-4 text-primary-foreground" />
           </div>
           <div className="flex flex-col leading-tight">
-            <span className="font-display font-semibold text-sm">GiftVibe</span>
+            <span className="font-display font-semibold text-sm">GiftVibes</span>
             <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
               Admin
             </span>

@@ -57,7 +57,7 @@ function AuthPage() {
           <div className="h-9 w-9 rounded-lg bg-primary flex items-center justify-center">
             <Gift className="h-5 w-5 text-primary-foreground" />
           </div>
-          <span className="font-display text-lg font-semibold">GiftVibe Admin</span>
+          <span className="font-display text-lg font-semibold">GiftVibes Admin</span>
         </div>
         <div className="space-y-4">
           <h1 className="font-display text-4xl font-semibold tracking-tight leading-tight">
@@ -69,7 +69,7 @@ function AuthPage() {
           </p>
         </div>
         <p className="text-xs text-muted-foreground">
-          © GiftVibe · Internal tool
+          © GiftVibes · Internal tool
         </p>
       </div>
 
@@ -79,7 +79,7 @@ function AuthPage() {
             <div className="h-9 w-9 rounded-lg bg-primary flex items-center justify-center">
               <Gift className="h-5 w-5 text-primary-foreground" />
             </div>
-            <span className="font-display text-lg font-semibold">GiftVibe Admin</span>
+            <span className="font-display text-lg font-semibold">GiftVibes Admin</span>
           </div>
 
           <h2 className="font-display text-2xl font-semibold">
