@@ -55,8 +55,8 @@ function AuthPage() {
     <div className="min-h-screen grid lg:grid-cols-2">
       <div className="hidden lg:flex flex-col justify-between p-12 bg-surface border-r border-border-strong">
         <div className="flex items-center gap-2">
-          <div className="h-9 w-9 rounded-lg bg-primary flex items-center justify-center">
-            <Gift className="h-5 w-5 text-primary-foreground" />
+          <div className="h-9 w-9 rounded-lg overflow-hidden bg-white border border-border flex items-center justify-center">
+            <img src="/logo.png" alt="GiftVibes Logo" className="h-full w-full object-contain" />
           </div>
           <span className="font-display text-lg font-semibold">GiftVibes Admin</span>
         </div>
@@ -77,8 +77,8 @@ function AuthPage() {
       <div className="flex items-center justify-center p-6 lg:p-12">
         <div className="w-full max-w-sm">
           <div className="lg:hidden mb-8 flex items-center gap-2">
-            <div className="h-9 w-9 rounded-lg bg-primary flex items-center justify-center">
-              <Gift className="h-5 w-5 text-primary-foreground" />
+            <div className="h-9 w-9 rounded-lg overflow-hidden bg-white border border-border flex items-center justify-center">
+              <img src="/logo.png" alt="GiftVibes Logo" className="h-full w-full object-contain" />
             </div>
             <span className="font-display text-lg font-semibold">GiftVibes Admin</span>
           </div>

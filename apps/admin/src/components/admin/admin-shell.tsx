@@ -102,8 +102,8 @@ export function AdminShell({ children }: { children: ReactNode }) {
       {/* Sidebar */}
       <aside className="hidden lg:flex w-64 shrink-0 flex-col border-r border-border-strong bg-sidebar">
         <div className="h-16 flex items-center gap-2 px-5 border-b border-border-strong">
-          <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-            <Gift className="h-4 w-4 text-primary-foreground" />
+          <div className="h-8 w-8 rounded overflow-hidden flex items-center justify-center bg-white border border-border">
+            <img src="/logo.png" alt="GiftVibes Logo" className="h-full w-full object-contain" />
           </div>
           <div className="flex flex-col leading-tight">
             <span className="font-display font-semibold text-sm">GiftVibes</span>
@@ -152,7 +152,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
         </nav>
         <div className="p-3 border-t border-border-strong">
           <a
-            href="https://giftvibe.in"
+            href="https://giftvibes.in"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center justify-between text-xs text-muted-foreground hover:text-foreground rounded-md px-2 py-2 hover:bg-surface-2 transition"
@@ -182,7 +182,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
           </div>
           <div className="flex items-center gap-2">
             <Button asChild variant="outline" size="sm">
-              <a href="https://giftvibe.in" target="_blank" rel="noopener noreferrer">
+              <a href="https://giftvibes.in" target="_blank" rel="noopener noreferrer">
                 <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
                 View site
               </a>
