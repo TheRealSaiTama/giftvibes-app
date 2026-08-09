@@ -63,10 +63,12 @@ const RATING = 5;
 const REVIEWS = 121;
 
 function mapDbProduct(p: any): Product {
+  const raw = String(p.imageUrl || p.image_url || "").trim();
+  const image = raw && (raw.startsWith("http") || raw.startsWith("/")) ? raw : "/logo.png";
   return {
     id: p.id,
-    name: p.name,
-    image: p.imageUrl || p.image_url || "",
+    name: p.name || "Product",
+    image,
     minPrice: p.minPrice ?? p.min_price ?? null,
     maxPrice: p.maxPrice ?? p.max_price ?? null,
     description: p.description || "",
@@ -130,10 +132,15 @@ const WeeklyPopularProducts = ({ content, products: dbProducts }: WeeklyPopularP
                 </div>
                 <Link href={`/shop/${product.id || index}`} className="relative bg-white p-6 flex items-center justify-center aspect-square overflow-hidden product-image-container pt-8 pl-8 block">
                   <Image
-                    src={product.image}
+                    src={product.image || "/logo.png"}
                     alt={product.name}
                     width={200}
                     height={200}
+                    unoptimized={
+                      !product.image ||
+                      product.image.includes("drive.google.com") ||
+                      product.image.startsWith("data:")
+                    }
                     className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105"
                   />
                   <span className="absolute top-4 right-4 bg-white w-9 h-9 flex items-center justify-center rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity duration-300">

@@ -168,11 +168,16 @@ const Categories = ({ content }: { content?: any }) => {
                 className="relative h-[280px] rounded-[16px] overflow-hidden transition-all duration-500 ease-out hover:scale-105 hover:shadow-2xl hover:shadow-black/20"
                 style={{ backgroundColor: category.bgColor }}
               >
-                {category.image_url ? (
+                {category.image_url &&
+                (category.image_url.startsWith("http") || category.image_url.startsWith("/")) ? (
                   <Image
                     src={category.image_url}
                     alt={category.alt || category.name}
                     fill
+                    unoptimized={
+                      category.image_url.includes("drive.google.com") ||
+                      category.image_url.includes("googleusercontent.com")
+                    }
                     sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 20vw"
                     className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                   />

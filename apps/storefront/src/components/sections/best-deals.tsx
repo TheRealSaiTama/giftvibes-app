@@ -73,14 +73,19 @@ const ProductCard = ({ product }: { product: Product }) => {
       </div>
       <Link href={`/shop/${product.id}`} className="relative bg-white aspect-square overflow-hidden product-image-container pt-8 pl-8 block">
         <Image
-          src={product.image}
+          src={product.image || "/logo.png"}
           alt={product.name}
           fill
+          unoptimized={
+            !product.image ||
+            product.image.includes("drive.google.com") ||
+            product.image.startsWith("data:")
+          }
           sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
           className="object-contain transition-transform duration-300 group-hover:scale-105"
         />
         <span className="absolute top-4 right-4 bg-white rounded-full p-2.5 shadow-sm transition-all duration-300 opacity-0 translate-y-1 group-hover:opacity-100 group-hover:translate-y-0">
-          <Image src={heartIconUrl} alt="Add to wishlist" width={16} height={16} />
+          <Image src={heartIconUrl} alt="Add to wishlist" width={16} height={16} unoptimized />
         </span>
       </Link>
       <div className="p-6 flex flex-col flex-grow">
@@ -132,10 +137,13 @@ const ProductCard = ({ product }: { product: Product }) => {
 // ponytail: map a Prisma products/diaries row to the storefront's Product shape.
 // The component only needs name, image, price range, description, id.
 function mapDbProduct(p: any): Product {
+  const raw = String(p.imageUrl || p.image_url || "").trim();
+  // Never pass empty string to next/image — it throws in production.
+  const image = raw && (raw.startsWith("http") || raw.startsWith("/")) ? raw : "/logo.png";
   return {
     id: p.id,
-    name: p.name,
-    image: p.imageUrl || p.image_url || "",
+    name: p.name || "Product",
+    image,
     minPrice: p.minPrice ?? p.min_price ?? null,
     maxPrice: p.maxPrice ?? p.max_price ?? null,
     description: p.description || "",

@@ -23,31 +23,58 @@ export const revalidate = 0;
 
 async function getCatalog() {
   // Products + diaries so home sections can resolve admin-picked IDs from either table.
-  const [products, diaries] = await Promise.all([
-    prisma.product.findMany(),
-    prisma.diary.findMany(),
-  ]);
-  return [...products, ...diaries];
+  // Never throw — a missing DB column/migration must not take down the whole site.
+  try {
+    const [products, diaries] = await Promise.all([
+      prisma.product.findMany({ where: { enabled: true } }).catch((e) => {
+        console.error("home getCatalog products failed", e);
+        return [] as Awaited<ReturnType<typeof prisma.product.findMany>>;
+      }),
+      prisma.diary.findMany({ where: { enabled: true } }).catch((e) => {
+        console.error("home getCatalog diaries failed", e);
+        return [] as Awaited<ReturnType<typeof prisma.diary.findMany>>;
+      }),
+    ]);
+    // Serialize to plain JSON so RSC never chokes on Prisma special types.
+    return JSON.parse(JSON.stringify([...products, ...diaries])) as any[];
+  } catch (e) {
+    console.error("home getCatalog failed", e);
+    return [] as any[];
+  }
 }
 
 async function getHomeSections() {
-  const sections = await prisma.pageSection.findMany({
-    where: { pageKey: 'home', enabled: true },
-    orderBy: { sortOrder: 'asc' }
-  });
-  // Convert array to a keyed object for easy access
-  return sections.reduce((acc, curr) => {
-    acc[curr.sectionKey] = curr.content;
-    return acc;
-  }, {} as Record<string, any>);
+  try {
+    const sections = await prisma.pageSection.findMany({
+      where: { pageKey: "home", enabled: true },
+      orderBy: { sortOrder: "asc" },
+    });
+    return sections.reduce(
+      (acc, curr) => {
+        acc[curr.sectionKey] = curr.content;
+        return acc;
+      },
+      {} as Record<string, any>,
+    );
+  } catch (e) {
+    console.error("home getHomeSections failed", e);
+    return {} as Record<string, any>;
+  }
 }
 
 export default async function HomePage() {
-  const [catalog, sections, { settings, headerNav }] = await Promise.all([
+  // Isolate failures: one bad query must not blank the whole homepage.
+  const [catalog, sections, storefront] = await Promise.all([
     getCatalog(),
     getHomeSections(),
-    getStorefrontData(),
+    getStorefrontData().catch((e) => {
+      console.error("home getStorefrontData failed", e);
+      return { settings: undefined as any, headerNav: undefined as any };
+    }),
   ]);
+
+  const settings = storefront?.settings;
+  const headerNav = storefront?.headerNav;
 
   return (
     <div className="min-h-screen">
@@ -66,7 +93,6 @@ export default async function HomePage() {
           products={catalog}
           content={sections.tabbed_products || sections.best_deals_tabbed}
         />
-        {/* Move these two sections just above the special discount banner */}
         <WhyChooseUsSection content={sections.why_choose_us} />
         <CustomerSatisfaction content={sections.satisfaction} />
         <CashBackBottom content={sections.cashback_bottom} />

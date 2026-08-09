@@ -11,51 +11,72 @@ import { getSettings, getSeo } from "@/lib/site";
 
 // ponytail: metadata now comes from admin's site_settings + page_seo (home) with the previous
 // hardcoded values as fallback. DB down → site still ships SEO.
+function safeSiteUrl(raw: string | null | undefined): string {
+  const fallback = "https://www.giftvibes.in";
+  const candidate = (raw || "").trim() || fallback;
+  try {
+    // new URL("") throws — empty DB site_url was taking the whole site down.
+    return new URL(candidate).origin;
+  } catch {
+    return fallback;
+  }
+}
+
 export async function generateMetadata(): Promise<Metadata> {
-  const [settings, homeSeo] = await Promise.all([getSettings(), getSeo("home")]);
+  try {
+    const [settings, homeSeo] = await Promise.all([getSettings(), getSeo("home")]);
 
-  const defaultTitle = homeSeo?.title
-    ?? `${settings.brandName} | Customised Diaries 2026 | Customised Note Books | Customised Corporate Gifts`;
-  const defaultDescription = homeSeo?.description
-    ?? `${settings.brandName} crafts personalised diaries, notebooks, planners, and premium corporate gifts for 2026 with bespoke branding and nationwide delivery.`;
-  const siteUrl = settings.siteUrl ?? "https://www.giftvibes.in";
-  const ogImage = homeSeo?.ogImageUrl ?? settings.logoUrl ?? "/logo.png";
-  const favicon = settings.faviconUrl ?? "/favicon/favicon.png";
+    const brand = settings.brandName || "GiftVibes";
+    const defaultTitle = homeSeo?.title
+      ?? `${brand} | Customised Diaries 2026 | Customised Note Books | Customised Corporate Gifts`;
+    const defaultDescription = homeSeo?.description
+      ?? `${brand} crafts personalised diaries, notebooks, planners, and premium corporate gifts for 2026 with bespoke branding and nationwide delivery.`;
+    const siteUrl = safeSiteUrl(settings.siteUrl);
+    const ogImage = homeSeo?.ogImageUrl || settings.logoUrl || "/logo.png";
+    const favicon = settings.faviconUrl || "/favicon/favicon.png";
 
-  return {
-    metadataBase: new URL(siteUrl),
-    title: {
-      default: defaultTitle,
-      template: `%s | ${settings.brandName}`,
-    },
-    description: defaultDescription,
-    keywords: [
-      "customised diaries",
-      "personalised notebooks",
-      "corporate gifts india",
-      "diary printing 2026",
-      settings.brandName.toLowerCase(),
-      "custom planners",
-    ],
-    alternates: { canonical: "/" },
-    openGraph: {
-      title: defaultTitle,
+    return {
+      metadataBase: new URL(siteUrl),
+      title: {
+        default: defaultTitle,
+        template: `%s | ${brand}`,
+      },
       description: defaultDescription,
-      url: "/",
-      siteName: settings.brandName,
-      locale: "en_IN",
-      type: "website",
-      images: [{ url: ogImage, width: 1200, height: 630, alt: `${settings.brandName} customised diaries, notebooks, and corporate gifts` }],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: defaultTitle,
-      description: defaultDescription,
-      images: [ogImage],
-    },
-    robots: { index: true, follow: true },
-    icons: { icon: favicon },
-  };
+      keywords: [
+        "customised diaries",
+        "personalised notebooks",
+        "corporate gifts india",
+        "diary printing 2026",
+        brand.toLowerCase(),
+        "custom planners",
+      ],
+      alternates: { canonical: "/" },
+      openGraph: {
+        title: defaultTitle,
+        description: defaultDescription,
+        url: "/",
+        siteName: brand,
+        locale: "en_IN",
+        type: "website",
+        images: [{ url: ogImage, width: 1200, height: 630, alt: `${brand} customised diaries, notebooks, and corporate gifts` }],
+      },
+      twitter: {
+        card: "summary_large_image",
+        title: defaultTitle,
+        description: defaultDescription,
+        images: [ogImage],
+      },
+      robots: { index: true, follow: true },
+      icons: { icon: favicon },
+    };
+  } catch (e) {
+    console.error("generateMetadata failed", e);
+    return {
+      title: "GiftVibes | Customised Diaries & Corporate Gifts",
+      description: "Customised diaries, notebooks, and corporate gifts.",
+      metadataBase: new URL("https://www.giftvibes.in"),
+    };
+  }
 }
 
 export default function RootLayout({

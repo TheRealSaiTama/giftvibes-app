@@ -57,9 +57,14 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, className }) => {
       </div>
       <Link href={`/shop/${product.id}`} className="relative bg-white flex items-center justify-center p-5 mb-5 h-[230px] overflow-hidden product-image-container pt-8 pl-8 block">
         <Image
-          src={product.image}
+          src={product.image || "/logo.png"}
           alt={product.name}
           fill
+          unoptimized={
+            !product.image ||
+            product.image.includes("drive.google.com") ||
+            product.image.startsWith("data:")
+          }
           className="object-contain transition-transform duration-300 group-hover:scale-105"
           sizes="(max-width: 640px) 90vw, (max-width: 1024px) 45vw, 22vw"
         />
@@ -69,6 +74,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, className }) => {
             alt="wishlist"
             width={16}
             height={16}
+            unoptimized
           />
         </span>
       </Link>
@@ -124,30 +130,17 @@ export default function TabbedProducts({
       }))
     : [];
 
-  const products: Product[] = dbProducts.map((p) => {
-    const url = (p.imageUrl || p.image_url || "").trim();
+  // Static public placeholder — never use data: URLs with next/image (throws in prod).
+  const PLACEHOLDER = "/logo.png";
 
-    const placeholderSvg = `
-      <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 800 600">
-        <defs>
-          <pattern id="p" width="100" height="100" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-            <path d="M50 0 v100 M0 50 h100" stroke="#e0e0e0" stroke-width="1"/>
-          </pattern>
-        </defs>
-        <rect width="100%" height="100%" fill="#f5f5f5"/>
-        <rect width="100%" height="100%" fill="url(#p)"/>
-        <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="24" fill="#9e9e9e">No Image Available</text>
-      </svg>
-    `;
-    // Client-safe placeholder (no Node Buffer in browser).
-    let imageUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(placeholderSvg)}`;
+  const products: Product[] = (dbProducts || []).map((p) => {
+    const url = String(p.imageUrl || p.image_url || "").trim();
+    let imageUrl = PLACEHOLDER;
 
     if (url) {
       if (url.includes("drive.google.com")) {
         const fileId = getFileIdFromUrl(url);
-        if (fileId) {
-          imageUrl = `https://drive.google.com/uc?id=${fileId}`;
-        }
+        if (fileId) imageUrl = `https://drive.google.com/uc?id=${fileId}`;
       } else if (/^https?:\/\//i.test(url) || url.startsWith("/")) {
         imageUrl = url;
       }
@@ -158,7 +151,7 @@ export default function TabbedProducts({
 
     return {
       id: p.id,
-      name: p.name,
+      name: p.name || "Product",
       minPrice,
       maxPrice,
       price: minPrice ?? undefined,
