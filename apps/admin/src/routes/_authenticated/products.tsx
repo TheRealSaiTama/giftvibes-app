@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,7 +16,12 @@ import {
   Plus, Pencil, Trash2, Search, Star, ChevronRight, Home,
   Folder, FolderOpen, ArrowLeft, BookOpen, Package
 } from "lucide-react";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
+
+const CUSTOM_CATEGORIES_KEY = "gv_custom_categories";
 
 export const Route = createFileRoute("/_authenticated/products")({
   component: ProductsPage,
@@ -189,7 +194,39 @@ function ProductsPage() {
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [editing, setEditing] = useState<CatalogItem | null>(null);
+  const [addCatOpen, setAddCatOpen] = useState(false);
+  const [newCatName, setNewCatName] = useState("");
   const qc = useQueryClient();
+
+  // ponytail: client-side custom categories. localStorage is enough for now;
+  // promote to a Supabase table when the catalog team needs shared editing.
+  const [customCategories, setCustomCategories] = useState<string[]>(() => {
+    if (typeof window === "undefined") return [];
+    try { return JSON.parse(localStorage.getItem(CUSTOM_CATEGORIES_KEY) || "[]"); }
+    catch { return []; }
+  });
+
+  useEffect(() => {
+    localStorage.setItem(CUSTOM_CATEGORIES_KEY, JSON.stringify(customCategories));
+  }, [customCategories]);
+
+  const allCategories = useMemo(
+    () => [...STOREFRONT_CATEGORIES, ...customCategories],
+    [customCategories],
+  );
+
+  function addCategory() {
+    const name = newCatName.trim().toUpperCase().replace(/\s+/g, " ");
+    if (!name) return;
+    if (allCategories.some((c) => c.toUpperCase() === name)) {
+      toast.error("Category already exists");
+      return;
+    }
+    setCustomCategories((prev) => [...prev, name]);
+    setNewCatName("");
+    setAddCatOpen(false);
+    toast.success(`Added "${name}"`);
+  }
 
   // Query standard products
   const { data: dbProducts, isLoading: loadingProducts } = useQuery<CatalogItem[]>({
@@ -222,18 +259,18 @@ function ProductsPage() {
   // Root level category counts
   const categoryCounts = useMemo(() => {
     const map: Record<string, number> = {};
-    for (const cat of STOREFRONT_CATEGORIES) {
+    for (const cat of allCategories) {
       map[cat] = allItems.filter((item) => matchCategory(item.category, cat)).length;
     }
     return map;
-  }, [allItems]);
+  }, [allItems, allCategories]);
 
   const uncategorisedCount = useMemo(() => {
     return allItems.filter((item) => {
       if (!item.category || item.category.trim() === "") return true;
-      return !STOREFRONT_CATEGORIES.some((cat) => matchCategory(item.category, cat));
+      return !allCategories.some((cat) => matchCategory(item.category, cat));
     }).length;
-  }, [allItems]);
+  }, [allItems, allCategories]);
 
   // Items filtering based on navigation path
   const categoryItems = useMemo(() => {
@@ -241,11 +278,11 @@ function ProductsPage() {
     if (selectedCategory === "__uncategorised__") {
       return allItems.filter((item) => {
         if (!item.category || item.category.trim() === "") return true;
-        return !STOREFRONT_CATEGORIES.some((cat) => matchCategory(item.category, cat));
+        return !allCategories.some((cat) => matchCategory(item.category, cat));
       });
     }
     return allItems.filter((item) => matchCategory(item.category, selectedCategory));
-  }, [allItems, selectedCategory]);
+  }, [allItems, selectedCategory, allCategories]);
 
   // Subcategories found in the selected category
   const subcategoryCounts = useMemo(() => {
@@ -290,10 +327,10 @@ function ProductsPage() {
 
   return (
     <div>
-      <PageHeader title="Products" description="Directory navigation for standard products and diaries.">
-        <Button onClick={() => setEditing({ ...empty })}>
+      <PageHeader title="Categories" description="Manage your store's product categories.">
+        <Button onClick={() => { setNewCatName(""); setAddCatOpen(true); }}>
           <Plus className="h-4 w-4 mr-1.5" />
-          New product / diary
+          Add new category
         </Button>
       </PageHeader>
 
@@ -364,9 +401,10 @@ function ProductsPage() {
               <div className="py-10 text-center text-sm text-muted-foreground">Loading categories…</div>
             )}
             {!isLoading &&
-              STOREFRONT_CATEGORIES.map((cat) => {
+              allCategories.map((cat) => {
                 const isExpanded = expandedCategory === cat;
                 const subcats = STOREFRONT_SUBCATEGORIES[cat] || [];
+                const isCustom = customCategories.includes(cat);
                 return (
                   <div key={cat} className="transition-all">
                     <button
@@ -374,7 +412,14 @@ function ProductsPage() {
                       className="w-full flex items-center gap-3 px-4 py-3 hover:bg-surface/60 transition-colors text-left group"
                     >
                       <Folder className={`h-4 w-4 transition-colors shrink-0 ${isExpanded ? 'text-amber-500' : 'text-primary/70 group-hover:text-primary'}`} />
-                      <span className="flex-1 text-sm font-semibold">{cat}</span>
+                      <span className="flex-1 text-sm font-semibold flex items-center gap-2">
+                        {cat}
+                        {isCustom && (
+                          <span className="text-[9px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600 border border-amber-500/25">
+                            custom
+                          </span>
+                        )}
+                      </span>
                       <span className="text-xs text-muted-foreground tabular-nums mr-1">
                         {categoryCounts[cat] ?? 0} items
                       </span>
@@ -561,7 +606,7 @@ function ProductsPage() {
           {editing && (
             <ProductForm
               product={editing}
-              allCategories={STOREFRONT_CATEGORIES}
+              allCategories={allCategories}
               defaultCategory={selectedCategory && selectedCategory !== "__uncategorised__" ? selectedCategory : undefined}
               onClose={() => setEditing(null)}
               onSaved={() => {
@@ -573,6 +618,40 @@ function ProductsPage() {
           )}
         </SheetContent>
       </Sheet>
+
+      <Dialog open={addCatOpen} onOpenChange={(o) => !o && setAddCatOpen(false)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add new category</DialogTitle>
+          </DialogHeader>
+          <div className="py-2">
+            <Label htmlFor="new-cat-name">Name</Label>
+            <Input
+              id="new-cat-name"
+              autoFocus
+              value={newCatName}
+              onChange={(e) => setNewCatName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") addCategory();
+              }}
+              placeholder="e.g. WOODEN GIFTS"
+              className="mt-1.5"
+            />
+            <p className="text-xs text-muted-foreground mt-2">
+              Will be saved in uppercase, matching the existing category style. Available immediately in product & diary category selectors.
+            </p>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="ghost">Cancel</Button>
+            </DialogClose>
+            <Button onClick={addCategory} disabled={!newCatName.trim()}>
+              <Plus className="h-4 w-4 mr-1.5" />
+              Add category
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
