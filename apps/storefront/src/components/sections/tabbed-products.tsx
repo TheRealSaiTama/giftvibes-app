@@ -14,6 +14,7 @@ import {
   isRemoteOrDataImage,
   PRODUCT_IMAGE_PLACEHOLDER,
 } from "@/lib/product-image";
+import { parseCustomTabs, resolveProductsByIds } from "@/lib/cms/mappers";
 
 interface ProductCardProps {
   product: Product;
@@ -102,13 +103,6 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, className }) => {
   );
 };
 
-function getFileIdFromUrl(url: string): string | null {
-  if (!url) return null;
-  const regex = /(?:\/d\/|\?id=|&id=)([a-zA-Z0-9_-]{28,})/;
-  const match = url.match(regex);
-  return match ? match[1] : null;
-}
-
 export default function TabbedProducts({
   products: dbProducts,
   content,
@@ -118,25 +112,17 @@ export default function TabbedProducts({
 }) {
   const heading = content?.heading || "Todays Best Deals for you!";
 
-  // ponytail: if the admin has set custom tabs in the section content, use
-  // those. Each tab has a name and a list of productIds. The storefront
-  // looks each id up in dbProducts (products + diaries catalog). Otherwise
-  // fall back to grouping products by their `category` field.
-  const customTabs: { name: string; productIds: string[] }[] = Array.isArray(content?.tabs)
-    ? content.tabs.map((t: any) => ({
-        name: typeof t?.name === "string" && t.name.trim() ? t.name.trim() : "Tab",
-        productIds: Array.isArray(t?.productIds)
-          ? t.productIds.filter((id: unknown): id is string => typeof id === "string" && id.length > 0)
-          : [],
-      }))
-    : [];
+  // Admin custom tabs: name + productIds (products and/or diaries UUIDs).
+  // Robust parse handles legacy shapes (product_ids / items / { productId }).
+  const customTabs = parseCustomTabs(content);
 
   const products: Product[] = (dbProducts || []).map((p) => {
     const minPrice = p.minPrice ?? p.min_price ?? null;
     const maxPrice = p.maxPrice ?? p.max_price ?? null;
+    const id = String(p.id ?? "");
 
     return {
-      id: p.id,
+      id,
       name: p.name || "Product",
       minPrice,
       maxPrice,
@@ -150,7 +136,13 @@ export default function TabbedProducts({
     };
   });
 
-  const byId = new Map(products.map((p) => [String(p.id), p]));
+  // Index by string id (and lowercase) so UUID case never drops a match.
+  const byId = new Map<string, Product>();
+  for (const p of products) {
+    if (!p.id) continue;
+    byId.set(p.id, p);
+    byId.set(p.id.toLowerCase(), p);
+  }
 
   const categories = [...new Set(products.map((p) => p.category).filter(Boolean))];
   const productsByCategory = categories.reduce(
@@ -163,21 +155,26 @@ export default function TabbedProducts({
     {} as { [key: string]: Product[] },
   );
 
-  // ponytail: render custom tabs if defined, otherwise fall back to category grouping.
+  // Custom tabs if any named tab exists; otherwise group live catalog by category.
   const tabKeys: string[] =
     customTabs.length > 0 ? customTabs.map((t) => t.name) : Object.keys(productsByCategory);
 
-  const productsForTab = (tabKey: string): Product[] => {
+  // Stable values for Radix Tabs (names can have spaces — use index-based values).
+  const tabEntries = tabKeys.map((name, index) => ({
+    name,
+    value: `tab-${index}`,
+  }));
+
+  const productsForTabName = (tabName: string): Product[] => {
     if (customTabs.length > 0) {
-      const t = customTabs.find((ct) => ct.name === tabKey);
+      const t = customTabs.find((ct) => ct.name === tabName);
       if (!t) return [];
-      // Preserve admin picker order
-      return t.productIds.map((id) => byId.get(String(id))).filter((p): p is Product => !!p);
+      return resolveProductsByIds(t.productIds, byId);
     }
-    return productsByCategory[tabKey] || [];
+    return productsByCategory[tabName] || [];
   };
 
-  if (tabKeys.length === 0) return null;
+  if (tabEntries.length === 0) return null;
 
   return (
     <section className="py-20 bg-background">
@@ -185,27 +182,48 @@ export default function TabbedProducts({
         <h3 className="text-2xl font-semibold text-dark-gray mb-6">
           {heading}
         </h3>
-        <Tabs defaultValue={tabKeys[0]} className="w-full">
+        <Tabs defaultValue={tabEntries[0].value} className="w-full">
           <TabsList className="flex flex-wrap justify-start gap-x-3 gap-y-2 mb-10 bg-transparent p-0 h-auto">
-            {tabKeys.map((tab) => (
+            {tabEntries.map((tab) => (
               <TabsTrigger
-                key={tab}
-                value={tab}
+                key={tab.value}
+                value={tab.value}
                 className="px-4 py-2 rounded-md text-base font-medium text-medium-gray data-[state=active]:bg-secondary data-[state=active]:text-foreground data-[state=active]:shadow-sm"
               >
-                {tab}
+                {tab.name}
               </TabsTrigger>
             ))}
           </TabsList>
-          {tabKeys.map((tab) => (
-            <TabsContent key={tab} value={tab}>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                {productsForTab(tab).map((product) => (
-                  <ProductCard key={`${tab}-${product.id}`} product={product} />
-                ))}
-              </div>
-            </TabsContent>
-          ))}
+          {tabEntries.map((tab) => {
+            const tabProducts = productsForTabName(tab.name);
+            const custom = customTabs.find((ct) => ct.name === tab.name);
+            const missing =
+              custom && custom.productIds.length > 0 && tabProducts.length === 0
+                ? custom.productIds.length
+                : 0;
+            return (
+              <TabsContent key={tab.value} value={tab.value} className="mt-0">
+                {tabProducts.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                    {tabProducts.map((product) => (
+                      <ProductCard key={`${tab.value}-${product.id}`} product={product} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="rounded-lg border border-dashed border-border bg-secondary/30 px-6 py-12 text-center text-sm text-medium-gray">
+                    {missing > 0 ? (
+                      <>
+                        {missing} product{missing === 1 ? "" : "s"} selected in admin, but not found
+                        in the live catalog (check Diaries/Products are enabled).
+                      </>
+                    ) : (
+                      <>No products in this tab yet. Open Admin → Home → Today&apos;s Best Deals and add products.</>
+                    )}
+                  </div>
+                )}
+              </TabsContent>
+            );
+          })}
         </Tabs>
       </div>
     </section>

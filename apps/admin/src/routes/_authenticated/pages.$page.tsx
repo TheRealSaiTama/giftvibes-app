@@ -628,12 +628,25 @@ function GenericContentEditor({
   // DB may use tabbed_products (current) or best_deals_tabbed (legacy migration key).
   if (sectionKey === "tabbed_products" || sectionKey === "best_deals_tabbed") {
     const tabs: { name: string; productIds: string[] }[] = Array.isArray(content.tabs)
-      ? content.tabs.map((t: any) => ({
-          name: typeof t?.name === "string" ? t.name : "Tab",
-          productIds: Array.isArray(t?.productIds)
-            ? t.productIds.filter((id: unknown): id is string => typeof id === "string")
-            : [],
-        }))
+      ? content.tabs.map((t: any) => {
+          const raw = t?.productIds ?? t?.product_ids ?? t?.items ?? t?.products;
+          const productIds: string[] = Array.isArray(raw)
+            ? raw
+                .map((id: unknown) => {
+                  if (typeof id === "string") return id.trim();
+                  if (id && typeof id === "object") {
+                    const o = id as { productId?: string; id?: string };
+                    return String(o.productId || o.id || "").trim();
+                  }
+                  return "";
+                })
+                .filter((id: string) => id.length > 0)
+            : [];
+          return {
+            name: typeof t?.name === "string" && t.name.trim() ? t.name.trim() : "Tab",
+            productIds,
+          };
+        })
       : [];
 
     return (

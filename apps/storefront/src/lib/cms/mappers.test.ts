@@ -20,6 +20,9 @@ import {
   mapProductChrome,
   resolveFooterColumns,
   matchCatalogIdsByNames,
+  normalizeTabProductIds,
+  parseCustomTabs,
+  resolveProductsByIds,
   DEFAULT_BEST_DEALS_NAMES,
   REQUIRED_HOME_SECTION_KEYS,
 } from "./mappers.ts";
@@ -194,6 +197,38 @@ describe("mapProductChrome", () => {
     assert.equal(c.related_heading, "Similar picks");
     assert.equal(c.enquiry_cta, "Ask us");
     assert.equal(c.quote_cta, "Get quote");
+  });
+});
+
+describe("normalizeTabProductIds / parseCustomTabs", () => {
+  it("accepts string ids and productId objects", () => {
+    assert.deepEqual(
+      normalizeTabProductIds(["a", { productId: "b" }, { id: "c" }, ""]),
+      ["a", "b", "c"],
+    );
+  });
+  it("parses tabbed section content", () => {
+    const tabs = parseCustomTabs({
+      heading: "Deals",
+      tabs: [
+        { name: "Corporate Diaries", productIds: ["uuid-1", { productId: "uuid-2" }] },
+      ],
+    });
+    assert.equal(tabs[0].name, "Corporate Diaries");
+    assert.deepEqual(tabs[0].productIds, ["uuid-1", "uuid-2"]);
+  });
+  it("resolveProductsByIds preserves order and case-insensitive uuid", () => {
+    const byId = new Map([
+      ["abc", { name: "A" }],
+      ["def", { name: "B" }],
+    ]);
+    // also index lowercase
+    byId.set("abc", { name: "A" });
+    const out = resolveProductsByIds(["DEF", "abc", "missing"], byId as Map<string, { name: string }>);
+    assert.deepEqual(
+      out.map((x) => x.name),
+      ["B", "A"],
+    );
   });
 });
 

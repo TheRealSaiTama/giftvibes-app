@@ -16,29 +16,56 @@ import Footer from "@/components/sections/footer";
 import CorporateShowcase from "@/components/sections/corporate-showcase";
 import { prisma } from '@/lib/prisma';
 import { getStorefrontData } from "@/lib/site";
-import { mapEnabledSections, filterLiveCatalog } from "@/lib/cms/mappers";
+import {
+  mapEnabledSections,
+  filterLiveCatalog,
+  parseCustomTabs,
+  normalizeTabProductIds,
+} from "@/lib/cms/mappers";
 
 // ponytail: revalidate=0 → page re-renders on every request after admin calls /api/revalidate.
 // Without this the webhook no-ops (page would be fully static).
 export const revalidate = 0;
 
+/** Fields home sections need for product cards + ID lookup (avoid full-row schema drift). */
+const catalogSelect = {
+  id: true,
+  name: true,
+  description: true,
+  minPrice: true,
+  maxPrice: true,
+  imageUrl: true,
+  category: true,
+  tags: true,
+  enabled: true,
+  featured: true,
+} as const;
+
 async function getCatalog() {
-  // Products + diaries so home sections can resolve admin-picked IDs from either table.
-  // Never throw — a missing DB column/migration must not take down the whole site.
+  // Products + diaries so admin-picked IDs (either table) resolve on home sections.
+  // Use narrow select so a missing optional column cannot blank the whole catalog.
   try {
     const [products, diaries] = await Promise.all([
-      prisma.product.findMany().catch((e) => {
-        console.error("home getCatalog products failed", e);
-        return [] as Awaited<ReturnType<typeof prisma.product.findMany>>;
-      }),
-      prisma.diary.findMany().catch((e) => {
-        console.error("home getCatalog diaries failed", e);
-        return [] as Awaited<ReturnType<typeof prisma.diary.findMany>>;
-      }),
+      prisma.product
+        .findMany({ select: catalogSelect })
+        .catch((e) => {
+          console.error("home getCatalog products failed", e);
+          return [] as any[];
+        }),
+      prisma.diary
+        .findMany({ select: catalogSelect })
+        .catch((e) => {
+          console.error("home getCatalog diaries failed", e);
+          return [] as any[];
+        }),
     ]);
     const live = filterLiveCatalog([...products, ...diaries] as any[]);
     // Serialize to plain JSON so RSC never chokes on Prisma special types.
-    return JSON.parse(JSON.stringify(live)) as any[];
+    // Force string ids so Map lookups match admin UUID strings from page_sections JSON.
+    return (JSON.parse(JSON.stringify(live)) as any[]).map((row) => ({
+      ...row,
+      id: String(row.id),
+    }));
   } catch (e) {
     console.error("home getCatalog failed", e);
     return [] as any[];
@@ -65,9 +92,53 @@ async function getHomeSections() {
   }
 }
 
+/** Pull every admin-picked product/diary id from home section content. */
+function collectPickedIds(sections: Record<string, any>): string[] {
+  const ids: string[] = [];
+  for (const key of ["best_deals", "popular", "tabbed_products", "best_deals_tabbed"]) {
+    const c = sections[key];
+    if (!c) continue;
+    if (Array.isArray(c.items)) {
+      ids.push(...normalizeTabProductIds(c.items));
+    }
+    for (const tab of parseCustomTabs(c)) {
+      ids.push(...tab.productIds);
+    }
+  }
+  return [...new Set(ids.map(String))];
+}
+
+/** Ensure admin-picked UUIDs exist in the catalog even if a bulk list missed them. */
+async function hydrateCatalogPicks(catalog: any[], sections: Record<string, any>) {
+  const wanted = collectPickedIds(sections);
+  if (!wanted.length) return catalog;
+  const have = new Set(catalog.map((r) => String(r.id).toLowerCase()));
+  const missing = wanted.filter((id) => !have.has(id.toLowerCase()));
+  if (!missing.length) return catalog;
+
+  try {
+    const [extraProducts, extraDiaries] = await Promise.all([
+      prisma.product
+        .findMany({ where: { id: { in: missing } }, select: catalogSelect })
+        .catch(() => [] as any[]),
+      prisma.diary
+        .findMany({ where: { id: { in: missing } }, select: catalogSelect })
+        .catch(() => [] as any[]),
+    ]);
+    const extra = filterLiveCatalog(
+      JSON.parse(JSON.stringify([...extraProducts, ...extraDiaries])) as any[],
+    ).map((row: any) => ({ ...row, id: String(row.id) }));
+    if (!extra.length) return catalog;
+    return [...catalog, ...extra];
+  } catch (e) {
+    console.error("home hydrateCatalogPicks failed", e);
+    return catalog;
+  }
+}
+
 export default async function HomePage() {
   // Isolate failures: one bad query must not blank the whole homepage.
-  const [catalog, sections, storefront] = await Promise.all([
+  const [catalogRaw, sections, storefront] = await Promise.all([
     getCatalog(),
     getHomeSections(),
     getStorefrontData().catch((e) => {
@@ -80,6 +151,9 @@ export default async function HomePage() {
       };
     }),
   ]);
+
+  // Second pass: fetch any tab/picker IDs missing from the bulk catalog (diaries often).
+  const catalog = await hydrateCatalogPicks(catalogRaw, sections);
 
   const settings = storefront?.settings;
   const headerNav = storefront?.headerNav;

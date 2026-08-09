@@ -417,6 +417,66 @@ export function normalizeCatalogName(name: string): string {
  * Fuzzy: exact normalize, then includes either way. Prefer first hit; no duplicates.
  * If nothing matches by name, fill remaining slots with first catalog rows.
  */
+/**
+ * Normalize admin tab product id lists.
+ * Accepts string ids, { productId }, { id }, and mixed arrays from older saves.
+ */
+export function normalizeTabProductIds(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const item of raw) {
+    let id = "";
+    if (typeof item === "string") id = item.trim();
+    else if (item && typeof item === "object") {
+      const o = item as Record<string, unknown>;
+      const v = o.productId ?? o.product_id ?? o.id;
+      if (typeof v === "string") id = v.trim();
+    }
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    out.push(id);
+  }
+  return out;
+}
+
+/** Parse page_sections tabbed_products content.tabs into stable { name, productIds }. */
+export function parseCustomTabs(
+  content: unknown,
+): { name: string; productIds: string[] }[] {
+  if (!content || typeof content !== "object") return [];
+  const tabs = (content as { tabs?: unknown }).tabs;
+  if (!Array.isArray(tabs)) return [];
+  return tabs.map((t, i) => {
+    const row = t && typeof t === "object" ? (t as Record<string, unknown>) : {};
+    const name =
+      typeof row.name === "string" && row.name.trim()
+        ? row.name.trim()
+        : `Tab ${i + 1}`;
+    const rawIds = row.productIds ?? row.product_ids ?? row.items ?? row.products;
+    return { name, productIds: normalizeTabProductIds(rawIds) };
+  });
+}
+
+/**
+ * Resolve tab productIds against a catalog map (id → product).
+ * Tries exact id, then lowercase id (UUID case drift).
+ */
+export function resolveProductsByIds<T>(
+  productIds: string[],
+  byId: Map<string, T>,
+): T[] {
+  const out: T[] = [];
+  for (const id of productIds) {
+    const hit =
+      byId.get(id) ??
+      byId.get(id.toLowerCase()) ??
+      byId.get(id.toUpperCase());
+    if (hit) out.push(hit);
+  }
+  return out;
+}
+
 export function matchCatalogIdsByNames(
   catalog: { id: string | number; name?: string | null }[] | null | undefined,
   wantedNames: readonly string[],
