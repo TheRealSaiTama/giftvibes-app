@@ -37,7 +37,7 @@ const features = [
   {
     icon: (
       <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v1hH5v-1zM6 18a2 2 0 002 2h8a2 2 0 002-2V8H6v10zM9 14h6" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v1H5V5zM6 18a2 2 0 002 2h8a2 2 0 002-2V8H6v10zM9 14h6" />
       </svg>
     ),
     title: "High-Grade Product Range",
