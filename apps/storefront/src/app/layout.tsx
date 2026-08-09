@@ -31,9 +31,8 @@ export async function generateMetadata(): Promise<Metadata> {
       ?? `${brand} | Customised Diaries 2026 | Customised Note Books | Customised Corporate Gifts`;
     const defaultDescription = homeSeo?.description
       ?? `${brand} crafts personalised diaries, notebooks, planners, and premium corporate gifts for 2026 with bespoke branding and nationwide delivery.`;
-    // Always use the real public domain — DB had a typo "giftvibe.in" (missing s).
-    const siteUrl = "https://www.giftvibes.in";
-    void safeSiteUrl(settings.siteUrl); // keep helper for future use / validation
+    // Force public domain. DB previously had typo "giftvibe.in" (missing s) which broke SEO URLs.
+    const siteUrl = safeSiteUrl(settings.siteUrl?.includes("giftvibes") ? settings.siteUrl : "https://www.giftvibes.in");
     const ogImage = homeSeo?.ogImageUrl || settings.logoUrl || "/logo.png";
     const favicon = settings.faviconUrl || "/favicon/favicon.png";
 
