@@ -6,6 +6,7 @@ import { useState } from 'react';
 interface ProductGalleryProps {
   imageUrl: string;
   productName: string;
+  gallery?: string[];
 }
 
 function getFileIdFromUrl(url: string): string | null {
@@ -15,25 +16,27 @@ function getFileIdFromUrl(url: string): string | null {
   return match ? match[1] : null;
 }
 
-export default function ProductGallery({ imageUrl, productName }: ProductGalleryProps) {
+function normalizeUrl(url: string): string {
+  if (!url) return '/placeholder-product.jpg';
+  if (url.includes('drive.google.com')) {
+    const fileId = getFileIdFromUrl(url);
+    if (fileId) return `https://drive.google.com/uc?id=${fileId}`;
+  }
+  if (/^https?:\/\//i.test(url)) return url;
+  return url;
+}
+
+export default function ProductGallery({ imageUrl, productName, gallery }: ProductGalleryProps) {
   const [selectedImage, setSelectedImage] = useState(0);
   const [isZoomed, setIsZoomed] = useState(false);
 
-  const url = imageUrl?.trim();
-  let finalImageUrl = '/placeholder-product.jpg';
-
-  if (url) {
-    if (url.includes('drive.google.com')) {
-      const fileId = getFileIdFromUrl(url);
-      if (fileId) {
-        finalImageUrl = `https://drive.google.com/uc?id=${fileId}`;
-      }
-    } else if (/^https?:\/\//i.test(url)) {
-      finalImageUrl = url;
-    }
-  }
-
-  const images = [finalImageUrl, finalImageUrl, finalImageUrl];
+  // ponytail: primary image first, then any gallery entries. M6 secondary
+  // images flow through as the rest of the array.
+  const images: string[] = [
+    normalizeUrl(imageUrl),
+    ...(Array.isArray(gallery) ? gallery : []).map(normalizeUrl).filter((u) => u && u !== '/placeholder-product.jpg'),
+  ].filter(Boolean);
+  const safeImages = images.length > 0 ? images : ['/placeholder-product.jpg'];
 
   return (
     <div className="space-y-4">
@@ -47,7 +50,7 @@ export default function ProductGallery({ imageUrl, productName }: ProductGallery
         </div>
         <div className="relative w-full h-full flex items-center justify-center p-8">
           <Image
-            src={images[selectedImage]}
+            src={safeImages[selectedImage] || safeImages[0]}
             alt={productName}
             fill
             className={`object-contain transition-transform duration-300 ${
@@ -78,8 +81,8 @@ export default function ProductGallery({ imageUrl, productName }: ProductGallery
         </button>
       </div>
 
-      <div className="flex gap-3 justify-start">
-        {images.map((img, idx) => (
+      <div className="flex gap-3 justify-start flex-wrap">
+        {safeImages.map((img, idx) => (
           <button
             key={idx}
             onClick={() => {

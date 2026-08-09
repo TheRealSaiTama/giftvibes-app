@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import { Eye, EyeOff, Plus, Trash2, Monitor, Smartphone, RefreshCw, ExternalLink } from "lucide-react";
 import { MediaPicker } from "@/components/admin/media-picker";
 import { ProductPicker } from "@/components/admin/product-picker";
+import { TabManager } from "@/components/admin/tab-manager";
 
 const PAGE_PREVIEW_PATHS: Record<string, string> = {
   home: "/",
@@ -341,13 +342,33 @@ function FieldEditor({
 }) {
   const label = prettyKey(fieldKey);
 
-  // ponytail: best_deals section uses the product picker for items, so
-  // the admin can pick up to 4 products from the products table.
+  // ponytail: best_deals and popular sections use the product picker for items,
+  // so the admin can pick from the products table. Caps are per-section.
   if (sectionKey === "best_deals" && fieldKey === "items" && Array.isArray(value)) {
     return (
       <div>
         <Label className="mb-2 block">{label} <span className="text-muted-foreground font-normal">(up to 4)</span></Label>
         <ProductPicker value={value} onChange={onChange} max={4} />
+      </div>
+    );
+  }
+
+  if (sectionKey === "popular" && fieldKey === "items" && Array.isArray(value)) {
+    return (
+      <div>
+        <Label className="mb-2 block">{label} <span className="text-muted-foreground font-normal">(up to 5)</span></Label>
+        <ProductPicker value={value} onChange={onChange} max={5} />
+      </div>
+    );
+  }
+
+  // ponytail: best_deals_tabbed section's tabs is a list of { name, productIds }.
+  // The TabManager wraps the ProductPicker for the per-tab product list.
+  if (sectionKey === "best_deals_tabbed" && fieldKey === "tabs" && Array.isArray(value)) {
+    return (
+      <div>
+        <Label className="mb-2 block">{label} <span className="text-muted-foreground font-normal">(up to 8 products per tab)</span></Label>
+        <TabManager value={value} onChange={onChange} maxProductsPerTab={8} />
       </div>
     );
   }

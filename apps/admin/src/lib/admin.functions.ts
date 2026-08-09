@@ -169,6 +169,13 @@ const productShape = z.object({
   image_url: z.string().nullable(),
   featured: z.boolean(),
   enabled: z.boolean(),
+  // M6: secondary images stored as a JSON array of URLs in the existing `gallery` column.
+  gallery: z.array(z.string()).default([]),
+  // M8: per-feature { show, value }. Only enabled + non-empty values render on the product page.
+  features: z.record(z.object({ show: z.boolean(), value: z.string() })).default({}),
+  // M9: SEO meta. Used by storefront generateMetadata.
+  seo_title: z.string().nullable(),
+  seo_description: z.string().nullable(),
 });
 
 export const saveProduct = createServerFn({ method: "POST" })
@@ -219,6 +226,10 @@ const diaryShape = z.object({
   image_url: z.string().nullable(),
   featured: z.boolean(),
   enabled: z.boolean(),
+  gallery: z.array(z.string()).default([]),
+  features: z.record(z.object({ show: z.boolean(), value: z.string() })).default({}),
+  seo_title: z.string().nullable(),
+  seo_description: z.string().nullable(),
 });
 
 export const saveDiary = createServerFn({ method: "POST" })

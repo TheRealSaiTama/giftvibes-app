@@ -12,7 +12,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Loader2, ImageIcon, Upload, X, Check, Trash2 } from "lucide-react";
+import { Loader2, ImageIcon, Upload, X, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 const BUCKET = "site-media";
@@ -41,9 +41,14 @@ export async function uploadFileToBucket(file: File) {
 export function MediaPicker({
   value,
   onChange,
+  hideUrl = false,
 }: {
   value: string;
   onChange: (url: string) => void;
+  // ponytail: when true, hides the "paste a URL" text input below the
+  // thumbnail. Use this when the picker is for a primary/secondary image
+  // that should only come from the media library, not arbitrary URLs.
+  hideUrl?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -85,8 +90,9 @@ export function MediaPicker({
 
   return (
     <div className="flex items-start gap-3">
-      <div className="relative h-24 w-24 rounded-md border border-border bg-surface overflow-hidden flex items-center justify-center shrink-0">
+      <div className="h-16 w-16 rounded bg-surface-2 overflow-hidden flex items-center justify-center border border-border shrink-0">
         {value ? (
+          // eslint-disable-next-line @next/next/no-img-element
           <img src={value} alt="" className="h-full w-full object-cover" />
         ) : (
           <ImageIcon className="h-6 w-6 text-muted-foreground" />
@@ -147,12 +153,14 @@ export function MediaPicker({
             </Button>
           )}
         </div>
-        <Input
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder="or paste an image URL"
-          className="text-xs font-mono"
-        />
+        {!hideUrl && (
+          <Input
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder="or paste an image URL"
+            className="text-xs font-mono"
+          />
+        )}
       </div>
     </div>
   );
@@ -190,43 +198,35 @@ export function MediaGrid({
     }
   }
 
-  if (isLoading) return <div className="py-8 text-center text-sm text-muted-foreground">Loading…</div>;
-  if (!data?.length)
-    return (
-      <div className="py-10 text-center text-sm text-muted-foreground border border-dashed border-border rounded-md">
-        No images yet. Upload one above.
-      </div>
-    );
-
+  if (isLoading) {
+    return <div className="text-sm text-muted-foreground py-4 text-center">Loading media…</div>;
+  }
+  if (!data || data.length === 0) {
+    return <div className="text-sm text-muted-foreground py-4 text-center">No media uploaded yet.</div>;
+  }
   return (
-    <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-3 max-h-96 overflow-y-auto pr-1">
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 max-h-96 overflow-y-auto">
       {data.map((asset) => (
-        <div
-          key={asset.id}
-          className="group relative aspect-square rounded-md border border-border overflow-hidden bg-surface cursor-pointer"
-          onClick={() => onPick?.(asset.url, asset)}
-        >
-          <img src={asset.url} alt={asset.alt ?? ""} className="h-full w-full object-cover" />
-          <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/40 transition flex items-center justify-center gap-2">
-            {onPick && (
-              <Button size="icon" className="opacity-0 group-hover:opacity-100 h-8 w-8">
-                <Check className="h-4 w-4" />
-              </Button>
-            )}
-            {onDelete && (
-              <Button
-                size="icon"
-                variant="destructive"
-                className="opacity-0 group-hover:opacity-100 h-8 w-8"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDelete(asset);
-                }}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            )}
-          </div>
+        <div key={asset.id} className="relative group">
+          <button
+            type="button"
+            onClick={() => onPick?.(asset.url, asset)}
+            className="block w-full aspect-square rounded overflow-hidden border border-border hover:border-primary transition-colors"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={asset.url} alt={asset.alt || ""} className="w-full h-full object-cover" />
+          </button>
+          {onDelete && (
+            <Button
+              variant="destructive"
+              size="icon"
+              className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+              onClick={() => handleDelete(asset)}
+              title="Delete"
+            >
+              <Trash2 className="h-3 w-3" />
+            </Button>
+          )}
         </div>
       ))}
     </div>

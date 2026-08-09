@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { MediaPicker } from "@/components/admin/media-picker";
 import {
@@ -30,10 +31,24 @@ type CustomCategory = {
   seoDescription?: string;
 };
 
+// ponytail: the static list of properties available per product. M8: each
+// row is a checkbox + value pair; only the checked ones render on the
+// storefront product page.
+const PRODUCT_FEATURES: { key: string; label: string; placeholder: string }[] = [
+  { key: "material", label: "Material", placeholder: "PU leather, paper, metal…" },
+  { key: "size", label: "Size", placeholder: "A5, B5, A4…" },
+  { key: "color", label: "Color", placeholder: "Brown, navy…" },
+  { key: "pages", label: "Pages", placeholder: "320" },
+  { key: "cover_type", label: "Cover type", placeholder: "Hard bound, soft cover…" },
+  { key: "weight", label: "Weight", placeholder: "0.5 kg" },
+  { key: "dimensions", label: "Dimensions", placeholder: "21 × 14.8 cm" },
+];
+
 export const Route = createFileRoute("/_authenticated/products")({
   component: ProductsPage,
 });
 
+type ProductFeature = { show: boolean; value: string };
 type CatalogItem = {
   id: string;
   type: "product" | "diary";
@@ -47,6 +62,14 @@ type CatalogItem = {
   image_url: string | null;
   featured: boolean;
   enabled: boolean;
+  // M6: secondary images stored in the existing `gallery` jsonb column.
+  gallery: string[];
+  // M8: per-feature { show, value }. Only enabled + non-empty values render
+  // on the product page.
+  features: Record<string, ProductFeature>;
+  // M9: SEO meta for generateMetadata on the storefront product page.
+  seo_title: string | null;
+  seo_description: string | null;
   // diary specific metadata
   color?: string | null;
   size?: string | null;
@@ -67,6 +90,10 @@ const empty: CatalogItem = {
   image_url: "",
   featured: false,
   enabled: true,
+  gallery: [],
+  features: {},
+  seo_title: "",
+  seo_description: "",
   color: "",
   size: "",
   pages: null,
@@ -845,6 +872,15 @@ function ProductForm({
   const [saving, setSaving] = useState(false);
   const [catSearch, setCatSearch] = useState("");
 
+  // ponytail: auto-derive the slug from the name until the user touches the
+  // slug field by hand. After that, edits to the name leave the slug alone.
+  const slugTouched = useRef<boolean>(Boolean(product.slug));
+  useEffect(() => {
+    if (slugTouched.current) return;
+    const auto = slugify(values.name);
+    setValues((prev) => (prev.slug === auto ? prev : { ...prev, slug: auto }));
+  }, [values.name]);
+
   const runSaveProduct = useServerFn(saveProduct);
   const runDeleteProduct = useServerFn(deleteProduct);
   const runSaveDiary = useServerFn(saveDiary);
@@ -876,6 +912,10 @@ function ProductForm({
               image_url: values.image_url || null,
               featured: values.featured,
               enabled: values.enabled,
+              gallery: values.gallery || [],
+              features: values.features || {},
+              seo_title: values.seo_title || null,
+              seo_description: values.seo_description || null,
             },
           },
         });
@@ -894,6 +934,10 @@ function ProductForm({
               image_url: values.image_url || null,
               featured: values.featured,
               enabled: values.enabled,
+              gallery: values.gallery || [],
+              features: values.features || {},
+              seo_title: values.seo_title || null,
+              seo_description: values.seo_description || null,
             },
           },
         });
@@ -993,19 +1037,88 @@ function ProductForm({
         <Label>Slug</Label>
         <Input
           value={values.slug}
-          onChange={(e) => set("slug", e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-"))}
+          onChange={(e) => {
+            slugTouched.current = true;
+            set("slug", e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-"));
+          }}
           placeholder={slugify(values.name)}
           className="mt-1.5 font-mono text-xs"
         />
+        <p className="text-xs text-muted-foreground mt-1">
+          Auto-derived from the name. Type to override; after that the slug stays put.
+        </p>
       </div>
       <div>
-        <Label>Image</Label>
+        <Label>Primary image</Label>
         <div className="mt-1.5">
-          <MediaPicker value={values.image_url ?? ""} onChange={(v) => set("image_url", v)} />
+          <MediaPicker
+            value={values.image_url ?? ""}
+            onChange={(v) => set("image_url", v)}
+            hideUrl
+          />
         </div>
       </div>
+
+      {/* M6: Secondary images gallery */}
       <div>
-        <Label>Description</Label>
+        <Label className="flex items-center justify-between">
+          <span>Secondary images</span>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => set("gallery", [...(values.gallery || []), ""])}
+          >
+            <Plus className="h-3.5 w-3.5 mr-1.5" />
+            Add image
+          </Button>
+        </Label>
+        <p className="text-xs text-muted-foreground mt-1 mb-2">
+          Extra shots shown on the product page. Pick from the media library.
+        </p>
+        <div className="space-y-2">
+          {(values.gallery || []).map((url, i) => (
+            <div key={i} className="flex items-center gap-2 rounded-md border border-border bg-surface/40 p-2">
+              <div className="flex-1">
+                <MediaPicker
+                  value={url}
+                  onChange={(v) => {
+                    const next = [...(values.gallery || [])];
+                    next[i] = v;
+                    set("gallery", next);
+                  }}
+                  hideUrl
+                />
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-destructive hover:text-destructive shrink-0"
+                onClick={() => {
+                  const next = (values.gallery || []).filter((_, j) => j !== i);
+                  set("gallery", next);
+                }}
+                title="Remove image"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          ))}
+          {(values.gallery || []).length === 0 && (
+            <div className="text-xs text-muted-foreground italic px-1">
+              No secondary images yet.
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* M7: Description is now labelled Product Highlights */}
+      <div>
+        <Label>Product Highlights</Label>
+        <p className="text-xs text-muted-foreground mt-0.5 mb-1.5">
+          Short selling points shown on the product page.
+        </p>
         <Textarea rows={4} value={values.description ?? ""} onChange={(e) => set("description", e.target.value)} className="mt-1.5" />
       </div>
       <div className="grid grid-cols-2 gap-3">
@@ -1215,6 +1328,79 @@ function ProductForm({
           className="mt-1.5"
         />
       </div>
+
+      {/* M8: per-feature { show, value }. Only enabled + non-empty values
+          render on the product page. Static list of common properties for
+          both products and diaries. */}
+      <div>
+        <Label>Product Features</Label>
+        <p className="text-xs text-muted-foreground mt-0.5 mb-2">
+          Tick a property to show it on the product page. Untick to hide.
+        </p>
+        <div className="rounded-md border border-border divide-y divide-border overflow-hidden">
+          {PRODUCT_FEATURES.map((f) => {
+            const entry = (values.features || {})[f.key] || { show: false, value: "" };
+            return (
+              <div key={f.key} className="flex items-center gap-3 px-3 py-2">
+                <Checkbox
+                  checked={entry.show}
+                  onCheckedChange={(checked) => {
+                    set("features", {
+                      ...(values.features || {}),
+                      [f.key]: { ...entry, show: Boolean(checked) },
+                    });
+                  }}
+                />
+                <span className="text-sm font-medium w-32 shrink-0">{f.label}</span>
+                <Input
+                  value={entry.value}
+                  onChange={(e) => {
+                    set("features", {
+                      ...(values.features || {}),
+                      [f.key]: { ...entry, value: e.target.value },
+                    });
+                  }}
+                  placeholder={f.placeholder}
+                  disabled={!entry.show}
+                  className="flex-1 text-sm"
+                />
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* M9: SEO meta. Used by the storefront product page's generateMetadata. */}
+      <div>
+        <Label>SEO</Label>
+        <p className="text-xs text-muted-foreground mt-0.5 mb-2">
+          Search engine + social share meta for this product page. Falls back to the product name and product highlights if blank.
+        </p>
+        <div className="space-y-3 rounded-md border border-border p-3 bg-surface/40">
+          <div>
+            <Label htmlFor="seo-title" className="text-xs">Meta title</Label>
+            <Input
+              id="seo-title"
+              value={values.seo_title ?? ""}
+              onChange={(e) => set("seo_title", e.target.value)}
+              placeholder={`${values.name || "Product"} | GiftVibes`}
+              className="mt-1"
+            />
+          </div>
+          <div>
+            <Label htmlFor="seo-desc" className="text-xs">Meta description</Label>
+            <Textarea
+              id="seo-desc"
+              rows={3}
+              value={values.seo_description ?? ""}
+              onChange={(e) => set("seo_description", e.target.value)}
+              placeholder="One-line summary for search results and social shares."
+              className="mt-1"
+            />
+          </div>
+        </div>
+      </div>
+
       <div className="flex items-center gap-4">
         <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
           <Switch checked={values.featured} onCheckedChange={(v) => set("featured", v)} /> Featured
