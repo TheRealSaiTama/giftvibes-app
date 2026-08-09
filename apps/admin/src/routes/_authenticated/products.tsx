@@ -566,6 +566,13 @@ function ProductsPage() {
                 className="pl-8"
               />
             </div>
+            <Button
+              onClick={() => setEditing({ ...empty })}
+              className="shrink-0"
+            >
+              <Plus className="h-4 w-4 mr-1.5" />
+              New product / diary
+            </Button>
           </div>
 
           <div className="gv-panel overflow-hidden">
@@ -678,6 +685,7 @@ function ProductsPage() {
               product={editing}
               allCategories={allCategories}
               defaultCategory={selectedCategory && selectedCategory !== "__uncategorised__" ? selectedCategory : undefined}
+              defaultSubcategory={search || !selectedSubcategory || selectedCategory === "__uncategorised__" ? undefined : selectedSubcategory}
               onClose={() => setEditing(null)}
               onSaved={() => {
                 qc.invalidateQueries({ queryKey: ["products-admin-only"] });
@@ -788,17 +796,24 @@ function ProductForm({
   onSaved,
   allCategories,
   defaultCategory,
+  defaultSubcategory,
 }: {
   product: CatalogItem;
   onClose: () => void;
   onSaved: () => void;
   allCategories: string[];
   defaultCategory?: string;
+  defaultSubcategory?: string;
 }) {
   const [values, setValues] = useState<CatalogItem>(() => ({
     ...empty,
     ...product,
     category: product.category || defaultCategory || "",
+    tags: product.tags && product.tags.length > 0
+      ? product.tags
+      : defaultSubcategory
+        ? [defaultSubcategory]
+        : [],
   }));
   const [saving, setSaving] = useState(false);
   const [catSearch, setCatSearch] = useState("");
