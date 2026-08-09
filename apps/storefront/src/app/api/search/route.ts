@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getPriceOverride } from "@/lib/price-overrides";
-import { getDiaryRows } from "@/lib/diary-data";
 
 interface SearchResult {
   id: string | number;
@@ -18,129 +16,105 @@ const DRIVE_REGEX = /\/d\/([A-Za-z0-9_-]+)/;
 const DRIVE_QUERY_REGEX = /[?&]id=([A-Za-z0-9_-]+)/;
 
 function resolveImageUrl(url: string | null | undefined): string {
-  if (!url) {
-    return "";
-  }
-
+  if (!url) return "";
   if (url.includes("drive.google.com")) {
     const match = url.match(DRIVE_REGEX) || url.match(DRIVE_QUERY_REGEX);
-    if (match && match[1]) {
-      return `https://drive.google.com/uc?id=${match[1]}`;
-    }
+    if (match?.[1]) return `https://drive.google.com/uc?id=${match[1]}`;
   }
-
   return url;
 }
 
-function matchesQuery(value: string | null | undefined, query: string): boolean {
-  if (!value) return false;
-  return value.toLowerCase().includes(query);
-}
-
-async function searchDiaries(query: string, limit: number): Promise<SearchResult[]> {
-  const results: SearchResult[] = [];
-  let idCounter = 100000;
-  const queue: Array<() => SearchResult | null> = [];
-
-  for (const record of getDiaryRows()) {
-    const diaryId = idCounter++;
-    queue.push(() => {
-      const name = record["Product Name"];
-      if (!matchesQuery(name, query) &&
-          !matchesQuery(record["Tags"], query) &&
-          !matchesQuery(record["Categories"], query)) {
-        return null;
-      }
-
-      const priceText = record["Price Range"] || "";
-      const prices = priceText.match(/\d+/g)?.map(Number) || [];
-      const minPriceRaw = prices[0];
-      const maxPriceRaw = prices.length > 1 ? prices[prices.length - 1] : prices[0];
-      const override = getPriceOverride(name);
-
-      return {
-        id: diaryId,
-        name,
-        description: record["Short Description"] ?? "",
-        minPrice: override?.minPrice ?? (typeof minPriceRaw === "number" ? minPriceRaw : null),
-        maxPrice: override?.maxPrice ?? (typeof maxPriceRaw === "number" ? maxPriceRaw : null),
-        imageUrl: resolveImageUrl(record["Product image"]),
-        category: record["Categories"],
-        source: "diary" as const,
-        path: `/shop/${diaryId}`,
-      } satisfies SearchResult;
-    });
-  }
-
-  // Breadth-first traversal over the queued diary items for responsive ordering
-  while (queue.length > 0 && results.length < limit) {
-    const resolver = queue.shift();
-    if (!resolver) {
-      continue;
-    }
-    const item = resolver();
-    if (item) {
-      results.push(item);
-    }
-  }
-
-  return results;
-}
-
+/** Live Prisma products only (enabled). No CSV. */
 async function searchDatabaseProducts(query: string, limit: number): Promise<SearchResult[]> {
-  const { prisma } = await import("@/lib/prisma");
+  try {
+    const { prisma } = await import("@/lib/prisma");
+    const matches = await prisma.product.findMany({
+      where: {
+        enabled: true,
+        OR: [
+          { name: { contains: query, mode: "insensitive" } },
+          { category: { contains: query, mode: "insensitive" } },
+          { description: { contains: query, mode: "insensitive" } },
+        ],
+      },
+      take: limit,
+    });
+    return matches.map((product) => ({
+      id: product.id,
+      name: product.name,
+      description: product.description,
+      minPrice: product.minPrice ?? null,
+      maxPrice: product.maxPrice ?? null,
+      imageUrl: resolveImageUrl(product.imageUrl ?? ""),
+      category: product.category,
+      source: "product" as const,
+      path: `/shop/${product.id}`,
+    }));
+  } catch (e) {
+    console.error("search products failed", e);
+    return [];
+  }
+}
 
-  const matches = await prisma.product.findMany({
-    where: {
-      name: { contains: query, mode: "insensitive" },
-    },
-    take: limit,
-  });
-
-  return matches.map((product) => ({
-    id: product.id,
-    name: product.name,
-    description: product.description,
-    minPrice: product.minPrice ?? null,
-    maxPrice: product.maxPrice ?? null,
-    imageUrl: resolveImageUrl(product.imageUrl ?? ""),
-    category: product.category,
-    source: "product" as const,
-    path: `/shop/${product.id}`,
-  }));
+/** Live Prisma diaries only (enabled). No CSV — hide/delete is end-to-end. */
+async function searchDatabaseDiaries(query: string, limit: number): Promise<SearchResult[]> {
+  try {
+    const { prisma } = await import("@/lib/prisma");
+    const matches = await prisma.diary.findMany({
+      where: {
+        enabled: true,
+        OR: [
+          { name: { contains: query, mode: "insensitive" } },
+          { category: { contains: query, mode: "insensitive" } },
+          { description: { contains: query, mode: "insensitive" } },
+        ],
+      },
+      take: limit,
+    });
+    return matches.map((diary) => ({
+      id: diary.id,
+      name: diary.name,
+      description: diary.description,
+      minPrice: diary.minPrice ?? null,
+      maxPrice: diary.maxPrice ?? null,
+      imageUrl: resolveImageUrl(diary.imageUrl ?? ""),
+      category: diary.category,
+      source: "diary" as const,
+      path: `/shop/${diary.id}`,
+    }));
+  } catch (e) {
+    console.error("search diaries failed", e);
+    return [];
+  }
 }
 
 export async function GET(request: NextRequest) {
   try {
     const url = new URL(request.url);
     const rawQuery = url.searchParams.get("q") ?? "";
-    const query = rawQuery.trim().toLowerCase();
+    const query = rawQuery.trim();
 
     if (!query) {
       return NextResponse.json({ results: [] }, { headers: { "Cache-Control": "no-store" } });
     }
 
     const [diaries, products] = await Promise.all([
-      searchDiaries(query, 7),
+      searchDatabaseDiaries(query, 7),
       searchDatabaseProducts(query, 5),
     ]);
 
-    const combined: SearchResult[] = [...diaries];
-
-    for (const item of products) {
+    const combined: SearchResult[] = [];
+    for (const item of [...diaries, ...products]) {
       if (combined.length >= 10) break;
       combined.push(item);
     }
 
     return NextResponse.json(
       { results: combined },
-      { headers: { "Cache-Control": "no-store" } }
+      { headers: { "Cache-Control": "no-store" } },
     );
   } catch (error) {
     console.error("Search API error", error);
-    return NextResponse.json(
-      { results: [], error: "SEARCH_FAILED" },
-      { status: 500 }
-    );
+    return NextResponse.json({ results: [], error: "SEARCH_FAILED" }, { status: 500 });
   }
 }

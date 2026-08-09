@@ -1,67 +1,51 @@
 import { Suspense } from "react";
-import Header from '@/components/sections/header';
-import Footer from '@/components/sections/footer';
-import { Product } from '@prisma/client';
-import ShopClient from './ShopClient';
-import { getPriceOverride } from '@/lib/price-overrides';
-import { getDiaryRows } from '@/lib/diary-data';
-import { getStorefrontData } from "@/lib/site";
+import Header from "@/components/sections/header";
+import Footer from "@/components/sections/footer";
+import ShopClient from "./ShopClient";
+import { getStorefrontData, getShopChrome } from "@/lib/site";
+import { filterLiveCatalog } from "@/lib/cms/mappers";
 
 // ponytail: revalidate=0 so /api/revalidate can bust this page after admin edits.
 export const revalidate = 0;
 
-async function getDiaries(): Promise<any[]> {
-  const diaries: any[] = [];
-  let idCounter = 100000;
-  for (const record of getDiaryRows()) {
-    if (!record['Product Name'] || record['Product Name'].trim() === '') continue;
-    const priceText = record['Price Range'] || '0';
-    const prices = priceText.match(/\d+/g)?.map(Number) || [0];
-    const minPrice = prices[0];
-    const maxPrice = prices.length > 1 ? prices[1] : prices[0];
-    const override = getPriceOverride(record['Product Name']);
-    const computedMin = isNaN(minPrice) ? null : minPrice;
-    const computedMax = isNaN(maxPrice) ? null : maxPrice;
-    diaries.push({
-      id: idCounter++,
-      name: record['Product Name'],
-      description: record['Short Description'],
-      minPrice: override?.minPrice ?? computedMin,
-      maxPrice: override?.maxPrice ?? computedMax,
-      imageUrl: record['Product image'],
-      category: record['Categories'],
-      tags: record['Tags'],
-    });
-  }
-
-  return diaries;
-}
-
-async function getProducts(): Promise<Product[]> {
+/** Live Prisma products only (admin enabled). No CSV. */
+async function getProducts() {
   try {
-    const { prisma } = await import('@/lib/prisma');
+    const { prisma } = await import("@/lib/prisma");
     const products = await prisma.product.findMany({
       where: { enabled: true },
-      orderBy: { minPrice: 'asc' },
+      orderBy: { minPrice: "asc" },
       take: 1000,
     });
-    return products;
+    return filterLiveCatalog(products as any[]);
   } catch (err) {
-    // Don't white-screen the whole shop (navbar category deep-links) if DB is down.
     console.error("shop getProducts failed", err);
     return [];
   }
 }
 
-// ponytail: revalidate=0 above + admin webhook means no more "re-trigger build" dance.
+/** Live Prisma diaries only (admin enabled). No CSV — hide/delete is real end-to-end. */
+async function getDiaries() {
+  try {
+    const { prisma } = await import("@/lib/prisma");
+    const diaries = await prisma.diary.findMany({
+      where: { enabled: true },
+      orderBy: { minPrice: "asc" },
+      take: 1000,
+    });
+    return filterLiveCatalog(diaries as any[]);
+  } catch (err) {
+    console.error("shop getDiaries failed", err);
+    return [];
+  }
+}
+
 export default async function ShopPage() {
-  const [allDiaries, allProducts, storefront] = await Promise.all([
-    getDiaries().catch((e) => {
-      console.error("shop getDiaries failed", e);
-      return [] as any[];
-    }),
+  const [allDiaries, allProducts, storefront, chrome] = await Promise.all([
+    getDiaries(),
     getProducts(),
     getStorefrontData(),
+    getShopChrome(),
   ]);
 
   return (
@@ -72,10 +56,18 @@ export default async function ShopPage() {
         logoUrl={storefront.settings?.logoUrl}
         brandName={storefront.settings?.brandName}
       />
-      <Suspense fallback={<div className="container py-16 text-sm text-muted-foreground">Loading shop…</div>}>
-        <ShopClient initialDiaries={allDiaries as any} initialProducts={allProducts} />
+      <Suspense
+        fallback={
+          <div className="container py-16 text-sm text-muted-foreground">Loading shop…</div>
+        }
+      >
+        <ShopClient
+          initialDiaries={allDiaries as any}
+          initialProducts={allProducts as any}
+          chrome={chrome}
+        />
       </Suspense>
-      <Footer settings={storefront.settings} />
+      <Footer settings={storefront.settings} footerLinks={storefront.footerLinks} />
     </div>
   );
 }

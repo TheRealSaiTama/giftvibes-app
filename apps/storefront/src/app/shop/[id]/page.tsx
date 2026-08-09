@@ -1,22 +1,24 @@
 import type { Metadata } from "next";
-import Header from '@/components/sections/header';
-import Footer from '@/components/sections/footer';
-import Link from 'next/link';
-import { notFound } from 'next/navigation';
-import ProductGallery from '@/components/product/ProductGallery';
-import ProductInfo from '@/components/product/ProductInfo';
-import RelatedProducts from '@/components/product/RelatedProducts';
-import { getPriceOverride } from '@/lib/price-overrides';
-import { getDiaryRows } from '@/lib/diary-data';
-import { getStorefrontData } from "@/lib/site";
+import Header from "@/components/sections/header";
+import Footer from "@/components/sections/footer";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import ProductGallery from "@/components/product/ProductGallery";
+import ProductInfo from "@/components/product/ProductInfo";
+import RelatedProducts from "@/components/product/RelatedProducts";
+import { getStorefrontData, getProductChrome } from "@/lib/site";
 
 // ponytail: revalidate=0 so /api/revalidate can bust this page after admin edits.
 export const revalidate = 0;
 
 // M9: SEO meta. Falls back to the product name + highlights if the
 // admin didn't fill in the per-product SEO fields.
-export async function generateMetadata({ params }: { params: Promise<{ id: string }> | { id: string } }): Promise<Metadata> {
-  const resolvedParams = 'then' in params ? await params : params;
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }> | { id: string };
+}): Promise<Metadata> {
+  const resolvedParams = "then" in params ? await params : params;
   const product = await getProduct(resolvedParams.id);
   if (!product) return {};
   const title = product.seoTitle || product.name;
@@ -32,56 +34,23 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   };
 }
 
-function normalizeTags(value?: string | null): string[] {
+function normalizeTags(value?: string | string[] | null): string[] {
   if (!value) return [];
+  if (Array.isArray(value)) return value.filter(Boolean).map(String);
   const tags = value
-    .split(',')
-    .map((tag) => tag.replace(/\s+/g, ' ').trim())
+    .split(",")
+    .map((tag) => tag.replace(/\s+/g, " ").trim())
     .filter(Boolean);
   return Array.from(new Set(tags));
 }
 
-// Specs render inside ProductInfo from product.features (checkbox + value).
-
+/** Live Prisma product or diary only. No CSV path — hide/delete is end-to-end. */
 async function getProduct(id: string): Promise<any | null> {
-  let idCounter = 100000;
-  const productId = parseInt(id, 10);
-
-  // If it's a short numeric ID, try the CSV fallback first
-  if (id.length < 10 && !Number.isNaN(productId)) {
-    for (const record of getDiaryRows()) {
-      if (!record['Product Name'] || record['Product Name'].trim() === '') {
-        idCounter++;
-        continue;
-      }
-      if (idCounter === productId) {
-        const priceText = record['Price Range'] || '0';
-        const prices = priceText.match(/\d+/g)?.map(Number) || [0];
-        const minPrice = prices[0];
-        const maxPrice = prices.length > 1 ? prices[1] : prices[0];
-        const override = getPriceOverride(record['Product Name']);
-        const computedMin = isNaN(minPrice) ? null : minPrice;
-        const computedMax = isNaN(maxPrice) ? null : maxPrice;
-        return {
-          id: idCounter,
-          name: record['Product Name'],
-          description: record['Short Description'],
-          minPrice: override?.minPrice ?? computedMin,
-          maxPrice: override?.maxPrice ?? computedMax,
-          imageUrl: record['Product image'],
-          category: record['Categories'],
-          tags: normalizeTags(record['Tags']),
-        };
-      }
-      idCounter++;
-    }
-  }
-
-  // Try DB lookup (works for both UUIDs and strings) — products then diaries.
   try {
     const { prisma } = await import("@/lib/prisma");
-    const dbProduct = await prisma.product.findUnique({ where: { id: id } });
+    const dbProduct = await prisma.product.findUnique({ where: { id } });
     if (dbProduct) {
+      if (dbProduct.enabled === false) return null;
       return {
         id: dbProduct.id,
         name: dbProduct.name,
@@ -93,16 +62,15 @@ async function getProduct(id: string): Promise<any | null> {
         tags: dbProduct.tags || [],
         gallery: Array.isArray(dbProduct.gallery) ? (dbProduct.gallery as string[]) : [],
         features:
-          dbProduct.features && typeof dbProduct.features === "object"
-            ? dbProduct.features
-            : {},
+          dbProduct.features && typeof dbProduct.features === "object" ? dbProduct.features : {},
         seoTitle: dbProduct.seoTitle ?? null,
         seoDescription: dbProduct.seoDescription ?? null,
         enabled: dbProduct.enabled,
       };
     }
-    const dbDiary = await prisma.diary.findUnique({ where: { id: id } });
+    const dbDiary = await prisma.diary.findUnique({ where: { id } });
     if (dbDiary) {
+      if (dbDiary.enabled === false) return null;
       return {
         id: dbDiary.id,
         name: dbDiary.name,
@@ -123,66 +91,59 @@ async function getProduct(id: string): Promise<any | null> {
   } catch (e) {
     console.error("DB lookup failed", e);
   }
-
   return null;
 }
 
-async function getRelatedProducts(category: string, currentId: string | number): Promise<any[]> {
-  const relatedProducts: any[] = [];
-  let idCounter = 100000;
+/** Related items from live Prisma products + diaries only (enabled). */
+async function getRelatedProducts(
+  category: string,
+  currentId: string | number,
+): Promise<any[]> {
+  const related: any[] = [];
+  const cat = (category || "").split(",")[0]?.trim() || "";
+  if (!cat) return related;
 
-  for (const record of getDiaryRows()) {
-    if (!record['Product Name'] || record['Product Name'].trim() === '') { idCounter++; continue; }
-    if (idCounter !== currentId && record['Categories']?.includes(category)) {
-      const priceText = record['Price Range'] || '0';
-      const prices = priceText.match(/\d+/g)?.map(Number) || [0];
-      const minPrice = prices[0];
-      const maxPrice = prices.length > 1 ? prices[1] : prices[0];
-      const override = getPriceOverride(record['Product Name']);
-      const computedMin = isNaN(minPrice) ? null : minPrice;
-      const computedMax = isNaN(maxPrice) ? null : maxPrice;
-      relatedProducts.push({
-        id: idCounter,
-        name: record['Product Name'],
-        description: record['Short Description'],
-        minPrice: override?.minPrice ?? computedMin,
-        maxPrice: override?.maxPrice ?? computedMax,
-        imageUrl: record['Product image'],
-        category: record['Categories'],
-        tags: normalizeTags(record['Tags']),
-      });
-      if (relatedProducts.length >= 8) return relatedProducts;
-    }
-    idCounter++;
-  }
+  try {
+    const { prisma } = await import("@/lib/prisma");
+    const idStr = String(currentId);
 
-  if (relatedProducts.length < 8 && category) {
-    const { prisma } = await import('@/lib/prisma');
-    const remaining = 8 - relatedProducts.length;
-    const dbRelated = await prisma.product.findMany({
-      where: {
-        enabled: true,
-        id: { not: currentId },
-        category: { contains: category, mode: "insensitive" },
-      },
-      take: remaining,
-    });
+    const [dbProducts, dbDiaries] = await Promise.all([
+      prisma.product.findMany({
+        where: {
+          enabled: true,
+          id: { not: idStr },
+          category: { contains: cat, mode: "insensitive" },
+        },
+        take: 8,
+      }),
+      prisma.diary.findMany({
+        where: {
+          enabled: true,
+          id: { not: idStr },
+          category: { contains: cat, mode: "insensitive" },
+        },
+        take: 8,
+      }),
+    ]);
 
-    for (const item of dbRelated) {
-      relatedProducts.push({
+    for (const item of [...dbProducts, ...dbDiaries]) {
+      related.push({
         id: item.id,
         name: item.name,
         description: item.description,
         minPrice: item.minPrice ?? null,
         maxPrice: item.maxPrice ?? null,
-        imageUrl: item.imageUrl ?? '',
+        imageUrl: item.imageUrl ?? "",
         category: item.category,
-        tags: normalizeTags(item.tags),
+        tags: normalizeTags(item.tags as any),
       });
+      if (related.length >= 8) break;
     }
+  } catch (e) {
+    console.error("getRelatedProducts failed", e);
   }
 
-  return relatedProducts;
+  return related;
 }
 
 export default async function ProductDetailPage({
@@ -190,23 +151,19 @@ export default async function ProductDetailPage({
 }: {
   params: Promise<{ id: string }> | { id: string };
 }) {
-  const resolvedParams = 'then' in params ? await params : params;
-  const [product, storefront] = await Promise.all([
+  const resolvedParams = "then" in params ? await params : params;
+  const [product, storefront, chrome] = await Promise.all([
     getProduct(resolvedParams.id),
     getStorefrontData(),
+    getProductChrome(),
   ]);
 
   if (!product) {
     notFound();
   }
 
-  // Hidden/disabled catalog items are not publicly viewable
-  if (product.enabled === false) {
-    notFound();
-  }
-
-  const relatedProducts = await getRelatedProducts(product.category || '', product.id);
-  const { settings, headerNav, megaMenu } = storefront;
+  const relatedProducts = await getRelatedProducts(product.category || "", product.id);
+  const { settings, headerNav, megaMenu, footerLinks } = storefront;
 
   return (
     <div className="min-h-screen bg-white">
@@ -223,20 +180,18 @@ export default async function ProductDetailPage({
           </Link>
           <span>/</span>
           <Link href="/shop" className="hover:text-primary transition-colors">
-            {product.category?.split(',')[0]?.trim() || 'Shop'}
+            {product.category?.split(",")[0]?.trim() || "Shop"}
           </Link>
-          {product.category?.split(',')[1] && (
+          {product.category?.split(",")[1] && (
             <>
               <span>/</span>
               <span className="hover:text-primary transition-colors">
-                {product.category.split(',')[1].trim()}
+                {product.category.split(",")[1].trim()}
               </span>
             </>
           )}
           <span>/</span>
-          <span className="text-gray-900 font-medium truncate max-w-xs">
-            {product.name}
-          </span>
+          <span className="text-gray-900 font-medium truncate max-w-xs">{product.name}</span>
         </nav>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-12">
@@ -245,7 +200,7 @@ export default async function ProductDetailPage({
             productName={product.name}
             gallery={product.gallery}
           />
-          <ProductInfo product={product} />
+          <ProductInfo product={product} chrome={chrome} />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 py-12 border-t border-gray-100">
@@ -275,10 +230,10 @@ export default async function ProductDetailPage({
         </div>
 
         {relatedProducts.length > 0 && (
-          <RelatedProducts products={relatedProducts} />
+          <RelatedProducts products={relatedProducts} heading={chrome.related_heading} />
         )}
       </main>
-      <Footer settings={settings} />
+      <Footer settings={settings} footerLinks={footerLinks} />
     </div>
   );
 }

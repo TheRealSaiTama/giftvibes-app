@@ -3,9 +3,14 @@ import {
   mapSiteSettings,
   mapEnabledNavLinks,
   mapMegaMenuItems,
+  mapEnabledSections,
+  mapShopChrome,
+  mapProductChrome,
   type SiteSettingsOut,
   type NavLinkOut,
   type MegaMenuItemOut,
+  type ShopChromeOut,
+  type ProductChromeOut,
 } from "@/lib/cms/mappers";
 
 export type StorefrontSettings = SiteSettingsOut;
@@ -136,12 +141,62 @@ export async function getSeo(pageKey: string): Promise<StorefrontSeo | null> {
   }
 }
 
+export type FooterLinkGroups = {
+  company: NavLinkOut[];
+  shop: NavLinkOut[];
+  support: NavLinkOut[];
+};
+
 export async function getStorefrontData() {
-  const [settings, headerNav, footerNav, megaMenu] = await Promise.all([
-    getSettings(),
-    getHeaderNav(),
-    getFooterNav("footer_shop"),
-    getMegaMenu(),
-  ]);
-  return { settings, headerNav, footerNav, megaMenu };
+  const [settings, headerNav, footerShop, footerCompany, footerSupport, megaMenu] =
+    await Promise.all([
+      getSettings(),
+      getHeaderNav(),
+      getFooterNav("footer_shop"),
+      getFooterNav("footer_company"),
+      getFooterNav("footer_support"),
+      getMegaMenu(),
+    ]);
+  return {
+    settings,
+    headerNav,
+    megaMenu,
+    footerLinks: {
+      shop: footerShop,
+      company: footerCompany,
+      support: footerSupport,
+    } satisfies FooterLinkGroups,
+  };
+}
+
+/** Enabled page_sections for a page_key, keyed by section_key. */
+export async function getPageSections(
+  pageKey: string,
+): Promise<Record<string, Record<string, any>>> {
+  try {
+    const rows = await prisma.pageSection.findMany({
+      where: { pageKey },
+      orderBy: { sortOrder: "asc" },
+    });
+    return mapEnabledSections(
+      rows.map((s) => ({
+        sectionKey: s.sectionKey,
+        enabled: s.enabled,
+        content: s.content,
+        sortOrder: s.sortOrder,
+      })),
+    );
+  } catch {
+    return {};
+  }
+}
+
+export async function getShopChrome(): Promise<ShopChromeOut> {
+  const sections = await getPageSections("shop");
+  return mapShopChrome(sections.main);
+}
+
+export async function getProductChrome(): Promise<ProductChromeOut> {
+  const sections = await getPageSections("product");
+  return mapProductChrome(sections.main);
 }

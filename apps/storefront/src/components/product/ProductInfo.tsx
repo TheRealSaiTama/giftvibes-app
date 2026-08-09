@@ -28,6 +28,11 @@ interface Product {
 
 interface ProductInfoProps {
   product: Product;
+  /** Admin page_sections product/main CTA labels */
+  chrome?: {
+    enquiry_cta?: string;
+    quote_cta?: string;
+  };
 }
 
 interface Specification {
@@ -41,9 +46,11 @@ function specsFromFeatures(
   return pickVisibleFeatures(features).map(({ label, value }) => ({ label, value }));
 }
 
-export default function ProductInfo({ product }: ProductInfoProps) {
+export default function ProductInfo({ product, chrome }: ProductInfoProps) {
   const [isEnquiryModalOpen, setIsEnquiryModalOpen] = useState(false);
   const { selectProduct, clearSelected } = useSelectedProducts();
+  const enquiryCta = chrome?.enquiry_cta?.trim() || "Enquire Now";
+  const quoteCta = chrome?.quote_cta?.trim() || "Request Quote";
 
   const tags = useMemo(() => {
     if (!product.tags) return [] as string[];
@@ -269,7 +276,7 @@ export default function ProductInfo({ product }: ProductInfoProps) {
               onClick={handleEnquire}
               className="w-full bg-[#1a5f7a] hover:bg-[#1a5f7a]/90 text-white font-semibold py-4 px-8 rounded-lg transition-colors duration-200 text-base"
             >
-              Enquire Now
+              {enquiryCta}
             </button>
           </DialogTrigger>
           <DialogContent>
@@ -293,7 +300,7 @@ export default function ProductInfo({ product }: ProductInfoProps) {
         </Dialog>
 
         <button className="w-full mt-3 bg-white border-2 border-[#1a5f7a] text-[#1a5f7a] hover:bg-gray-50 font-semibold py-4 px-8 rounded-lg transition-colors duration-200 text-base">
-          Request Quote
+          {quoteCta}
         </button>
       </div>
     </div>

@@ -4,26 +4,26 @@ import * as React from "react";
 import Image from 'next/image';
 import Link from 'next/link';
 import { PolicyDrawer } from '@/components/ui/policy-drawer';
-import { getCategoryHref } from '@/lib/category-links';
+import { resolveFooterColumns } from '@/lib/cms/mappers';
 
-// Footer link data – matches client's requested columns (excluding MegaShop)
-const informationLinks = [
-  { label: "About Us", action: "about" as const },
-  { label: "Faq's", action: "faqs" as const },
-  { label: "Privacy Policy", action: "privacy" as const },
-  { label: "Terms & Conditions", action: "terms" as const },
-  { label: "Shipping & Returns", action: "shipping" as const },
-  { label: "Contact Us", action: "contact" as const },
+// Offline fallbacks only when admin has no enabled footer_* links.
+const FALLBACK_COMPANY: { label: string; href: string }[] = [
+  { label: "About Us", href: "drawer:about" },
+  { label: "Faq's", href: "drawer:faqs" },
+  { label: "Privacy Policy", href: "drawer:privacy" },
+  { label: "Terms & Conditions", href: "drawer:terms" },
+  { label: "Shipping & Returns", href: "drawer:shipping" },
+  { label: "Contact Us", href: "drawer:contact" },
 ];
 
-const productLinks = [
-  "Premium Diary",
-  "New Year Diary",
-  "Leather Planners",
-  "Calendars",
-  "Corporate Gift Sets",
-  "Best Seller Corporate Gifts",
-  "Leather Gifts",
+const FALLBACK_SHOP: { label: string; href: string }[] = [
+  { label: "Premium Diary", href: "/shop?category=Premium%20Diary" },
+  { label: "New Year Diary", href: "/shop?category=NEW%20YEAR%20DIARY" },
+  { label: "Leather Planners", href: "/shop?category=LEATHER%20GIFT%20ITEMS" },
+  { label: "Calendars", href: "/shop?category=CALENDARS" },
+  { label: "Corporate Gift Sets", href: "/shop?category=CORPORATE%20GIFT%20SETS" },
+  { label: "Best Seller Corporate Gifts", href: "/shop?category=CORPORATE%20GIFT%20SETS" },
+  { label: "Leather Gifts", href: "/shop?category=LEATHER%20GIFT%20ITEMS" },
 ];
 
 const paymentMethods = [
@@ -333,10 +333,13 @@ const AcceptedPayments = () => (
 );
 
 
-// ponytail: optional settings prop drives the contact block + logo from the admin's
-// site_settings table. When undefined (legacy callers) the hardcoded values still render.
+type FooterNavLink = { label: string; href: string };
+
+// ponytail: settings + footerLinks from admin (footer_company / footer_shop / footer_support).
+// Empty CMS groups fall back to offline defaults only.
 export default function Footer({
   settings,
+  footerLinks,
 }: {
   settings?: {
     brandName: string;
@@ -346,45 +349,96 @@ export default function Footer({
     logoUrl: string | null;
     socials: Record<string, string>;
   };
+  footerLinks?: {
+    company?: FooterNavLink[];
+    shop?: FooterNavLink[];
+    support?: FooterNavLink[];
+  };
 }) {
-  const brand = settings?.brandName ?? "Ravindra Enterprises";
+  const brand = settings?.brandName ?? "GiftVibes";
   const phone = settings?.phone ?? "+91 9899223130";
   const email = settings?.email ?? "support@giftvibes.in";
   const address = settings?.address ?? "4487, Roshan Pura(Daiwara), Near Metro Station, Nai Sarak, Delhi 110006";
   const logoSrc = settings?.logoUrl ?? "/logo3.png";
+  const {
+    company: companyLinks,
+    shop: shopLinks,
+    support: supportLinks,
+  } = resolveFooterColumns(
+    {
+      company: footerLinks?.company,
+      shop: footerLinks?.shop,
+      support: footerLinks?.support,
+    },
+    { company: FALLBACK_COMPANY, shop: FALLBACK_SHOP },
+  );
   const [isDrawerOpen, setDrawerOpen] = React.useState(false);
   const [drawerContent, setDrawerContent] = React.useState<React.ReactNode>(null);
   const [drawerTitle, setDrawerTitle] = React.useState("");
-  const [drawerSize, setDrawerSize] = React.useState<'small' | 'medium' | 'large'>('medium');
+  const [drawerSize, setDrawerSize] = React.useState<"small" | "medium" | "large">("medium");
   const year = new Date().getFullYear();
 
-  const handleOpenDrawer = (type: 'terms' | 'privacy' | 'about' | 'shipping' | 'contact' | 'faqs') => {
-    if (type === 'terms') {
+  const handleOpenDrawer = (type: string) => {
+    const key = type.replace(/^drawer:/, "") as
+      | "terms"
+      | "privacy"
+      | "about"
+      | "shipping"
+      | "contact"
+      | "faqs";
+    if (key === "terms") {
       setDrawerTitle("Terms & Conditions");
       setDrawerContent(<TermsOfServiceContent />);
-      setDrawerSize('large');
-    } else if (type === 'privacy') {
+      setDrawerSize("large");
+    } else if (key === "privacy") {
       setDrawerTitle("Privacy Policy");
       setDrawerContent(<PrivacyPolicyContent />);
-      setDrawerSize('medium');
-    } else if (type === 'about') {
+      setDrawerSize("medium");
+    } else if (key === "about") {
       setDrawerTitle("About GiftVibes");
       setDrawerContent(<AboutUsContent />);
-      setDrawerSize('small');
-    } else if (type === 'shipping') {
+      setDrawerSize("small");
+    } else if (key === "shipping") {
       setDrawerTitle("Shipping & Returns");
       setDrawerContent(<ShippingReturnsContent />);
-      setDrawerSize('large');
-    } else if (type === 'contact') {
+      setDrawerSize("large");
+    } else if (key === "contact") {
       setDrawerTitle("Contact Us");
       setDrawerContent(<ContactUsContent />);
-      setDrawerSize('large');
-    } else if (type === 'faqs') {
+      setDrawerSize("large");
+    } else if (key === "faqs") {
       setDrawerTitle("FAQs");
       setDrawerContent(<FAQsContent />);
-      setDrawerSize('medium');
+      setDrawerSize("medium");
+    } else {
+      return;
     }
     setDrawerOpen(true);
+  };
+
+  const renderNavLink = (item: FooterNavLink, i: number) => {
+    const href = item.href || "#";
+    if (href.startsWith("drawer:") || ["terms", "privacy", "about", "shipping", "contact", "faqs"].includes(href)) {
+      const drawerKey = href.startsWith("drawer:") ? href : `drawer:${href}`;
+      return (
+        <li key={`${item.label}-${i}`}>
+          <button
+            type="button"
+            onClick={() => handleOpenDrawer(drawerKey)}
+            className="text-sm text-medium-gray hover:text-primary transition-colors text-left"
+          >
+            {item.label}
+          </button>
+        </li>
+      );
+    }
+    return (
+      <li key={`${item.label}-${i}`}>
+        <Link href={href} className="text-sm text-medium-gray hover:text-primary transition-colors">
+          {item.label}
+        </Link>
+      </li>
+    );
   };
 
   return (
@@ -407,51 +461,17 @@ export default function Footer({
             </ul>
           </div>
 
-          {/* Information */}
+          {/* Information — admin footer_company (+ support appended when set) */}
           <FooterLinkColumn title="INFORMATION">
             <ul className="space-y-4">
-              {informationLinks.map((item, i) => (
-                <li key={i}>
-                  {item.action === "terms" ? (
-                    <button onClick={() => handleOpenDrawer('terms')} className="text-sm text-medium-gray hover:text-primary transition-colors">
-                      {item.label}
-                    </button>
-                  ) : item.action === "privacy" ? (
-                    <button onClick={() => handleOpenDrawer('privacy')} className="text-sm text-medium-gray hover:text-primary transition-colors">
-                      {item.label}
-                    </button>
-                  ) : item.action === "about" ? (
-                    <button onClick={() => handleOpenDrawer('about')} className="text-sm text-medium-gray hover:text-primary transition-colors">
-                      {item.label}
-                    </button>
-                  ) : item.action === "shipping" ? (
-                    <button onClick={() => handleOpenDrawer('shipping')} className="text-sm text-medium-gray hover:text-primary transition-colors">
-                      {item.label}
-                    </button>
-                  ) : item.action === "contact" ? (
-                    <button onClick={() => handleOpenDrawer('contact')} className="text-sm text-medium-gray hover:text-primary transition-colors">
-                      {item.label}
-                    </button>
-                  ) : (
-                    <button onClick={() => handleOpenDrawer('faqs')} className="text-sm text-medium-gray hover:text-primary transition-colors">
-                      {item.label}
-                    </button>
-                  )}
-                </li>
-              ))}
+              {[...companyLinks, ...supportLinks].map((item, i) => renderNavLink(item, i))}
             </ul>
           </FooterLinkColumn>
 
-          {/* Our Product */}
+          {/* Our Product — admin footer_shop */}
           <FooterLinkColumn title="OUR PRODUCT">
             <ul className="space-y-4">
-              {productLinks.map((label, i) => (
-                <li key={i}>
-                  <Link href={getCategoryHref(label)} className="text-sm text-medium-gray hover:text-primary transition-colors">
-                    {label}
-                  </Link>
-                </li>
-              ))}
+              {shopLinks.map((item, i) => renderNavLink(item, i + 100))}
             </ul>
           </FooterLinkColumn>
 

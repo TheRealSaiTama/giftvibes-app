@@ -72,13 +72,19 @@ export default async function HomePage() {
     getHomeSections(),
     getStorefrontData().catch((e) => {
       console.error("home getStorefrontData failed", e);
-      return { settings: undefined as any, headerNav: undefined as any };
+      return {
+        settings: undefined as any,
+        headerNav: undefined as any,
+        megaMenu: undefined as any,
+        footerLinks: undefined as any,
+      };
     }),
   ]);
 
   const settings = storefront?.settings;
   const headerNav = storefront?.headerNav;
   const megaMenu = storefront?.megaMenu;
+  const footerLinks = storefront?.footerLinks;
 
   return (
     <div className="min-h-screen">
@@ -123,7 +129,7 @@ export default async function HomePage() {
         )}
       </main>
 
-      <Footer settings={settings} />
+      <Footer settings={settings} footerLinks={footerLinks} />
     </div>
   );
 }

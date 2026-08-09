@@ -14,6 +14,8 @@ interface Product {
 
 interface RelatedProductsProps {
   products: Product[];
+  /** Admin page_sections product/main related_heading */
+  heading?: string;
 }
 
 function getFileIdFromUrl(url: string): string | null {
@@ -23,9 +25,10 @@ function getFileIdFromUrl(url: string): string | null {
   return match ? match[1] : null;
 }
 
-export default function RelatedProducts({ products }: RelatedProductsProps) {
+export default function RelatedProducts({ products, heading }: RelatedProductsProps) {
   const [startIndex, setStartIndex] = useState(0);
   const itemsPerView = 5;
+  const title = heading?.trim() || "You May Also Like";
 
   const handleNext = () => {
     if (startIndex + itemsPerView < products.length) {
@@ -44,7 +47,7 @@ export default function RelatedProducts({ products }: RelatedProductsProps) {
   return (
     <section className="mt-16 mb-8">
       <div className="mb-8">
-        <h2 className="text-3xl font-bold text-gray-900 mb-2">You May Also Like</h2>
+        <h2 className="text-3xl font-bold text-gray-900 mb-2">{title}</h2>
         <p className="text-gray-600">Explore more products from our collection</p>
       </div>
 

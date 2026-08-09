@@ -10,6 +10,7 @@ export default async function CustomDesignPage() {
       headerNav={data.headerNav}
       megaMenu={data.megaMenu}
       settings={data.settings}
+      footerLinks={data.footerLinks}
     />
   );
 }

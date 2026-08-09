@@ -94,7 +94,24 @@ function filterAndSortProducts(products: ShopProduct[], filters: Filters): ShopP
   });
 }
 
-export default function ShopClient({ initialDiaries, initialProducts }: { initialDiaries: Diary[], initialProducts: Product[] }) {
+export default function ShopClient({
+  initialDiaries,
+  initialProducts,
+  chrome,
+}: {
+  initialDiaries: Diary[];
+  initialProducts: Product[];
+  /** Admin page_sections shop/main chrome */
+  chrome?: {
+    heading?: string;
+    subheading?: string;
+    empty_state?: string;
+  };
+}) {
+  const heading = chrome?.heading?.trim() || "Our Products";
+  const emptyState =
+    chrome?.empty_state?.trim() ||
+    "No products match your filters. Try clearing filters.";
   const searchParams = useSearchParams();
   const [filters, setFilters] = useState<Filters>({
     category: [],
@@ -338,7 +355,7 @@ export default function ShopClient({ initialDiaries, initialProducts }: { initia
           <div className="lg:w-4/5 order-1 lg:order-2">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
               <h1 className="text-3xl md:text-4xl font-bold text-gray-800">
-                Our Products ({results.length})
+                {heading} ({results.length})
               </h1>
               <div className="flex items-center gap-4">
                 <DialogTrigger asChild>
@@ -363,7 +380,7 @@ export default function ShopClient({ initialDiaries, initialProducts }: { initia
                 <div className="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
                   <span className="text-3xl">📓</span>
                 </div>
-                <h2 className="text-2xl font-semibold text-gray-600 mb-2">No products match your search</h2>
+                <h2 className="text-2xl font-semibold text-gray-600 mb-2">{emptyState}</h2>
                 <p className="text-gray-500 mb-6">Try adjusting your filters or clearing them to see all products.</p>
                 <button 
                   onClick={clearFilters} 

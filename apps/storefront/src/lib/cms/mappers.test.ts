@@ -16,6 +16,9 @@ import {
   pickVisibleFeatures,
   filterLiveCatalog,
   filterFeaturedCatalog,
+  mapShopChrome,
+  mapProductChrome,
+  resolveFooterColumns,
   REQUIRED_HOME_SECTION_KEYS,
 } from "./mappers.ts";
 
@@ -152,5 +155,68 @@ describe("filterLiveCatalog / filterFeaturedCatalog", () => {
       filterFeaturedCatalog(items).map((i) => i.id),
       ["1"],
     );
+  });
+});
+
+describe("mapShopChrome", () => {
+  it("uses defaults when content empty", () => {
+    const c = mapShopChrome(null);
+    assert.equal(c.heading, "Our Products");
+    assert.ok(c.empty_state);
+  });
+  it("prefers admin heading and empty_state", () => {
+    const c = mapShopChrome({
+      heading: "Catalog",
+      subheading: "All gifts",
+      empty_state: "Nothing here",
+    });
+    assert.equal(c.heading, "Catalog");
+    assert.equal(c.subheading, "All gifts");
+    assert.equal(c.empty_state, "Nothing here");
+  });
+});
+
+describe("mapProductChrome", () => {
+  it("uses defaults when empty", () => {
+    const c = mapProductChrome({});
+    assert.equal(c.enquiry_cta, "Enquire Now");
+    assert.equal(c.quote_cta, "Request Quote");
+    assert.ok(c.related_heading);
+  });
+  it("prefers admin CTA labels", () => {
+    const c = mapProductChrome({
+      related_heading: "Similar picks",
+      enquiry_cta: "Ask us",
+      quote_cta: "Get quote",
+    });
+    assert.equal(c.related_heading, "Similar picks");
+    assert.equal(c.enquiry_cta, "Ask us");
+    assert.equal(c.quote_cta, "Get quote");
+  });
+});
+
+describe("resolveFooterColumns", () => {
+  const fallbacks = {
+    company: [{ label: "About", href: "drawer:about" }],
+    shop: [{ label: "Shop all", href: "/shop" }],
+  };
+  it("uses CMS company/shop when non-empty", () => {
+    const r = resolveFooterColumns(
+      {
+        company: [{ label: "Privacy", href: "drawer:privacy" }],
+        shop: [{ label: "Diaries", href: "/shop?category=Diaries" }],
+        support: [{ label: "Help", href: "/shop" }],
+      },
+      fallbacks,
+    );
+    assert.equal(r.company[0].label, "Privacy");
+    assert.equal(r.shop[0].label, "Diaries");
+    assert.equal(r.support[0].label, "Help");
+  });
+  it("falls back when CMS groups empty", () => {
+    const r = resolveFooterColumns({ company: [], shop: [], support: [] }, fallbacks);
+    assert.equal(r.company[0].label, "About");
+    assert.equal(r.shop[0].label, "Shop all");
+    assert.equal(r.support.length, 0);
   });
 });

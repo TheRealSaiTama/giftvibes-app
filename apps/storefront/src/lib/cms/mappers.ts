@@ -314,3 +314,92 @@ export function filterLiveCatalog<T extends CatalogItemLike>(items: T[] | null |
 export function filterFeaturedCatalog<T extends CatalogItemLike>(items: T[] | null | undefined): T[] {
   return filterLiveCatalog(items).filter((it) => it.featured === true);
 }
+
+// ─── Shop / product template chrome ──────────────────────────────────────────
+
+export type ShopChromeOut = {
+  heading: string;
+  subheading: string;
+  empty_state: string;
+};
+
+const SHOP_CHROME_DEFAULTS: ShopChromeOut = {
+  heading: "Our Products",
+  subheading: "Browse diaries, gift sets, and corporate essentials.",
+  empty_state: "No products match your filters. Try clearing filters.",
+};
+
+/** Admin page_sections shop/main content → shop page chrome. */
+export function mapShopChrome(content: unknown): ShopChromeOut {
+  const c =
+    content && typeof content === "object" && !Array.isArray(content)
+      ? (content as Record<string, unknown>)
+      : {};
+  return {
+    heading:
+      typeof c.heading === "string" && c.heading.trim()
+        ? c.heading.trim()
+        : SHOP_CHROME_DEFAULTS.heading,
+    subheading:
+      typeof c.subheading === "string" && c.subheading.trim()
+        ? c.subheading.trim()
+        : SHOP_CHROME_DEFAULTS.subheading,
+    empty_state:
+      typeof c.empty_state === "string" && c.empty_state.trim()
+        ? c.empty_state.trim()
+        : SHOP_CHROME_DEFAULTS.empty_state,
+  };
+}
+
+export type ProductChromeOut = {
+  related_heading: string;
+  enquiry_cta: string;
+  quote_cta: string;
+};
+
+const PRODUCT_CHROME_DEFAULTS: ProductChromeOut = {
+  related_heading: "You may also like",
+  enquiry_cta: "Enquire Now",
+  quote_cta: "Request Quote",
+};
+
+/** Admin page_sections product/main content → PDP chrome. */
+export function mapProductChrome(content: unknown): ProductChromeOut {
+  const c =
+    content && typeof content === "object" && !Array.isArray(content)
+      ? (content as Record<string, unknown>)
+      : {};
+  return {
+    related_heading:
+      typeof c.related_heading === "string" && c.related_heading.trim()
+        ? c.related_heading.trim()
+        : PRODUCT_CHROME_DEFAULTS.related_heading,
+    enquiry_cta:
+      typeof c.enquiry_cta === "string" && c.enquiry_cta.trim()
+        ? c.enquiry_cta.trim()
+        : PRODUCT_CHROME_DEFAULTS.enquiry_cta,
+    quote_cta:
+      typeof c.quote_cta === "string" && c.quote_cta.trim()
+        ? c.quote_cta.trim()
+        : PRODUCT_CHROME_DEFAULTS.quote_cta,
+  };
+}
+
+/**
+ * Prefer CMS footer groups when non-empty; offline fallback only when empty.
+ * company → INFORMATION column; shop → OUR PRODUCT; support merges into INFORMATION.
+ */
+export function resolveFooterColumns(
+  groups: {
+    company?: NavLinkOut[] | null;
+    shop?: NavLinkOut[] | null;
+    support?: NavLinkOut[] | null;
+  },
+  fallbacks: { company: NavLinkOut[]; shop: NavLinkOut[] },
+): { company: NavLinkOut[]; shop: NavLinkOut[]; support: NavLinkOut[] } {
+  const company =
+    groups.company && groups.company.length > 0 ? groups.company : fallbacks.company;
+  const shop = groups.shop && groups.shop.length > 0 ? groups.shop : fallbacks.shop;
+  const support = groups.support && groups.support.length > 0 ? groups.support : [];
+  return { company, shop, support };
+}

@@ -11,6 +11,7 @@ export default function CustomDesignClient({
   headerNav,
   megaMenu,
   settings,
+  footerLinks,
 }: {
   headerNav?: { label: string; href: string }[];
   megaMenu?: { name: string; subtitle: string; image: string; href: string }[];
@@ -21,6 +22,11 @@ export default function CustomDesignClient({
     address: string | null;
     logoUrl: string | null;
     socials: Record<string, string>;
+  };
+  footerLinks?: {
+    company?: { label: string; href: string }[];
+    shop?: { label: string; href: string }[];
+    support?: { label: string; href: string }[];
   };
 }) {
   const [formValues, setFormValues] = useState({
@@ -441,7 +447,7 @@ export default function CustomDesignClient({
         </motion.div>
       </main>
 
-      <Footer settings={settings} />
+      <Footer settings={settings} footerLinks={footerLinks} />
     </div>
   );
 }
