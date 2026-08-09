@@ -655,6 +655,44 @@ export const seedHomeSections = createServerFn({ method: "POST" })
       }
     }
 
+    // Category mega-menu (navbar dropdown)
+    {
+      const megaDefaults = {
+        page_key: "site",
+        section_key: "mega_menu",
+        title: "Category mega-menu",
+        sort_order: 0,
+        enabled: true,
+        content: {
+          items: [
+            { name: "CORPORATE GIFT SETS", subtitle: "Premium Packages Available", image_url: "/Giftvibes categories/CORPORATE GIFTSETS.png", href: "", sort_order: 1, enabled: true },
+            { name: "NEW YEAR DIARY BOOKS", subtitle: "Fresh Designs 2025", image_url: "/Giftvibes categories/NEW YEAR DIARY.png", href: "", sort_order: 2, enabled: true },
+            { name: "LEATHER GIFT ITEMS", subtitle: "Luxury Options", image_url: "/Giftvibes categories/LEATHER GIFT ITEMS.png", href: "", sort_order: 3, enabled: true },
+            { name: "LEATHER BAGS", subtitle: "Elegant Styles", image_url: "/Giftvibes categories/LEATHER BAGS.png", href: "", sort_order: 4, enabled: true },
+            { name: "JUTE BAGS", subtitle: "Eco-Friendly Choices", image_url: "/Giftvibes categories/JUTE BAGS.png", href: "", sort_order: 5, enabled: true },
+            { name: "BOTTLES GIFT SET", subtitle: "Unique Sets", image_url: "/Giftvibes categories/BOTTLE GIFT SETS.png", href: "", sort_order: 6, enabled: true },
+            { name: "POWER BANK DIARIES", subtitle: "Tech-Integrated Gifts", image_url: "/Giftvibes categories/POWERBANK DIARIES.png", href: "", sort_order: 7, enabled: true },
+            { name: "PEN STANDS", subtitle: "Desk Essentials", image_url: "/Giftvibes categories/PEN STANDS.png", href: "", sort_order: 8, enabled: true },
+            { name: "PROMOTIONAL UMBRELLAS", subtitle: "Branded Protection", image_url: "/Giftvibes categories/PROMOTIONAL UMBRELLAS.jpg", href: "", sort_order: 9, enabled: true },
+            { name: "CUSTOMISED DIARY & NOTE BOOKS", subtitle: "Personalized Products", image_url: "/Giftvibes categories/PROMOTIONAL DIARIES AND NOTEBOOKS.jpg", href: "", sort_order: 10, enabled: true },
+            { name: "CALENDARS", subtitle: "Yearly Planners", image_url: "/Giftvibes categories/CALENDARS.png", href: "", sort_order: 11, enabled: true },
+            { name: "EXHIBITION VISITOR'S GIFT IDEAS", subtitle: "Event Specials", image_url: "/Giftvibes categories/EXHIBITION GIVEAWAY IDEAS.png", href: "", sort_order: 12, enabled: true },
+          ],
+        },
+      };
+      const { data: megaRow } = await context.supabase
+        .from("page_sections")
+        .select("id")
+        .eq("page_key", "site")
+        .eq("section_key", "mega_menu")
+        .maybeSingle();
+      if (!megaRow) {
+        const { error } = await context.supabase.from("page_sections").insert(megaDefaults as any);
+        if (error) throw new Error(`Error inserting mega_menu: ${error.message}`);
+        inserted++;
+      }
+    }
+
     // Shop + product template pages (so admin isn't empty)
     const extraPages = [
       {

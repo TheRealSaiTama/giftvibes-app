@@ -41,6 +41,7 @@ async function getProducts(): Promise<Product[]> {
   try {
     const { prisma } = await import('@/lib/prisma');
     const products = await prisma.product.findMany({
+      where: { enabled: true },
       orderBy: { minPrice: 'asc' },
       take: 1000,
     });
@@ -65,7 +66,12 @@ export default async function ShopPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header nav={storefront.headerNav} />
+      <Header
+        nav={storefront.headerNav}
+        megaMenu={storefront.megaMenu}
+        logoUrl={storefront.settings?.logoUrl}
+        brandName={storefront.settings?.brandName}
+      />
       <Suspense fallback={<div className="container py-16 text-sm text-muted-foreground">Loading shop…</div>}>
         <ShopClient initialDiaries={allDiaries as any} initialProducts={allProducts} />
       </Suspense>

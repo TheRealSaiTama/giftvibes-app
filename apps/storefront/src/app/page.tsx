@@ -16,6 +16,7 @@ import Footer from "@/components/sections/footer";
 import CorporateShowcase from "@/components/sections/corporate-showcase";
 import { prisma } from '@/lib/prisma';
 import { getStorefrontData } from "@/lib/site";
+import { mapEnabledSections, filterLiveCatalog } from "@/lib/cms/mappers";
 
 // ponytail: revalidate=0 → page re-renders on every request after admin calls /api/revalidate.
 // Without this the webhook no-ops (page would be fully static).
@@ -26,17 +27,18 @@ async function getCatalog() {
   // Never throw — a missing DB column/migration must not take down the whole site.
   try {
     const [products, diaries] = await Promise.all([
-      prisma.product.findMany({ where: { enabled: true } }).catch((e) => {
+      prisma.product.findMany().catch((e) => {
         console.error("home getCatalog products failed", e);
         return [] as Awaited<ReturnType<typeof prisma.product.findMany>>;
       }),
-      prisma.diary.findMany({ where: { enabled: true } }).catch((e) => {
+      prisma.diary.findMany().catch((e) => {
         console.error("home getCatalog diaries failed", e);
         return [] as Awaited<ReturnType<typeof prisma.diary.findMany>>;
       }),
     ]);
+    const live = filterLiveCatalog([...products, ...diaries] as any[]);
     // Serialize to plain JSON so RSC never chokes on Prisma special types.
-    return JSON.parse(JSON.stringify([...products, ...diaries])) as any[];
+    return JSON.parse(JSON.stringify(live)) as any[];
   } catch (e) {
     console.error("home getCatalog failed", e);
     return [] as any[];
@@ -46,15 +48,16 @@ async function getCatalog() {
 async function getHomeSections() {
   try {
     const sections = await prisma.pageSection.findMany({
-      where: { pageKey: "home", enabled: true },
+      where: { pageKey: "home" },
       orderBy: { sortOrder: "asc" },
     });
-    return sections.reduce(
-      (acc, curr) => {
-        acc[curr.sectionKey] = curr.content;
-        return acc;
-      },
-      {} as Record<string, any>,
+    return mapEnabledSections(
+      sections.map((s) => ({
+        sectionKey: s.sectionKey,
+        enabled: s.enabled,
+        content: s.content,
+        sortOrder: s.sortOrder,
+      })),
     );
   } catch (e) {
     console.error("home getHomeSections failed", e);
@@ -75,29 +78,49 @@ export default async function HomePage() {
 
   const settings = storefront?.settings;
   const headerNav = storefront?.headerNav;
+  const megaMenu = storefront?.megaMenu;
 
   return (
     <div className="min-h-screen">
-      <Header nav={headerNav} />
+      <Header
+        nav={headerNav}
+        megaMenu={megaMenu}
+        logoUrl={settings?.logoUrl}
+        brandName={settings?.brandName}
+      />
 
       <main>
-        <Hero content={sections.hero} />
-        <GiftVibeAbout content={sections.about} />
-        <BestDiscountsBanner content={sections.discounts} />
-        <Categories content={sections.categories} />
-        <BestDealsSection content={sections.best_deals} products={catalog} />
-        <BrandsSection content={sections.brands} />
-        <WeeklyPopularProducts content={sections.popular} products={catalog} />
-        <CashBackSection content={sections.cashback} />
-        <TabbedProducts
-          products={catalog}
-          content={sections.tabbed_products || sections.best_deals_tabbed}
-        />
-        <WhyChooseUsSection content={sections.why_choose_us} />
-        <CustomerSatisfaction content={sections.satisfaction} />
-        <CashBackBottom content={sections.cashback_bottom} />
-        <ServicesSection content={sections.services} />
-        <CorporateShowcase content={sections.corporate_showcase} />
+        {sections.hero !== undefined && <Hero content={sections.hero} />}
+        {sections.about !== undefined && <GiftVibeAbout content={sections.about} />}
+        {sections.discounts !== undefined && <BestDiscountsBanner content={sections.discounts} />}
+        {sections.categories !== undefined && <Categories content={sections.categories} />}
+        {sections.best_deals !== undefined && (
+          <BestDealsSection content={sections.best_deals} products={catalog} />
+        )}
+        {sections.brands !== undefined && <BrandsSection content={sections.brands} />}
+        {sections.popular !== undefined && (
+          <WeeklyPopularProducts content={sections.popular} products={catalog} />
+        )}
+        {sections.cashback !== undefined && <CashBackSection content={sections.cashback} />}
+        {(sections.tabbed_products !== undefined || sections.best_deals_tabbed !== undefined) && (
+          <TabbedProducts
+            products={catalog}
+            content={sections.tabbed_products || sections.best_deals_tabbed}
+          />
+        )}
+        {sections.why_choose_us !== undefined && (
+          <WhyChooseUsSection content={sections.why_choose_us} />
+        )}
+        {sections.satisfaction !== undefined && (
+          <CustomerSatisfaction content={sections.satisfaction} />
+        )}
+        {sections.cashback_bottom !== undefined && (
+          <CashBackBottom content={sections.cashback_bottom} />
+        )}
+        {sections.services !== undefined && <ServicesSection content={sections.services} />}
+        {sections.corporate_showcase !== undefined && (
+          <CorporateShowcase content={sections.corporate_showcase} />
+        )}
       </main>
 
       <Footer settings={settings} />

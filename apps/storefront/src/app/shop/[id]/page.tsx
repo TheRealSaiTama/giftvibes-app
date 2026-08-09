@@ -98,6 +98,7 @@ async function getProduct(id: string): Promise<any | null> {
             : {},
         seoTitle: dbProduct.seoTitle ?? null,
         seoDescription: dbProduct.seoDescription ?? null,
+        enabled: dbProduct.enabled,
       };
     }
     const dbDiary = await prisma.diary.findUnique({ where: { id: id } });
@@ -116,6 +117,7 @@ async function getProduct(id: string): Promise<any | null> {
           dbDiary.features && typeof dbDiary.features === "object" ? dbDiary.features : {},
         seoTitle: dbDiary.seoTitle ?? null,
         seoDescription: dbDiary.seoDescription ?? null,
+        enabled: dbDiary.enabled,
       };
     }
   } catch (e) {
@@ -159,8 +161,9 @@ async function getRelatedProducts(category: string, currentId: string | number):
     const remaining = 8 - relatedProducts.length;
     const dbRelated = await prisma.product.findMany({
       where: {
+        enabled: true,
         id: { not: currentId },
-        category: { contains: category, mode: 'insensitive' },
+        category: { contains: category, mode: "insensitive" },
       },
       take: remaining,
     });
@@ -188,7 +191,7 @@ export default async function ProductDetailPage({
   params: Promise<{ id: string }> | { id: string };
 }) {
   const resolvedParams = 'then' in params ? await params : params;
-  const [product, { settings, headerNav }] = await Promise.all([
+  const [product, storefront] = await Promise.all([
     getProduct(resolvedParams.id),
     getStorefrontData(),
   ]);
@@ -197,11 +200,22 @@ export default async function ProductDetailPage({
     notFound();
   }
 
+  // Hidden/disabled catalog items are not publicly viewable
+  if (product.enabled === false) {
+    notFound();
+  }
+
   const relatedProducts = await getRelatedProducts(product.category || '', product.id);
+  const { settings, headerNav, megaMenu } = storefront;
 
   return (
     <div className="min-h-screen bg-white">
-      <Header nav={headerNav} />
+      <Header
+        nav={headerNav}
+        megaMenu={megaMenu}
+        logoUrl={settings?.logoUrl}
+        brandName={settings?.brandName}
+      />
       <main className="container mx-auto px-4 py-4">
         <nav className="flex items-center space-x-2 text-sm text-gray-600 mb-6">
           <Link href="/" className="hover:text-primary transition-colors">

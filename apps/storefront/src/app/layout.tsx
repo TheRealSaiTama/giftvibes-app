@@ -8,19 +8,10 @@ import Script from "next/script";
 import { Toaster } from "sonner";
 import { ProductProvider } from '@/context/ProductContext';
 import { getSettings, getSeo } from "@/lib/site";
+import { normalizePublicSiteUrl } from "@/lib/cms/mappers";
 
 // ponytail: metadata now comes from admin's site_settings + page_seo (home) with the previous
 // hardcoded values as fallback. DB down → site still ships SEO.
-function safeSiteUrl(raw: string | null | undefined): string {
-  const fallback = "https://www.giftvibes.in";
-  const candidate = (raw || "").trim() || fallback;
-  try {
-    // new URL("") throws — empty DB site_url was taking the whole site down.
-    return new URL(candidate).origin;
-  } catch {
-    return fallback;
-  }
-}
 
 export async function generateMetadata(): Promise<Metadata> {
   try {
@@ -31,8 +22,7 @@ export async function generateMetadata(): Promise<Metadata> {
       ?? `${brand} | Customised Diaries 2026 | Customised Note Books | Customised Corporate Gifts`;
     const defaultDescription = homeSeo?.description
       ?? `${brand} crafts personalised diaries, notebooks, planners, and premium corporate gifts for 2026 with bespoke branding and nationwide delivery.`;
-    // Force public domain. DB previously had typo "giftvibe.in" (missing s) which broke SEO URLs.
-    const siteUrl = safeSiteUrl(settings.siteUrl?.includes("giftvibes") ? settings.siteUrl : "https://www.giftvibes.in");
+    const siteUrl = normalizePublicSiteUrl(settings.siteUrl);
     const ogImage = homeSeo?.ogImageUrl || settings.logoUrl || "/logo.png";
     const favicon = settings.faviconUrl || "/favicon/favicon.png";
 

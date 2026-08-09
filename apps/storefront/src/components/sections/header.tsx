@@ -20,8 +20,6 @@ import {
 import { EnquiryFormContent } from "./enquiry-modal";
 import { useSelectedProducts } from '@/context/ProductContext';
 import { Badge } from '@/components/ui/badge';
-import { getCategoryHref } from '@/lib/category-links';
-
 type SearchResultItem = {
   id: string | number;
   name: string;
@@ -32,23 +30,14 @@ type SearchResultItem = {
   source: "diary" | "product";
 };
 
-const megaMenuItems = [
-  { name: 'CORPORATE GIFT SETS', items: 'Premium Packages Available', image: '/Giftvibes categories/CORPORATE GIFTSETS.png' },
-  { name: 'NEW YEAR DIARY BOOKS', items: 'Fresh Designs 2025', image: '/Giftvibes categories/NEW YEAR DIARY.png' },
-  { name: 'LEATHER GIFT ITEMS', items: 'Luxury Options', image: '/Giftvibes categories/LEATHER GIFT ITEMS.png' },
-  { name: 'LEATHER BAGS', items: 'Elegant Styles', image: '/Giftvibes categories/LEATHER BAGS.png' },
-  { name: 'JUTE BAGS', items: 'Eco-Friendly Choices', image: '/Giftvibes categories/JUTE BAGS.png' },
-  { name: 'BOTTLES GIFT SET', items: 'Unique Sets', image: '/Giftvibes categories/BOTTLE GIFT SETS.png' },
-  { name: 'POWER BANK DIARIES', items: 'Tech-Integrated Gifts', image: '/Giftvibes categories/POWERBANK DIARIES.png' },
-  { name: 'PEN STANDS', items: 'Desk Essentials', image: '/Giftvibes categories/PEN STANDS.png' },
-  { name: 'PROMOTIONAL UMBRELLAS', items: 'Branded Protection', image: '/Giftvibes categories/PROMOTIONAL UMBRELLAS.jpg' },
-  { name: 'CUSTOMISED DIARY & NOTE BOOKS', items: 'Personalized Products', image: '/Giftvibes categories/PROMOTIONAL DIARIES AND NOTEBOOKS.jpg' },
-  { name: 'CALENDARS', items: 'Yearly Planners', image: '/Giftvibes categories/CALENDARS.png' },
-  { name: "EXHIBITION VISITOR'S GIFT IDEAS", items: 'Event Specials', image: '/Giftvibes categories/EXHIBITION GIVEAWAY IDEAS.png' },
-] as const;
+type MegaItem = {
+  name: string;
+  subtitle: string;
+  image: string;
+  href: string;
+};
 
-// ponytail: optional nav prop renders the admin-managed header links (nav_links where
-// group_key='header'). When undefined, the hardcoded list below is used.
+// Offline-only fallback if parent passes nothing (e.g. error path).
 const FALLBACK_NAV = [
   { label: "Shop", href: "/shop" },
   { label: "Bulk Orders", href: "#our-products" },
@@ -56,8 +45,21 @@ const FALLBACK_NAV = [
   { label: "About Us", href: "#about" },
 ];
 
-const Header = ({ nav }: { nav?: { label: string; href: string }[] }) => {
+const Header = ({
+  nav,
+  megaMenu,
+  logoUrl,
+  brandName,
+}: {
+  nav?: { label: string; href: string }[];
+  megaMenu?: MegaItem[];
+  logoUrl?: string | null;
+  brandName?: string | null;
+}) => {
   const navLinks = nav && nav.length ? nav : FALLBACK_NAV;
+  const megaItems = megaMenu && megaMenu.length ? megaMenu : [];
+  const logo = logoUrl?.trim() || "/logo3.png";
+  const brand = brandName?.trim() || "GiftVibes";
   const [isEnquiryModalOpen, setIsEnquiryModalOpen] = React.useState(false);
   const { selectedProducts, clearSelected } = useSelectedProducts();
   const router = useRouter();
@@ -190,29 +192,28 @@ const Header = ({ nav }: { nav?: { label: string; href: string }[] }) => {
       <div className="border-b">
         <div className="container flex items-center justify-between h-[88px] px-10">
           <Link href="/">
-            <Image 
-              src="/logo3.png" 
-              alt="Shopcart" 
-              width={170} 
+            <Image
+              src={logo}
+              alt={brand}
+              width={170}
               height={40}
+              priority
             />
           </Link>
 
           <nav className="hidden lg:flex items-center gap-8 nav-text">
-            <DropdownMenu>
-              <DropdownMenuTrigger className="flex items-center hover:text-primary transition-colors">
-                Category
-                <ChevronDown className="w-4 h-4 ml-1" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="p-6 w-[560px]">
-                <div className="font-semibold text-dark-gray mb-4">Our Products</div>
-                <div className="grid grid-cols-3 gap-x-6 gap-y-4">
-                  {megaMenuItems.map((item) => {
-                    // Plain string href from category-links (navbar Category dropdown).
-                    const href = getCategoryHref(item.name);
-                    return (
+            {megaItems.length > 0 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger className="flex items-center hover:text-primary transition-colors">
+                  Category
+                  <ChevronDown className="w-4 h-4 ml-1" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="p-6 w-[560px]">
+                  <div className="font-semibold text-dark-gray mb-4">Our Products</div>
+                  <div className="grid grid-cols-3 gap-x-6 gap-y-4">
+                    {megaItems.map((item) => (
                       <Link
-                        href={href}
+                        href={item.href}
                         key={item.name}
                         className="group"
                         prefetch={false}
@@ -220,7 +221,7 @@ const Header = ({ nav }: { nav?: { label: string; href: string }[] }) => {
                         <div className="flex items-start gap-3">
                           <div className="w-[60px] h-[60px] bg-gray-100 rounded-md flex-shrink-0 relative overflow-hidden">
                             <Image
-                              src={item.image}
+                              src={item.image || "/logo.png"}
                               alt={item.name}
                               fill
                               className="object-cover group-hover:scale-110 transition-transform duration-300"
@@ -231,23 +232,24 @@ const Header = ({ nav }: { nav?: { label: string; href: string }[] }) => {
                             <p className="font-medium text-sm text-dark-gray group-hover:text-primary">
                               {item.name}
                             </p>
-                            <p className="text-xs text-medium-gray">{item.items}</p>
+                            <p className="text-xs text-medium-gray">{item.subtitle}</p>
                           </div>
                         </div>
                       </Link>
-                    );
-                  })}
-                </div>
-                <div className="mt-4 flex justify-end">
-                  <Link href="/shop" className="text-sm font-medium text-primary hover:underline">
-                    View All Products
-                  </Link>
-                </div>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <Link href="/shop" className="hover:text-primary transition-colors">Shop</Link>
-            {navLinks.filter(l => l.href !== "/shop").map((l, i) => (
-              <Link key={i} href={l.href} className="hover:text-primary transition-colors">{l.label}</Link>
+                    ))}
+                  </div>
+                  <div className="mt-4 flex justify-end">
+                    <Link href="/shop" className="text-sm font-medium text-primary hover:underline">
+                      View All Products
+                    </Link>
+                  </div>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+            {navLinks.map((l, i) => (
+              <Link key={`${l.href}-${i}`} href={l.href} className="hover:text-primary transition-colors">
+                {l.label}
+              </Link>
             ))}
           </nav>
 

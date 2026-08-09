@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { EnquiryFormContent } from '@/components/sections/enquiry-modal';
 import { useSelectedProducts } from '@/context/ProductContext';
+import { pickVisibleFeatures } from "@/lib/cms/mappers";
 
 const TAG_VARIANTS = [
   { accent: '#1a5f7a', bg: 'bg-[#1a5f7a]/[0.03]', border: 'border-[#1a5f7a]/20' },
@@ -34,48 +35,10 @@ interface Specification {
   value: string;
 }
 
-/** Ordered labels matching the admin product form. */
-const FEATURE_ORDER: { key: string; label: string }[] = [
-  { key: "size", label: "Size" },
-  { key: "paper_quality", label: "Paper Quality" },
-  { key: "page_format", label: "Page Format" },
-  { key: "cover_binding", label: "Cover Binding" },
-  { key: "monthly_planner", label: "Monthly Planner" },
-  { key: "month_cutting", label: "Month Cutting" },
-  { key: "cover_colors", label: "Cover Colors" },
-  // legacy keys still supported if saved earlier
-  { key: "material", label: "Material" },
-  { key: "color", label: "Color" },
-  { key: "pages", label: "Pages" },
-  { key: "cover_type", label: "Cover Binding" },
-  { key: "weight", label: "Weight" },
-  { key: "dimensions", label: "Size" },
-];
-
 function specsFromFeatures(
   features?: Record<string, { show?: boolean; value?: string }> | null,
 ): Specification[] {
-  if (!features || typeof features !== "object") return [];
-  const seen = new Set<string>();
-  const out: Specification[] = [];
-  for (const { key, label } of FEATURE_ORDER) {
-    const entry = features[key];
-    if (!entry?.show) continue;
-    const value = typeof entry.value === "string" ? entry.value.trim() : "";
-    if (!value) continue;
-    if (seen.has(label)) continue;
-    seen.add(label);
-    out.push({ label, value });
-  }
-  // Any custom keys not in FEATURE_ORDER
-  for (const [key, entry] of Object.entries(features)) {
-    if (FEATURE_ORDER.some((f) => f.key === key)) continue;
-    if (!entry?.show) continue;
-    const value = typeof entry.value === "string" ? entry.value.trim() : "";
-    if (!value) continue;
-    out.push({ label: key.replace(/_/g, " "), value });
-  }
-  return out;
+  return pickVisibleFeatures(features).map(({ label, value }) => ({ label, value }));
 }
 
 export default function ProductInfo({ product }: ProductInfoProps) {
