@@ -22,6 +22,13 @@ import {
 import { toast } from "sonner";
 
 const CUSTOM_CATEGORIES_KEY = "gv_custom_categories";
+const CUSTOM_SUBCATEGORIES_KEY = "gv_custom_subcategories";
+
+type CustomCategory = {
+  name: string;
+  seoTitle?: string;
+  seoDescription?: string;
+};
 
 export const Route = createFileRoute("/_authenticated/products")({
   component: ProductsPage,
@@ -196,22 +203,45 @@ function ProductsPage() {
   const [editing, setEditing] = useState<CatalogItem | null>(null);
   const [addCatOpen, setAddCatOpen] = useState(false);
   const [newCatName, setNewCatName] = useState("");
+  const [newCatSeoTitle, setNewCatSeoTitle] = useState("");
+  const [newCatSeoDescription, setNewCatSeoDescription] = useState("");
+  const [addSubOpen, setAddSubOpen] = useState(false);
+  const [addSubFor, setAddSubFor] = useState<string | null>(null);
+  const [newSubName, setNewSubName] = useState("");
   const qc = useQueryClient();
 
-  // ponytail: client-side custom categories. localStorage is enough for now;
-  // promote to a Supabase table when the catalog team needs shared editing.
-  const [customCategories, setCustomCategories] = useState<string[]>(() => {
+  // ponytail: client-side custom categories + subcategories. localStorage is
+  // enough for now; promote to a Supabase table when the catalog team needs
+  // shared editing.
+  const [customCategories, setCustomCategories] = useState<CustomCategory[]>(() => {
     if (typeof window === "undefined") return [];
-    try { return JSON.parse(localStorage.getItem(CUSTOM_CATEGORIES_KEY) || "[]"); }
-    catch { return []; }
+    try {
+      const raw = JSON.parse(localStorage.getItem(CUSTOM_CATEGORIES_KEY) || "[]");
+      if (!Array.isArray(raw)) return [];
+      // ponytail: accept legacy string[] entries from the previous commit;
+      // drop the helper once no live users have the old shape.
+      return raw.map((item: unknown) =>
+        typeof item === "string" ? { name: item } : (item as CustomCategory)
+      );
+    } catch { return []; }
+  });
+
+  const [customSubcategories, setCustomSubcategories] = useState<Record<string, string[]>>(() => {
+    if (typeof window === "undefined") return {};
+    try { return JSON.parse(localStorage.getItem(CUSTOM_SUBCATEGORIES_KEY) || "{}"); }
+    catch { return {}; }
   });
 
   useEffect(() => {
     localStorage.setItem(CUSTOM_CATEGORIES_KEY, JSON.stringify(customCategories));
   }, [customCategories]);
 
+  useEffect(() => {
+    localStorage.setItem(CUSTOM_SUBCATEGORIES_KEY, JSON.stringify(customSubcategories));
+  }, [customSubcategories]);
+
   const allCategories = useMemo(
-    () => [...STOREFRONT_CATEGORIES, ...customCategories],
+    () => [...STOREFRONT_CATEGORIES, ...customCategories.map((c) => c.name)],
     [customCategories],
   );
 
@@ -222,10 +252,39 @@ function ProductsPage() {
       toast.error("Category already exists");
       return;
     }
-    setCustomCategories((prev) => [...prev, name]);
+    const entry: CustomCategory = {
+      name,
+      seoTitle: newCatSeoTitle.trim() || undefined,
+      seoDescription: newCatSeoDescription.trim() || undefined,
+    };
+    setCustomCategories((prev) => [...prev, entry]);
     setNewCatName("");
+    setNewCatSeoTitle("");
+    setNewCatSeoDescription("");
     setAddCatOpen(false);
     toast.success(`Added "${name}"`);
+  }
+
+  function addSubcategory() {
+    if (!addSubFor) return;
+    const name = newSubName.trim();
+    if (!name) return;
+    const cat = addSubFor.toUpperCase();
+    setCustomSubcategories((prev) => ({
+      ...prev,
+      [cat]: [...(prev[cat] || []), name],
+    }));
+    setNewSubName("");
+    setAddSubOpen(false);
+    toast.success(`Added "${name}" to ${cat}`);
+  }
+
+  function getSubcategoriesFor(cat: string): string[] {
+    const norm = cat.toUpperCase();
+    return Array.from(new Set([
+      ...(STOREFRONT_SUBCATEGORIES[norm] || []),
+      ...(customSubcategories[norm] || []),
+    ]));
   }
 
   // Query standard products
@@ -328,7 +387,7 @@ function ProductsPage() {
   return (
     <div>
       <PageHeader title="Categories" description="Manage your store's product categories.">
-        <Button onClick={() => { setNewCatName(""); setAddCatOpen(true); }}>
+        <Button onClick={() => { setNewCatName(""); setNewCatSeoTitle(""); setNewCatSeoDescription(""); setAddCatOpen(true); }}>
           <Plus className="h-4 w-4 mr-1.5" />
           Add new category
         </Button>
@@ -403,28 +462,39 @@ function ProductsPage() {
             {!isLoading &&
               allCategories.map((cat) => {
                 const isExpanded = expandedCategory === cat;
-                const subcats = STOREFRONT_SUBCATEGORIES[cat] || [];
-                const isCustom = customCategories.includes(cat);
+                const subcats = getSubcategoriesFor(cat);
+                const isCustom = customCategories.some((c) => c.name === cat);
                 return (
                   <div key={cat} className="transition-all">
-                    <button
-                      onClick={() => setExpandedCategory(isExpanded ? null : cat)}
-                      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-surface/60 transition-colors text-left group"
-                    >
-                      <Folder className={`h-4 w-4 transition-colors shrink-0 ${isExpanded ? 'text-amber-500' : 'text-primary/70 group-hover:text-primary'}`} />
-                      <span className="flex-1 text-sm font-semibold flex items-center gap-2">
-                        {cat}
-                        {isCustom && (
-                          <span className="text-[9px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600 border border-amber-500/25">
-                            custom
-                          </span>
-                        )}
-                      </span>
-                      <span className="text-xs text-muted-foreground tabular-nums mr-1">
-                        {categoryCounts[cat] ?? 0} items
-                      </span>
-                      <ChevronRight className={`h-3.5 w-3.5 text-muted-foreground transition-transform duration-200 shrink-0 ${isExpanded ? 'rotate-90' : ''}`} />
-                    </button>
+                    <div className="w-full flex items-center gap-1 px-4 py-3 hover:bg-surface/60 transition-colors group">
+                      <button
+                        onClick={() => setExpandedCategory(isExpanded ? null : cat)}
+                        className="flex-1 flex items-center gap-3 text-left min-w-0"
+                      >
+                        <Folder className={`h-4 w-4 transition-colors shrink-0 ${isExpanded ? 'text-amber-500' : 'text-primary/70 group-hover:text-primary'}`} />
+                        <span className="flex-1 text-sm font-semibold flex items-center gap-2 min-w-0">
+                          {cat}
+                          {isCustom && (
+                            <span className="text-[9px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600 border border-amber-500/25">
+                              custom
+                            </span>
+                          )}
+                        </span>
+                        <span className="text-xs text-muted-foreground tabular-nums mr-1">
+                          {categoryCounts[cat] ?? 0} items
+                        </span>
+                        <ChevronRight className={`h-3.5 w-3.5 text-muted-foreground transition-transform duration-200 shrink-0 ${isExpanded ? 'rotate-90' : ''}`} />
+                      </button>
+                      {isExpanded && (
+                        <button
+                          onClick={() => { setAddSubFor(cat); setNewSubName(""); setAddSubOpen(true); }}
+                          className="h-7 w-7 flex items-center justify-center rounded text-muted-foreground hover:text-primary hover:bg-surface-2 transition-colors shrink-0"
+                          title="Add subcategory"
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
                     {isExpanded && (
                       <div className="bg-surface/30 pl-10 pr-4 py-1 divide-y divide-border/20 border-t border-b border-border/10">
                         {subcats.map((subcat) => {
@@ -624,22 +694,44 @@ function ProductsPage() {
           <DialogHeader>
             <DialogTitle>Add new category</DialogTitle>
           </DialogHeader>
-          <div className="py-2">
-            <Label htmlFor="new-cat-name">Name</Label>
-            <Input
-              id="new-cat-name"
-              autoFocus
-              value={newCatName}
-              onChange={(e) => setNewCatName(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") addCategory();
-              }}
-              placeholder="e.g. WOODEN GIFTS"
-              className="mt-1.5"
-            />
-            <p className="text-xs text-muted-foreground mt-2">
-              Will be saved in uppercase, matching the existing category style. Available immediately in product & diary category selectors.
-            </p>
+          <div className="py-2 space-y-3">
+            <div>
+              <Label htmlFor="new-cat-name">Name</Label>
+              <Input
+                id="new-cat-name"
+                autoFocus
+                value={newCatName}
+                onChange={(e) => setNewCatName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") addCategory();
+                }}
+                placeholder="e.g. WOODEN GIFTS"
+                className="mt-1.5"
+              />
+              <p className="text-xs text-muted-foreground mt-1.5">
+                Saved in uppercase to match existing category style. Available immediately in product & diary category selectors.
+              </p>
+            </div>
+            <div className="border-t border-border pt-3">
+              <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground mb-2">SEO</div>
+              <Label htmlFor="new-cat-seo-title">Meta title</Label>
+              <Input
+                id="new-cat-seo-title"
+                value={newCatSeoTitle}
+                onChange={(e) => setNewCatSeoTitle(e.target.value)}
+                placeholder="e.g. Wooden Gifts | GiftVibes"
+                className="mt-1.5"
+              />
+              <Label htmlFor="new-cat-seo-desc" className="mt-3 block">Meta description</Label>
+              <Textarea
+                id="new-cat-seo-desc"
+                rows={3}
+                value={newCatSeoDescription}
+                onChange={(e) => setNewCatSeoDescription(e.target.value)}
+                placeholder="Short summary used by search engines and social shares."
+                className="mt-1.5"
+              />
+            </div>
           </div>
           <DialogFooter>
             <DialogClose asChild>
@@ -648,6 +740,40 @@ function ProductsPage() {
             <Button onClick={addCategory} disabled={!newCatName.trim()}>
               <Plus className="h-4 w-4 mr-1.5" />
               Add category
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={addSubOpen} onOpenChange={(o) => !o && setAddSubOpen(false)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add subcategory{addSubFor ? ` to ${addSubFor}` : ""}</DialogTitle>
+          </DialogHeader>
+          <div className="py-2">
+            <Label htmlFor="new-sub-name">Name</Label>
+            <Input
+              id="new-sub-name"
+              autoFocus
+              value={newSubName}
+              onChange={(e) => setNewSubName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") addSubcategory();
+              }}
+              placeholder="e.g. Premium Leather"
+              className="mt-1.5"
+            />
+            <p className="text-xs text-muted-foreground mt-2">
+              Subcategory appears in this category's expanded list and in product/diary subcategory selectors.
+            </p>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="ghost">Cancel</Button>
+            </DialogClose>
+            <Button onClick={addSubcategory} disabled={!newSubName.trim()}>
+              <Plus className="h-4 w-4 mr-1.5" />
+              Add subcategory
             </Button>
           </DialogFooter>
         </DialogContent>
