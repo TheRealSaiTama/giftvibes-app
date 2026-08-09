@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Header from '@/components/sections/header';
 import Footer from '@/components/sections/footer';
 import { Product } from '@prisma/client';
@@ -56,7 +57,9 @@ export default async function ShopPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header nav={headerNav} />
-      <ShopClient initialDiaries={allDiaries} initialProducts={allProducts} />
+      <Suspense fallback={<div className="container py-16 text-sm text-muted-foreground">Loading shop…</div>}>
+        <ShopClient initialDiaries={allDiaries} initialProducts={allProducts} />
+      </Suspense>
       <Footer settings={settings} />
     </div>
   );

@@ -4,8 +4,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { useSelectedProducts } from '@/context/ProductContext';
 import { Checkbox } from '@/components/ui/checkbox';
+import type { Product } from '@/types/Product';
 
-const popularProducts = [
+const defaultProducts: Product[] = [
   {
     id: 1,
     name: "Primo A5 Corporate Diary and Pen Set",
@@ -61,17 +62,42 @@ const popularProducts = [
 const RATING = 5;
 const REVIEWS = 121;
 
-const WeeklyPopularProducts = ({ content }: { content?: any }) => {
+function mapDbProduct(p: any): Product {
+  return {
+    id: p.id,
+    name: p.name,
+    image: p.imageUrl || '',
+    minPrice: p.minPrice ?? null,
+    maxPrice: p.maxPrice ?? null,
+    description: p.description || '',
+    currency: 'INR',
+  };
+}
+
+interface WeeklyPopularProductsProps {
+  content?: any;
+  products?: any[];
+}
+
+const WeeklyPopularProducts = ({ content, products: dbProducts }: WeeklyPopularProductsProps) => {
   const { selectProduct, deselectProduct, isSelected } = useSelectedProducts();
   const heading = content?.heading || "Trending Diary Giftsets";
-  const items = content?.items || popularProducts;
+  const selectedIds: string[] = (content?.items || [])
+    .map((item: any) => item?.productId)
+    .filter((id: unknown): id is string => typeof id === "string" && id.length > 0);
+
+  // ponytail: same pattern as best-deals — admin picks products by id,
+  // hardcoded set is the first-install fallback.
+  const items: Product[] = selectedIds.length > 0
+    ? (dbProducts || []).map(mapDbProduct).filter((p) => selectedIds.includes(String(p.id)))
+    : defaultProducts;
 
   return (
     <section className="py-16 bg-white">
       <div className="container">
         <h3 className="text-2xl font-semibold text-[#333333] mb-10">{heading}</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-          {items.map((product: any, index: number) => {
+          {items.map((product, index) => {
             const selected = isSelected(product.id || index);
             const displayPrice = (() => {
               const hasRange = typeof product.minPrice === "number" && typeof product.maxPrice === "number" && product.minPrice !== product.maxPrice;
@@ -107,11 +133,11 @@ const WeeklyPopularProducts = ({ content }: { content?: any }) => {
                     className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105"
                   />
                   <span className="absolute top-4 right-4 bg-white w-9 h-9 flex items-center justify-center rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                     <Image 
-                      src="https://cdn.prod.website-files.com/63e857eaeaf853471d5335ff/63e9df775b939f51a0b22f6d_Icon.svg" 
-                      alt="wishlist icon" 
-                      width={16} 
-                      height={16} 
+                     <Image
+                      src="https://cdn.prod.website-files.com/63e857eaeaf853471d5335ff/63e9df775b939f51a0b22f6d_Icon.svg"
+                      alt="wishlist icon"
+                      width={16}
+                      height={16}
                     />
                   </span>
                 </Link>
@@ -126,22 +152,22 @@ const WeeklyPopularProducts = ({ content }: { content?: any }) => {
                   <div className="flex items-center gap-1.5 mt-2 mb-4">
                     <div className="flex gap-0.5">
                       {[...Array(RATING)].map((_, i) => (
-                         <Image 
+                         <Image
                           key={i}
-                          src="https://cdn.prod.website-files.com/63e857eaeaf853471d5335ff/63e9d9ee08987e0ffb064bca_Star.svg" 
-                          alt="star icon" 
-                          width={16} 
+                          src="https://cdn.prod.website-files.com/63e857eaeaf853471d5335ff/63e9d9ee08987e0ffb064bca_Star.svg"
+                          alt="star icon"
+                          width={16}
                           height={16}
                         />
                       ))}
                     </div>
                     <span className="text-xs text-[#888888]">({REVIEWS})</span>
                   </div>
-                  <button 
+                  <button
                     type="button"
-                    onClick={() => { 
+                    onClick={() => {
                       selectProduct(product);
-                      console.log('Enquire for:', product.name); 
+                      console.log('Enquire for:', product.name);
                     }}
                     className="w-full mt-auto block text-center py-2.5 px-4 rounded-md border border-[#e5e5e5] text-sm font-medium text-white bg-[#124559] hover:bg-[#0f3d4a] transition-colors duration-200"
                   >

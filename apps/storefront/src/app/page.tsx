@@ -56,7 +56,7 @@ export default async function HomePage() {
         <Categories content={sections.categories} />
         <BestDealsSection content={sections.best_deals} products={products} />
         <BrandsSection content={sections.brands} />
-        <WeeklyPopularProducts content={sections.popular} />
+        <WeeklyPopularProducts content={sections.popular} products={products} />
         <CashBackSection content={sections.cashback} />
         <TabbedProducts products={products} content={sections.tabbed_products} />
         {/* Move these two sections just above the special discount banner */}

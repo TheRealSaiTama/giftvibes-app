@@ -105,6 +105,13 @@ function getFileIdFromUrl(url: string): string | null {
 
 export default function TabbedProducts({ products: dbProducts, content }: { products: DbProduct[], content?: any }) {
   const heading = content?.heading || "Todays Best Deals for you!";
+
+  // ponytail: if the admin has set custom tabs in the section content, use
+  // those. Each tab has a name and a list of productIds. The storefront
+  // looks each id up in dbProducts. Otherwise fall back to grouping
+  // products by their `category` field (the original behavior).
+  const customTabs: { name: string; productIds: string[] }[] = Array.isArray(content?.tabs) ? content.tabs : [];
+
   const products: Product[] = dbProducts.map(p => {
     const url = p.imageUrl?.trim();
     
@@ -156,7 +163,21 @@ export default function TabbedProducts({ products: dbProducts, content }: { prod
     return acc;
   }, {} as { [key: string]: Product[] });
 
-  const tabs = Object.keys(productsByCategory);
+  // ponytail: render custom tabs if defined, otherwise fall back to category grouping.
+  const tabKeys: string[] = customTabs.length > 0
+    ? customTabs.map((t) => t.name)
+    : Object.keys(productsByCategory);
+
+  const productsForTab = (tabKey: string): Product[] => {
+    if (customTabs.length > 0) {
+      const t = customTabs.find((ct) => ct.name === tabKey);
+      if (!t) return [];
+      return products.filter((p) => t.productIds.includes(String(p.id)));
+    }
+    return productsByCategory[tabKey] || [];
+  };
+
+  if (tabKeys.length === 0) return null;
 
   return (
     <section className="py-20 bg-background">
@@ -164,9 +185,9 @@ export default function TabbedProducts({ products: dbProducts, content }: { prod
         <h3 className="text-2xl font-semibold text-dark-gray mb-6">
           {heading}
         </h3>
-        <Tabs defaultValue={tabs[0]} className="w-full">
+        <Tabs defaultValue={tabKeys[0]} className="w-full">
           <TabsList className="flex flex-wrap justify-start gap-x-3 gap-y-2 mb-10 bg-transparent p-0 h-auto">
-            {tabs.map((tab) => (
+            {tabKeys.map((tab) => (
               <TabsTrigger
                 key={tab}
                 value={tab}
@@ -176,10 +197,10 @@ export default function TabbedProducts({ products: dbProducts, content }: { prod
               </TabsTrigger>
             ))}
           </TabsList>
-          {tabs.map((tab) => (
+          {tabKeys.map((tab) => (
             <TabsContent key={tab} value={tab}>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                {productsByCategory[tab]?.map((product) => (
+                {productsForTab(tab).map((product) => (
                   <ProductCard key={`${tab}-${product.id}`} product={product} />
                 ))}
               </div>
