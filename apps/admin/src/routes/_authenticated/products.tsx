@@ -14,7 +14,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { MediaPicker } from "@/components/admin/media-picker";
 import {
   Plus, Pencil, Trash2, Search, Star, ChevronRight, Home,
-  Folder, FolderOpen, ArrowLeft, BookOpen, Package
+  Folder, FolderOpen, ArrowLeft, BookOpen, Package, Copy
 } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose
@@ -285,6 +285,18 @@ function ProductsPage() {
       ...(STOREFRONT_SUBCATEGORIES[norm] || []),
       ...(customSubcategories[norm] || []),
     ]));
+  }
+
+  // ponytail: open the edit Sheet in create mode with the source item's
+  // fields copied. Empty id tells ProductForm this is a new row, the server
+  // functions handle the insert.
+  function duplicateItem(item: CatalogItem) {
+    setEditing({
+      ...item,
+      id: "",
+      name: `${item.name} (Copy)`,
+      slug: `${item.slug}-copy`,
+    });
   }
 
   // Query standard products
@@ -648,9 +660,24 @@ function ProductsPage() {
                       )}
                     </td>
                     <td className="px-4 py-2.5 text-right">
-                      <Button variant="ghost" size="icon" onClick={() => setEditing(item)}>
-                        <Pencil className="h-4 w-4" />
-                      </Button>
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => duplicateItem(item)}
+                          title="Duplicate"
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setEditing(item)}
+                          title="Edit"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))}
