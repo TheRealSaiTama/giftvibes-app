@@ -609,14 +609,92 @@ export const seedHomeSections = createServerFn({ method: "POST" })
       }
     ];
 
+    // Only INSERT missing sections — never overwrite content the user already edited.
+    const { data: existing, error: listErr } = await context.supabase
+      .from("page_sections")
+      .select("section_key, content")
+      .eq("page_key", "home");
+    if (listErr) throw new Error(listErr.message);
+
+    const existingKeys = new Set((existing || []).map((r: any) => r.section_key as string));
+    let inserted = 0;
+
     for (const section of sections) {
-      const { error } = await context.supabase
-        .from('page_sections')
-        .upsert(section as any, { onConflict: 'page_key, section_key' });
+      if (existingKeys.has(section.section_key)) continue;
+      const { error } = await context.supabase.from("page_sections").insert(section as any);
       if (error) throw new Error(`Error inserting ${section.section_key}: ${error.message}`);
+      inserted++;
     }
 
-    await notifyStorefront(["/"]);
-    return { ok: true };
+    // Repair broken hero rows that only have a single "headline" field (old/partial seed).
+    const heroRow = (existing || []).find((r: any) => r.section_key === "hero");
+    if (heroRow && heroRow.content && typeof heroRow.content === "object") {
+      const c = heroRow.content as Record<string, any>;
+      if (!c.heading_1 && (c.headline || c.heading)) {
+        const repaired = {
+          heading_1: c.headline || c.heading || "Custom Diaries",
+          heading_2: c.headline_line2 || c.heading_2 || "Corporate Gifts.",
+          subheading_1:
+            typeof c.subheading === "string"
+              ? c.subheading
+              : c.subheading_1 || "Crafting premium customized diaries and",
+          subheading_2: c.subheading_2 || "corporate gifts with unmatched quality.",
+          primary_cta: c.primary_cta || {
+            base_text: c.cta_text || "Come Here",
+            hover_text: "Explore More",
+            url: c.cta_href || "/shop",
+          },
+          background_image_url: c.background_image_url || "/headerimage5.png",
+        };
+        const { error } = await context.supabase
+          .from("page_sections")
+          .update({ content: repaired, title: "Hero Section" })
+          .eq("page_key", "home")
+          .eq("section_key", "hero");
+        if (error) throw new Error(`Error repairing hero: ${error.message}`);
+      }
+    }
+
+    // Shop + product template pages (so admin isn't empty)
+    const extraPages = [
+      {
+        page_key: "shop",
+        section_key: "main",
+        title: "Shop page",
+        sort_order: 10,
+        content: {
+          heading: "Our Products",
+          subheading: "Browse diaries, gift sets, and corporate essentials.",
+          empty_state: "No products match your filters. Try clearing filters.",
+        },
+      },
+      {
+        page_key: "product",
+        section_key: "main",
+        title: "Product template",
+        sort_order: 10,
+        content: {
+          related_heading: "You may also like",
+          enquiry_cta: "Enquire Now",
+          quote_cta: "Request Quote",
+        },
+      },
+    ];
+
+    for (const section of extraPages) {
+      const { data: row } = await context.supabase
+        .from("page_sections")
+        .select("id")
+        .eq("page_key", section.page_key)
+        .eq("section_key", section.section_key)
+        .maybeSingle();
+      if (row) continue;
+      const { error } = await context.supabase.from("page_sections").insert(section as any);
+      if (error) throw new Error(`Error inserting ${section.page_key}/${section.section_key}: ${error.message}`);
+      inserted++;
+    }
+
+    await notifyStorefront(["/", "/shop"]);
+    return { ok: true, inserted, totalHome: sections.length };
   });
 

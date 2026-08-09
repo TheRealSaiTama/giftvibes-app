@@ -5,13 +5,17 @@ import InteractiveHoverButton from '@/components/magicui/interactive-hover-butto
 
 const Hero = ({ content }: { content?: any }) => {
   const router = useRouter();
-  const heading_1 = content?.heading_1 || "Custom Diaries";
-  const heading_2 = content?.heading_2 || "Corporate Gifts.";
-  const subheading_1 = content?.subheading_1 || "Crafting premium customized diaries and";
+  // Support full admin shape + legacy single-headline rows in DB.
+  const heading_1 = content?.heading_1 || content?.headline || content?.heading || "Custom Diaries";
+  const heading_2 = content?.heading_2 || content?.headline_line2 || "Corporate Gifts.";
+  const subheading_1 =
+    content?.subheading_1 ||
+    (typeof content?.subheading === "string" ? content.subheading : null) ||
+    "Crafting premium customized diaries and";
   const subheading_2 = content?.subheading_2 || "corporate gifts with unmatched quality.";
-  const btnBaseText = content?.primary_cta?.base_text || "Come Here";
+  const btnBaseText = content?.primary_cta?.base_text || content?.cta_text || "Come Here";
   const btnHoverText = content?.primary_cta?.hover_text || "Explore More";
-  const btnUrl = content?.primary_cta?.url || "/shop";
+  const btnUrl = content?.primary_cta?.url || content?.cta_href || "/shop";
   const bgImg = content?.background_image_url || "/headerimage5.png";
 
   return (

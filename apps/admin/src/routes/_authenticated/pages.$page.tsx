@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader, SaveBar } from "@/components/admin/admin-shell";
-import { updateSection } from "@/lib/admin.functions";
+import { updateSection, seedHomeSections } from "@/lib/admin.functions";
 import { useDirty } from "@/hooks/use-dirty";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +20,24 @@ import {
 } from "@/components/ui/accordion";
 import { toast } from "sonner";
 import { Eye, EyeOff, Plus, Trash2, Monitor, Smartphone, RefreshCw, ExternalLink } from "lucide-react";
+
+/** Expected home section keys (must match seedHomeSections). */
+const HOME_SECTION_KEYS = [
+  "hero",
+  "about",
+  "discounts",
+  "categories",
+  "best_deals",
+  "brands",
+  "popular",
+  "cashback",
+  "tabbed_products",
+  "why_choose_us",
+  "satisfaction",
+  "cashback_bottom",
+  "services",
+  "corporate_showcase",
+] as const;
 import { MediaPicker } from "@/components/admin/media-picker";
 import { ProductPicker } from "@/components/admin/product-picker";
 import { TabManager } from "@/components/admin/tab-manager";
@@ -59,11 +77,39 @@ type Section = {
   content: Record<string, any>;
 };
 
+/** Map legacy / partial DB content into the fields the storefront + editor expect. */
+function normalizeSectionForEditor(section: Section): Section {
+  const c = section.content || {};
+  if (section.section_key === "hero" && !c.heading_1) {
+    return {
+      ...section,
+      content: {
+        heading_1: c.headline || c.heading || "Custom Diaries",
+        heading_2: c.headline_line2 || c.heading_2 || "Corporate Gifts.",
+        subheading_1:
+          typeof c.subheading === "string"
+            ? c.subheading
+            : c.subheading_1 || "Crafting premium customized diaries and",
+        subheading_2: c.subheading_2 || "corporate gifts with unmatched quality.",
+        primary_cta: c.primary_cta || {
+          base_text: c.cta_text || "Come Here",
+          hover_text: "Explore More",
+          url: c.cta_href || "/shop",
+        },
+        background_image_url: c.background_image_url || "/headerimage5.png",
+      },
+    };
+  }
+  return section;
+}
+
 function PageEditor() {
   const { page } = useParams({ from: "/_authenticated/pages/$page" });
   const meta = PAGE_TITLES[page];
   const qc = useQueryClient();
   const runUpdate = useServerFn(updateSection);
+  const runSeed = useServerFn(seedHomeSections);
+  const [seeding, setSeeding] = useState(false);
 
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewDevice, setPreviewDevice] = useState<"desktop" | "mobile">("desktop");
@@ -89,19 +135,63 @@ function PageEditor() {
         .from("site_settings")
         .select("preview_url, site_url")
         .eq("id", 1)
-        .single();
+        .maybeSingle();
       if (error) throw error;
-      return data as { preview_url: string | null; site_url: string | null };
+      return (data as { preview_url: string | null; site_url: string | null }) ?? {
+        preview_url: null,
+        site_url: "https://www.giftvibes.in",
+      };
     },
   });
 
-  const previewBase = (settings?.preview_url || settings?.site_url || "").replace(/\/+$/, "");
+  const previewBase = (settings?.preview_url || settings?.site_url || "https://www.giftvibes.in").replace(
+    /\/+$/,
+    "",
+  );
   const previewPath = PAGE_PREVIEW_PATHS[page] ?? `/${page}`;
   const previewUrl = previewBase ? `${previewBase}${previewPath}` : "";
+
+  const homeKeysPresent = new Set((sections || []).map((s) => s.section_key));
+  const missingHomeCount =
+    page === "home"
+      ? HOME_SECTION_KEYS.filter((k) => !homeKeysPresent.has(k)).length
+      : 0;
+  const needsSeed =
+    page === "home"
+      ? missingHomeCount > 0 || (sections?.length ?? 0) === 0
+      : (sections?.length ?? 0) === 0;
+
+  async function handleSeed() {
+    setSeeding(true);
+    try {
+      const res = await runSeed({ data: undefined as never });
+      await qc.invalidateQueries({ queryKey: ["sections"] });
+      const inserted = (res as any)?.inserted ?? 0;
+      toast.success(
+        inserted > 0
+          ? `Added ${inserted} missing section(s). Open each accordion to edit.`
+          : "Sections already complete (hero fields repaired if needed).",
+      );
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Seed failed — are you signed in as owner?");
+    } finally {
+      setSeeding(false);
+    }
+  }
 
   return (
     <div>
       <PageHeader title={meta.title} description={meta.description}>
+        {needsSeed && (
+          <Button variant="default" size="sm" onClick={handleSeed} disabled={seeding}>
+            <RefreshCw className={`h-4 w-4 mr-1.5 ${seeding ? "animate-spin" : ""}`} />
+            {seeding
+              ? "Adding sections…"
+              : page === "home"
+                ? `Add missing sections${missingHomeCount ? ` (${missingHomeCount})` : ""}`
+                : "Create page sections"}
+          </Button>
+        )}
         <Button
           variant={previewOpen ? "default" : "outline"}
           size="sm"
@@ -116,27 +206,28 @@ function PageEditor() {
         <div>
           {isLoading && <div className="text-sm text-muted-foreground">Loading sections…</div>}
 
-          {sections && sections.length === 0 && (
-            <Card className="p-8 text-center text-sm text-muted-foreground flex flex-col items-center justify-center gap-4">
-              <p>No sections defined for this page yet.</p>
-              {page === 'home' && (
-                <Button 
-                  onClick={async () => {
-                    const { seedHomeSections } = await import('@/lib/admin.functions');
-                    try {
-                      await seedHomeSections();
-                      qc.invalidateQueries({ queryKey: ["sections", page] });
-                      toast.success("Home sections seeded successfully.");
-                    } catch (e) {
-                      toast.error(e instanceof Error ? e.message : "Seed failed");
-                    }
-                  }}
-                  variant="outline"
-                >
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  Seed Default Home Sections
-                </Button>
-              )}
+          {needsSeed && (
+            <Card className="p-5 mb-4 text-sm border-primary/30 bg-primary-soft/30">
+              <p className="font-medium text-foreground mb-1">
+                {page === "home"
+                  ? "Home page is missing editable sections"
+                  : "This page has no editable sections yet"}
+              </p>
+              <p className="text-muted-foreground mb-3">
+                {page === "home"
+                  ? `Only ${sections?.length ?? 0} of ${HOME_SECTION_KEYS.length} sections exist in the database (e.g. just Hero). Click the button to add Categories, Latest Diaries, Trending, Best Deals, etc. Existing edits are kept.`
+                  : "Click the button above to create default fields you can edit."}
+              </p>
+              <Button onClick={handleSeed} disabled={seeding} size="sm">
+                <RefreshCw className={`w-4 h-4 mr-2 ${seeding ? "animate-spin" : ""}`} />
+                {seeding ? "Working…" : "Add / repair sections"}
+              </Button>
+            </Card>
+          )}
+
+          {sections && sections.length === 0 && !isLoading && (
+            <Card className="p-8 text-center text-sm text-muted-foreground">
+              No sections yet. Use <strong>Add / repair sections</strong> above.
             </Card>
           )}
 
@@ -144,7 +235,7 @@ function PageEditor() {
             {sections?.map((section) => (
               <SectionEditor
                 key={section.id}
-                section={section}
+                section={normalizeSectionForEditor(section)}
                 onSaved={() => {
                   qc.invalidateQueries({ queryKey: ["sections", page] });
                   setPreviewNonce((n) => n + 1);
