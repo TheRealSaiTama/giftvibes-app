@@ -21,6 +21,7 @@ import {
 import { toast } from "sonner";
 import { Eye, EyeOff, Plus, Trash2, Monitor, Smartphone, RefreshCw, ExternalLink } from "lucide-react";
 import { MediaPicker } from "@/components/admin/media-picker";
+import { ProductPicker } from "@/components/admin/product-picker";
 
 const PAGE_PREVIEW_PATHS: Record<string, string> = {
   home: "/",
@@ -292,7 +293,11 @@ function SectionEditor({
             </div>
           </div>
 
-          <GenericContentEditor content={draft.content} onChange={patchContent} />
+          <GenericContentEditor
+            content={draft.content}
+            sectionKey={section.section_key}
+            onChange={patchContent}
+          />
         </div>
       </AccordionContent>
     </AccordionItem>
@@ -301,9 +306,11 @@ function SectionEditor({
 
 function GenericContentEditor({
   content,
+  sectionKey,
   onChange,
 }: {
   content: Record<string, any>;
+  sectionKey: string;
   onChange: (patch: Record<string, any>) => void;
 }) {
   return (
@@ -313,6 +320,7 @@ function GenericContentEditor({
           key={key}
           fieldKey={key}
           value={value}
+          sectionKey={sectionKey}
           onChange={(next) => onChange({ [key]: next })}
         />
       ))}
@@ -324,12 +332,25 @@ function FieldEditor({
   fieldKey,
   value,
   onChange,
+  sectionKey,
 }: {
   fieldKey: string;
   value: any;
   onChange: (next: any) => void;
+  sectionKey?: string;
 }) {
   const label = prettyKey(fieldKey);
+
+  // ponytail: best_deals section uses the product picker for items, so
+  // the admin can pick up to 4 products from the products table.
+  if (sectionKey === "best_deals" && fieldKey === "items" && Array.isArray(value)) {
+    return (
+      <div>
+        <Label className="mb-2 block">{label} <span className="text-muted-foreground font-normal">(up to 4)</span></Label>
+        <ProductPicker value={value} onChange={onChange} max={4} />
+      </div>
+    );
+  }
 
   // image_url / *_image_url / *image_url → media picker
   if (typeof value === "string" && /image_url|logo_url|favicon_url/.test(fieldKey)) {

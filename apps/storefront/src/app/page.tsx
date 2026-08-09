@@ -54,7 +54,7 @@ export default async function HomePage() {
         <GiftVibeAbout content={sections.about} />
         <BestDiscountsBanner content={sections.discounts} />
         <Categories content={sections.categories} />
-        <BestDealsSection content={sections.deals} />
+        <BestDealsSection content={sections.best_deals} products={products} />
         <BrandsSection content={sections.brands} />
         <WeeklyPopularProducts content={sections.popular} />
         <CashBackSection content={sections.cashback} />

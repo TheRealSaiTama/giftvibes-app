@@ -6,7 +6,7 @@ import { useSelectedProducts } from '@/context/ProductContext';
 import { Checkbox } from '@/components/ui/checkbox';
 import type { Product } from '@/types/Product';
 
-const products: Product[] = [
+const defaultProducts: Product[] = [
   {
     id: 100000,
     name: 'Management Premium PU Leather Diary 2026',
@@ -72,11 +72,11 @@ const ProductCard = ({ product }: { product: Product }) => {
         />
       </div>
       <Link href={`/shop/${product.id}`} className="relative bg-white aspect-square overflow-hidden product-image-container pt-8 pl-8 block">
-        <Image 
-          src={product.image} 
-          alt={product.name} 
+        <Image
+          src={product.image}
+          alt={product.name}
           fill
-          sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw" 
+          sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
           className="object-contain transition-transform duration-300 group-hover:scale-105"
         />
         <span className="absolute top-4 right-4 bg-white rounded-full p-2.5 shadow-sm transition-all duration-300 opacity-0 translate-y-1 group-hover:opacity-100 group-hover:translate-y-0">
@@ -113,7 +113,7 @@ const ProductCard = ({ product }: { product: Product }) => {
           </div>
           <span className="small ml-2">(121)</span>
         </div>
-        <Button 
+        <Button
           onClick={() => {
             selectProduct(product);
             console.log('Enquire for:', product.name);
@@ -129,16 +129,47 @@ const ProductCard = ({ product }: { product: Product }) => {
   );
 };
 
-const BestDealsSection = ({ content }: { content?: any }) => {
+// ponytail: map a Prisma products row to the storefront's Product shape.
+// The component only needs name, image, price range, description, id.
+function mapDbProduct(p: any): Product {
+  return {
+    id: p.id,
+    name: p.name,
+    image: p.imageUrl || '',
+    minPrice: p.minPrice ?? null,
+    maxPrice: p.maxPrice ?? null,
+    description: p.description || '',
+    currency: 'INR',
+  };
+}
+
+interface BestDealsSectionProps {
+  content?: any;
+  // ponytail: when the admin has set productIds, we look them up here.
+  // Falls back to the hardcoded default set when the admin has not picked yet.
+  products?: any[];
+}
+
+const BestDealsSection = ({ content, products: dbProducts }: BestDealsSectionProps) => {
   const heading = content?.heading || "Latest 2026 Diaries";
-  const items = content?.items || products;
+  const selectedIds: string[] = (content?.items || [])
+    .map((item: any) => item?.productId)
+    .filter((id: unknown): id is string => typeof id === "string" && id.length > 0);
+
+  // ponytail: if the admin picked products, use them. Otherwise show the
+  // hardcoded default set so the section never looks empty on a fresh install.
+  const items: Product[] = selectedIds.length > 0
+    ? (dbProducts || [])
+        .map(mapDbProduct)
+        .filter((p) => selectedIds.includes(String(p.id)))
+    : defaultProducts;
 
   return (
     <section className="bg-background py-16">
       <div className="container">
         <h2 className="mb-10">{heading}</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-          {items.map((product: Product, index: number) => (
+          {items.map((product, index) => (
             <ProductCard key={product.id || index} product={product} />
           ))}
         </div>
