@@ -49,12 +49,29 @@ function getFileIdFromUrl(url: string): string | null {
   return match ? match[1] : null;
 }
 
+function categoryMatches(productCategory: string, filterCat: string): boolean {
+  const hay = productCategory.toLowerCase();
+  const needle = filterCat.toLowerCase().trim();
+  if (!needle) return true;
+  if (hay.includes(needle)) return true;
+  // Tolerate singular/plural and slight naming drift from home carousel links.
+  const compact = (s: string) => s.replace(/[^a-z0-9]+/g, " ").trim();
+  const h = compact(hay);
+  const n = compact(needle);
+  if (h.includes(n) || n.includes(h)) return true;
+  if (n.endsWith("s") && h.includes(n.slice(0, -1))) return true;
+  if (h.endsWith("s") && n.includes(h.slice(0, -1))) return true;
+  return false;
+}
+
 function filterAndSortProducts(products: ShopProduct[], filters: Filters): ShopProduct[] {
   let filtered: ShopProduct[] = products;
 
   if (filters.category.length > 0) {
-    filtered = filtered.filter((product: ShopProduct) => 
-      product.category && filters.category.some((cat: string) => product.category!.includes(cat))
+    filtered = filtered.filter(
+      (product: ShopProduct) =>
+        product.category &&
+        filters.category.some((cat: string) => categoryMatches(product.category!, cat)),
     );
   }
 
@@ -134,15 +151,25 @@ export default function ShopClient({ initialDiaries, initialProducts }: { initia
   }, [selectedProducts]);
 
   const combinedProducts = useMemo(() => {
-    const diariesAsProducts: ShopProduct[] = initialDiaries.map(diary => ({
-      ...diary,
-      minPrice: diary.minPrice,
-      maxPrice: diary.maxPrice,
+    const diariesAsProducts: ShopProduct[] = (initialDiaries || []).map((diary: any) => ({
+      id: diary.id,
+      name: diary.name,
+      description: diary.description ?? null,
+      imageUrl: diary.imageUrl ?? diary.image_url ?? null,
+      category: diary.category ?? null,
+      tags: Array.isArray(diary.tags) ? diary.tags.join(", ") : diary.tags ?? null,
+      minPrice: diary.minPrice ?? diary.min_price ?? null,
+      maxPrice: diary.maxPrice ?? diary.max_price ?? null,
     }));
-    const productsAsShopProducts: ShopProduct[] = initialProducts.map(product => ({
-        ...product,
-        minPrice: product.minPrice,
-        maxPrice: product.maxPrice,
+    const productsAsShopProducts: ShopProduct[] = (initialProducts || []).map((product: any) => ({
+      id: product.id,
+      name: product.name,
+      description: product.description ?? null,
+      imageUrl: product.imageUrl ?? product.image_url ?? null,
+      category: product.category ?? null,
+      tags: Array.isArray(product.tags) ? product.tags.join(", ") : product.tags ?? null,
+      minPrice: product.minPrice ?? product.min_price ?? null,
+      maxPrice: product.maxPrice ?? product.max_price ?? null,
     }));
     return [...diariesAsProducts, ...productsAsShopProducts];
   }, [initialDiaries, initialProducts]);
@@ -348,41 +375,32 @@ export default function ShopClient({ initialDiaries, initialProducts }: { initia
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {results.map((product) => {
-                  const url = product.imageUrl?.trim();
-
-                  const placeholderSvg = `
-                    <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 800 600">
-                      <defs>
-                        <pattern id="p" width="100" height="100" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-                          <path d="M50 0 v100 M0 50 h100" stroke="#e0e0e0" stroke-width="1"/>
-                        </pattern>
-                      </defs>
-                      <rect width="100%" height="100%" fill="#f5f5f5"/>
-                      <rect width="100%" height="100%" fill="url(#p)"/>
-                      <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="24" fill="#9e9e9e">No Image Available</text>
-                    </svg>
-                  `;
-                  let imageUrl = `data:image/svg+xml;base64,${Buffer.from(placeholderSvg).toString('base64')}`;
+                  const url = product.imageUrl?.trim() || "";
+                  // Client-safe placeholder — Buffer is Node-only and crashed this page in the browser.
+                  const placeholderSvg =
+                    '<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600"><rect fill="#f5f5f5" width="100%" height="100%"/><text x="50%" y="50%" text-anchor="middle" fill="#9e9e9e" font-family="sans-serif" font-size="24">No Image</text></svg>';
+                  let imageUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(placeholderSvg)}`;
 
                   if (url) {
-                    if (url.includes('drive.google.com')) {
+                    if (url.includes("drive.google.com")) {
                       const fileId = getFileIdFromUrl(url);
                       if (fileId) {
                         imageUrl = `https://drive.google.com/uc?id=${fileId}`;
                       }
-                    } else if (/^https?:\/\//i.test(url)) {
+                    } else if (/^https?:\/\//i.test(url) || url.startsWith("/")) {
                       imageUrl = url;
                     }
                   }
 
                   return (
-                    <article key={product.id} className="bg-white rounded-xl shadow-md hover:shadow-xl overflow-hidden transition-all duration-300 border border-gray-100 hover:border-primary/30">
+                    <article key={String(product.id)} className="bg-white rounded-xl shadow-md hover:shadow-xl overflow-hidden transition-all duration-300 border border-gray-100 hover:border-primary/30">
                       <Link href={`/shop/${product.id}`} className="block group">
                         <div className="relative h-56 bg-gradient-to-br from-gray-50 to-white overflow-hidden">
                           <Image
                             src={imageUrl}
-                            alt={product.name}
+                            alt={product.name || "Product"}
                             fill
+                            unoptimized={imageUrl.startsWith("data:") || imageUrl.includes("drive.google.com")}
                             className="object-cover group-hover:scale-105 transition-transform duration-500"
                             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
                           />

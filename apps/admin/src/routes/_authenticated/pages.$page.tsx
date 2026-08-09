@@ -23,19 +23,23 @@ import { Eye, EyeOff, Plus, Trash2, Monitor, Smartphone, RefreshCw, ExternalLink
 import { MediaPicker } from "@/components/admin/media-picker";
 import { ProductPicker } from "@/components/admin/product-picker";
 import { TabManager } from "@/components/admin/tab-manager";
+import {
+  CategoryItemsEditor,
+  defaultCategoryItems,
+  normalizeCategoryItem,
+  type CategoryCarouselItem,
+} from "@/components/admin/category-items-editor";
 
 const PAGE_PREVIEW_PATHS: Record<string, string> = {
   home: "/",
   shop: "/shop",
   product: "/products",
-  "custom-design": "/custom-design",
 };
 
 const PAGE_TITLES: Record<string, { title: string; description: string }> = {
   home: { title: "Home page", description: "Every section on the storefront home page — expand to edit copy and swap images." },
   shop: { title: "Shop page", description: "Copy shown around the product grid." },
   product: { title: "Product template", description: "Copy shared by every product detail page." },
-  "custom-design": { title: "Custom design page", description: "The full custom-design landing page." },
 };
 
 export const Route = createFileRoute("/_authenticated/pages/$page")({
@@ -314,6 +318,175 @@ function GenericContentEditor({
   sectionKey: string;
   onChange: (patch: Record<string, any>) => void;
 }) {
+  // Home → categories ("Our Products" carousel): dedicated card editor.
+  // Always show items even if the DB row only has a legacy note/heading.
+  if (sectionKey === "categories") {
+    const rawItems = Array.isArray(content.items) ? content.items : [];
+    const items: CategoryCarouselItem[] =
+      rawItems.length > 0
+        ? rawItems.map((it: Record<string, any>, i: number) => normalizeCategoryItem(it, i))
+        : defaultCategoryItems();
+
+    return (
+      <div className="space-y-4">
+        <div>
+          <Label className="mb-2 block">Section heading</Label>
+          <Input
+            value={content.heading ?? "Our Products"}
+            onChange={(e) => onChange({ heading: e.target.value, items })}
+            placeholder="Our Products"
+          />
+        </div>
+        <CategoryItemsEditor
+          value={items}
+          onChange={(next) => {
+            // Drop legacy note when editing items; keep heading.
+            const { note: _drop, ...rest } = content;
+            onChange({ ...rest, heading: content.heading ?? "Our Products", items: next });
+          }}
+        />
+      </div>
+    );
+  }
+
+  // Home → best_deals ("Latest 2026 Diaries"): editable title + up to 4 catalog picks.
+  if (sectionKey === "best_deals") {
+    const items: { productId: string }[] = Array.isArray(content.items)
+      ? content.items
+          .map((it: any) =>
+            typeof it?.productId === "string" ? { productId: it.productId } : null,
+          )
+          .filter((x): x is { productId: string } => !!x)
+      : [];
+
+    return (
+      <div className="space-y-4">
+        <div>
+          <Label className="mb-2 block">Section title</Label>
+          <Input
+            value={content.heading ?? "Latest 2026 Diaries"}
+            onChange={(e) => onChange({ heading: e.target.value, items })}
+            placeholder="Latest 2026 Diaries"
+          />
+          <p className="text-xs text-muted-foreground mt-1.5">
+            Shown as the heading above the product grid on the home page.
+          </p>
+        </div>
+        <div>
+          <Label className="mb-2 block">
+            Products <span className="text-muted-foreground font-normal">(up to 4)</span>
+          </Label>
+          <p className="text-xs text-muted-foreground mb-2">
+            Pick from the full catalog (products and diaries). Order is the display order.
+          </p>
+          <ProductPicker
+            value={items}
+            onChange={(next) =>
+              onChange({
+                heading: content.heading ?? "Latest 2026 Diaries",
+                items: next,
+              })
+            }
+            max={4}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // Home → popular ("Trending Diary Giftsets"): editable title + up to 5 catalog picks.
+  if (sectionKey === "popular") {
+    const items: { productId: string }[] = Array.isArray(content.items)
+      ? content.items
+          .map((it: any) =>
+            typeof it?.productId === "string" ? { productId: it.productId } : null,
+          )
+          .filter((x): x is { productId: string } => !!x)
+      : [];
+
+    return (
+      <div className="space-y-4">
+        <div>
+          <Label className="mb-2 block">Section title</Label>
+          <Input
+            value={content.heading ?? "Trending Diary Giftsets"}
+            onChange={(e) => onChange({ heading: e.target.value, items })}
+            placeholder="Trending Diary Giftsets"
+          />
+          <p className="text-xs text-muted-foreground mt-1.5">
+            Shown as the heading above this product row on the home page.
+          </p>
+        </div>
+        <div>
+          <Label className="mb-2 block">
+            Products <span className="text-muted-foreground font-normal">(up to 5)</span>
+          </Label>
+          <p className="text-xs text-muted-foreground mb-2">
+            Pick from the full catalog (products and diaries). Order is the display order.
+          </p>
+          <ProductPicker
+            value={items}
+            onChange={(next) =>
+              onChange({
+                heading: content.heading ?? "Trending Diary Giftsets",
+                items: next,
+              })
+            }
+            max={5}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // Home → tabbed best deals ("Todays Best Deals for you!"): title + named tabs of up to 8 products.
+  // DB may use tabbed_products (current) or best_deals_tabbed (legacy migration key).
+  if (sectionKey === "tabbed_products" || sectionKey === "best_deals_tabbed") {
+    const tabs: { name: string; productIds: string[] }[] = Array.isArray(content.tabs)
+      ? content.tabs.map((t: any) => ({
+          name: typeof t?.name === "string" ? t.name : "Tab",
+          productIds: Array.isArray(t?.productIds)
+            ? t.productIds.filter((id: unknown): id is string => typeof id === "string")
+            : [],
+        }))
+      : [];
+
+    return (
+      <div className="space-y-4">
+        <div>
+          <Label className="mb-2 block">Section title</Label>
+          <Input
+            value={content.heading ?? "Todays Best Deals for you!"}
+            onChange={(e) => onChange({ heading: e.target.value, tabs })}
+            placeholder="Todays Best Deals for you!"
+          />
+          <p className="text-xs text-muted-foreground mt-1.5">
+            Heading above the tabbed product grid on the home page.
+          </p>
+        </div>
+        <div>
+          <Label className="mb-2 block">
+            Dropdown tabs{" "}
+            <span className="text-muted-foreground font-normal">(name + up to 8 products each)</span>
+          </Label>
+          <p className="text-xs text-muted-foreground mb-2">
+            Create tabs (e.g. Corporate Gift Set), then pick products from the full catalog for each.
+          </p>
+          <TabManager
+            value={tabs}
+            onChange={(next) =>
+              onChange({
+                heading: content.heading ?? "Todays Best Deals for you!",
+                tabs: next,
+              })
+            }
+            maxProductsPerTab={8}
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       {Object.entries(content).map(([key, value]) => (
@@ -342,6 +515,12 @@ function FieldEditor({
 }) {
   const label = prettyKey(fieldKey);
 
+  // categories items → dedicated carousel card editor (also handled at section level).
+  if (sectionKey === "categories" && fieldKey === "items" && Array.isArray(value)) {
+    const items = value.map((it: Record<string, any>, i: number) => normalizeCategoryItem(it, i));
+    return <CategoryItemsEditor value={items} onChange={onChange} />;
+  }
+
   // ponytail: best_deals and popular sections use the product picker for items,
   // so the admin can pick from the products table. Caps are per-section.
   if (sectionKey === "best_deals" && fieldKey === "items" && Array.isArray(value)) {
@@ -362,9 +541,12 @@ function FieldEditor({
     );
   }
 
-  // ponytail: best_deals_tabbed section's tabs is a list of { name, productIds }.
-  // The TabManager wraps the ProductPicker for the per-tab product list.
-  if (sectionKey === "best_deals_tabbed" && fieldKey === "tabs" && Array.isArray(value)) {
+  // Tabbed best-deals: list of { name, productIds } — also handled at section level.
+  if (
+    (sectionKey === "best_deals_tabbed" || sectionKey === "tabbed_products") &&
+    fieldKey === "tabs" &&
+    Array.isArray(value)
+  ) {
     return (
       <div>
         <Label className="mb-2 block">{label} <span className="text-muted-foreground font-normal">(up to 8 products per tab)</span></Label>

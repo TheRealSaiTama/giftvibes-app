@@ -41,29 +41,7 @@ function normalizeTags(value?: string | null): string[] {
   return Array.from(new Set(tags));
 }
 
-// ponytail: maps the admin's product feature keys to display labels for the
-// storefront render. M8: only features with show=true AND a non-empty value
-// get rendered.
-const FEATURE_LABELS: Record<string, string> = {
-  material: "Material",
-  size: "Size",
-  color: "Color",
-  pages: "Pages",
-  cover_type: "Cover type",
-  weight: "Weight",
-  dimensions: "Dimensions",
-};
-
-function pickFeatures(features: any): { key: string; label: string; value: string }[] {
-  if (!features || typeof features !== "object") return [];
-  return Object.entries(features)
-    .filter(([, entry]: [string, any]) => entry && entry.show && typeof entry.value === "string" && entry.value.trim() !== "")
-    .map(([key, entry]: [string, any]) => ({
-      key,
-      label: FEATURE_LABELS[key] ?? key,
-      value: entry.value,
-    }));
-}
+// Specs render inside ProductInfo from product.features (checkbox + value).
 
 async function getProduct(id: string): Promise<any | null> {
   let idCounter = 100000;
@@ -99,9 +77,9 @@ async function getProduct(id: string): Promise<any | null> {
     }
   }
 
-  // Try DB lookup (works for both UUIDs and strings)
+  // Try DB lookup (works for both UUIDs and strings) — products then diaries.
   try {
-    const { prisma } = await import('@/lib/prisma');
+    const { prisma } = await import("@/lib/prisma");
     const dbProduct = await prisma.product.findUnique({ where: { id: id } });
     if (dbProduct) {
       return {
@@ -110,14 +88,34 @@ async function getProduct(id: string): Promise<any | null> {
         description: dbProduct.description,
         minPrice: dbProduct.minPrice ?? null,
         maxPrice: dbProduct.maxPrice ?? null,
-        imageUrl: dbProduct.imageUrl ?? '',
+        imageUrl: dbProduct.imageUrl ?? "",
         category: dbProduct.category,
         tags: dbProduct.tags || [],
-        // M6/M8/M9: secondary images, feature flags, SEO meta
         gallery: Array.isArray(dbProduct.gallery) ? (dbProduct.gallery as string[]) : [],
-        features: dbProduct.features && typeof dbProduct.features === "object" ? dbProduct.features : {},
+        features:
+          dbProduct.features && typeof dbProduct.features === "object"
+            ? dbProduct.features
+            : {},
         seoTitle: dbProduct.seoTitle ?? null,
         seoDescription: dbProduct.seoDescription ?? null,
+      };
+    }
+    const dbDiary = await prisma.diary.findUnique({ where: { id: id } });
+    if (dbDiary) {
+      return {
+        id: dbDiary.id,
+        name: dbDiary.name,
+        description: dbDiary.description,
+        minPrice: dbDiary.minPrice ?? null,
+        maxPrice: dbDiary.maxPrice ?? null,
+        imageUrl: dbDiary.imageUrl ?? "",
+        category: dbDiary.category,
+        tags: dbDiary.tags || [],
+        gallery: Array.isArray(dbDiary.gallery) ? (dbDiary.gallery as string[]) : [],
+        features:
+          dbDiary.features && typeof dbDiary.features === "object" ? dbDiary.features : {},
+        seoTitle: dbDiary.seoTitle ?? null,
+        seoDescription: dbDiary.seoDescription ?? null,
       };
     }
   } catch (e) {
@@ -200,7 +198,6 @@ export default async function ProductDetailPage({
   }
 
   const relatedProducts = await getRelatedProducts(product.category || '', product.id);
-  const visibleFeatures = pickFeatures(product.features);
 
   return (
     <div className="min-h-screen bg-white">
@@ -236,21 +233,6 @@ export default async function ProductDetailPage({
           />
           <ProductInfo product={product} />
         </div>
-
-        {/* M8: per-feature render. Only checked + non-empty values show. */}
-        {visibleFeatures.length > 0 && (
-          <section className="border-t border-gray-100 py-8">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Specifications</h2>
-            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 max-w-2xl">
-              {visibleFeatures.map((f) => (
-                <div key={f.key} className="flex items-baseline gap-3">
-                  <dt className="text-sm font-medium text-muted-foreground min-w-32">{f.label}</dt>
-                  <dd className="text-sm text-gray-900">{f.value}</dd>
-                </div>
-              ))}
-            </dl>
-          </section>
-        )}
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 py-12 border-t border-gray-100">
           <div className="flex flex-col items-center text-center p-6 bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-xl">

@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { MediaPicker } from "@/components/admin/media-picker";
+import { MediaPicker, MediaGrid, uploadFileToBucket } from "@/components/admin/media-picker";
 import {
   Plus, Pencil, Trash2, Search, Star, ChevronRight, Home,
   Folder, FolderOpen, ArrowLeft, BookOpen, Package, Copy
@@ -24,6 +24,7 @@ import { toast } from "sonner";
 
 const CUSTOM_CATEGORIES_KEY = "gv_custom_categories";
 const CUSTOM_SUBCATEGORIES_KEY = "gv_custom_subcategories";
+const CATEGORY_SEO_KEY = "gv_category_seo";
 
 type CustomCategory = {
   name: string;
@@ -31,17 +32,39 @@ type CustomCategory = {
   seoDescription?: string;
 };
 
-// ponytail: the static list of properties available per product. M8: each
-// row is a checkbox + value pair; only the checked ones render on the
-// storefront product page.
+/** SEO meta for a category (shop filter / landing). */
+type CategorySeo = {
+  seoTitle: string;
+  seoDescription: string;
+  ogImageUrl: string;
+};
+
+const emptyCategorySeo = (): CategorySeo => ({
+  seoTitle: "",
+  seoDescription: "",
+  ogImageUrl: "",
+});
+
+type CategoryFormState = {
+  mode: "add" | "edit";
+  /** Original name when editing (built-ins cannot rename). */
+  originalName?: string;
+  name: string;
+  seoTitle: string;
+  seoDescription: string;
+  ogImageUrl: string;
+};
+
+// Spec table on product page. Each row: checkbox + value.
+// Only checked + non-empty values render on the storefront.
 const PRODUCT_FEATURES: { key: string; label: string; placeholder: string }[] = [
-  { key: "material", label: "Material", placeholder: "PU leather, paper, metal…" },
-  { key: "size", label: "Size", placeholder: "A5, B5, A4…" },
-  { key: "color", label: "Color", placeholder: "Brown, navy…" },
-  { key: "pages", label: "Pages", placeholder: "320" },
-  { key: "cover_type", label: "Cover type", placeholder: "Hard bound, soft cover…" },
-  { key: "weight", label: "Weight", placeholder: "0.5 kg" },
-  { key: "dimensions", label: "Dimensions", placeholder: "21 × 14.8 cm" },
+  { key: "size", label: "Size", placeholder: "e.g. 5.1 × 8 Inches. approx" },
+  { key: "paper_quality", label: "Paper Quality", placeholder: "e.g. ECONOMY Paper" },
+  { key: "page_format", label: "Page Format", placeholder: "e.g. Yearly dated with Two Date a Page Format" },
+  { key: "cover_binding", label: "Cover Binding", placeholder: "e.g. Hard Bound" },
+  { key: "monthly_planner", label: "Monthly Planner", placeholder: "e.g. YES / NO" },
+  { key: "month_cutting", label: "Month Cutting", placeholder: "e.g. YES / NO" },
+  { key: "cover_colors", label: "Cover Colors", placeholder: "e.g. 8 Mix Colour cover" },
 ];
 
 export const Route = createFileRoute("/_authenticated/products")({
@@ -228,17 +251,14 @@ function ProductsPage() {
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [editing, setEditing] = useState<CatalogItem | null>(null);
-  const [addCatOpen, setAddCatOpen] = useState(false);
-  const [newCatName, setNewCatName] = useState("");
-  const [newCatSeoTitle, setNewCatSeoTitle] = useState("");
-  const [newCatSeoDescription, setNewCatSeoDescription] = useState("");
+  const [catForm, setCatForm] = useState<CategoryFormState | null>(null);
   const [addSubOpen, setAddSubOpen] = useState(false);
   const [addSubFor, setAddSubFor] = useState<string | null>(null);
   const [newSubName, setNewSubName] = useState("");
   const qc = useQueryClient();
 
-  // ponytail: client-side custom categories + subcategories. localStorage is
-  // enough for now; promote to a Supabase table when the catalog team needs
+  // ponytail: client-side custom categories + subcategories + SEO. localStorage
+  // is enough for now; promote to a Supabase table when the catalog team needs
   // shared editing.
   const [customCategories, setCustomCategories] = useState<CustomCategory[]>(() => {
     if (typeof window === "undefined") return [];
@@ -259,6 +279,41 @@ function ProductsPage() {
     catch { return {}; }
   });
 
+  // SEO keyed by category name (works for built-in + custom).
+  const [categorySeo, setCategorySeo] = useState<Record<string, CategorySeo>>(() => {
+    if (typeof window === "undefined") return {};
+    try {
+      const stored = JSON.parse(localStorage.getItem(CATEGORY_SEO_KEY) || "{}") as Record<string, Partial<CategorySeo>>;
+      const map: Record<string, CategorySeo> = {};
+      for (const [k, v] of Object.entries(stored || {})) {
+        map[k] = {
+          seoTitle: v.seoTitle ?? "",
+          seoDescription: v.seoDescription ?? "",
+          ogImageUrl: v.ogImageUrl ?? "",
+        };
+      }
+      // Migrate SEO that used to live only on customCategories entries.
+      try {
+        const raw = JSON.parse(localStorage.getItem(CUSTOM_CATEGORIES_KEY) || "[]");
+        if (Array.isArray(raw)) {
+          for (const item of raw) {
+            if (item && typeof item === "object" && typeof item.name === "string") {
+              const name = item.name as string;
+              if (!map[name] && (item.seoTitle || item.seoDescription)) {
+                map[name] = {
+                  seoTitle: item.seoTitle || "",
+                  seoDescription: item.seoDescription || "",
+                  ogImageUrl: "",
+                };
+              }
+            }
+          }
+        }
+      } catch { /* ignore */ }
+      return map;
+    } catch { return {}; }
+  });
+
   useEffect(() => {
     localStorage.setItem(CUSTOM_CATEGORIES_KEY, JSON.stringify(customCategories));
   }, [customCategories]);
@@ -267,29 +322,86 @@ function ProductsPage() {
     localStorage.setItem(CUSTOM_SUBCATEGORIES_KEY, JSON.stringify(customSubcategories));
   }, [customSubcategories]);
 
+  useEffect(() => {
+    localStorage.setItem(CATEGORY_SEO_KEY, JSON.stringify(categorySeo));
+  }, [categorySeo]);
+
   const allCategories = useMemo(
     () => [...STOREFRONT_CATEGORIES, ...customCategories.map((c) => c.name)],
     [customCategories],
   );
 
-  function addCategory() {
-    const name = newCatName.trim().toUpperCase().replace(/\s+/g, " ");
-    if (!name) return;
-    if (allCategories.some((c) => c.toUpperCase() === name)) {
-      toast.error("Category already exists");
+  function openAddCategoryForm() {
+    setCatForm({
+      mode: "add",
+      name: "",
+      ...emptyCategorySeo(),
+    });
+  }
+
+  function openEditCategoryForm(cat: string) {
+    const seo = categorySeo[cat] ?? emptyCategorySeo();
+    // Fall back to legacy fields on customCategories if map entry is empty.
+    const legacy = customCategories.find((c) => c.name === cat);
+    setCatForm({
+      mode: "edit",
+      originalName: cat,
+      name: cat,
+      seoTitle: seo.seoTitle || legacy?.seoTitle || "",
+      seoDescription: seo.seoDescription || legacy?.seoDescription || "",
+      ogImageUrl: seo.ogImageUrl || "",
+    });
+  }
+
+  function saveCategoryForm() {
+    if (!catForm) return;
+    const name = catForm.name.trim().toUpperCase().replace(/\s+/g, " ");
+    if (!name) {
+      toast.error("Category name is required");
       return;
     }
-    const entry: CustomCategory = {
-      name,
-      seoTitle: newCatSeoTitle.trim() || undefined,
-      seoDescription: newCatSeoDescription.trim() || undefined,
+
+    const seo: CategorySeo = {
+      seoTitle: catForm.seoTitle.trim(),
+      seoDescription: catForm.seoDescription.trim(),
+      ogImageUrl: catForm.ogImageUrl.trim(),
     };
-    setCustomCategories((prev) => [...prev, entry]);
-    setNewCatName("");
-    setNewCatSeoTitle("");
-    setNewCatSeoDescription("");
-    setAddCatOpen(false);
-    toast.success(`Added "${name}"`);
+
+    if (catForm.mode === "add") {
+      if (allCategories.some((c) => c.toUpperCase() === name)) {
+        toast.error("Category already exists");
+        return;
+      }
+      setCustomCategories((prev) => [
+        ...prev,
+        {
+          name,
+          seoTitle: seo.seoTitle || undefined,
+          seoDescription: seo.seoDescription || undefined,
+        },
+      ]);
+      setCategorySeo((prev) => ({ ...prev, [name]: seo }));
+      setCatForm(null);
+      toast.success(`Added "${name}"`);
+      return;
+    }
+
+    // Edit: name is fixed (originalName); only SEO is updated.
+    const key = catForm.originalName || name;
+    setCategorySeo((prev) => ({ ...prev, [key]: seo }));
+    setCustomCategories((prev) =>
+      prev.map((c) =>
+        c.name === key
+          ? {
+              ...c,
+              seoTitle: seo.seoTitle || undefined,
+              seoDescription: seo.seoDescription || undefined,
+            }
+          : c,
+      ),
+    );
+    setCatForm(null);
+    toast.success(`Saved SEO for "${key}"`);
   }
 
   function addSubcategory() {
@@ -318,12 +430,21 @@ function ProductsPage() {
   // fields copied. Empty id tells ProductForm this is a new row, the server
   // functions handle the insert.
   function duplicateItem(item: CatalogItem) {
+    // Open create form prefilled from this row; empty id → insert on save.
+    const baseSlug = (item.slug || item.name || "item")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "");
     setEditing({
       ...item,
       id: "",
       name: `${item.name} (Copy)`,
-      slug: `${item.slug}-copy`,
+      slug: `${baseSlug}-copy`,
+      // Keep current folder category/tags so the copy lands in the same list.
+      category: item.category,
+      tags: [...(item.tags || [])],
     });
+    toast.message("Duplicating — review and save to create the copy");
   }
 
   // Query standard products
@@ -421,15 +542,52 @@ function ProductsPage() {
   }, [allItems, search, selectedCategory, selectedSubcategory, subcategoryItems]);
 
   const isRoot = selectedCategory === null;
-  const isCategoryOpen = selectedCategory !== null && selectedSubcategory === null;
+  // Product list = inside a subcategory folder (or global search results).
+  const isInProductList =
+    !!search || (selectedCategory !== null && selectedSubcategory !== null);
+
+  function openNewProduct() {
+    const cat =
+      selectedCategory && selectedCategory !== "__uncategorised__"
+        ? selectedCategory
+        : "";
+    const tags =
+      selectedSubcategory && selectedCategory !== "__uncategorised__"
+        ? [selectedSubcategory]
+        : [];
+    setEditing({
+      ...empty,
+      category: cat,
+      tags,
+      // Diaries dominate several folders; form still lets the user switch type.
+      type: cat.toUpperCase().includes("DIARY") ? "diary" : "product",
+    });
+  }
 
   return (
     <div>
-      <PageHeader title="Categories" description="Manage your store's product categories.">
-        <Button onClick={() => { setNewCatName(""); setNewCatSeoTitle(""); setNewCatSeoDescription(""); setAddCatOpen(true); }}>
-          <Plus className="h-4 w-4 mr-1.5" />
-          Add new category
-        </Button>
+      <PageHeader
+        title={isInProductList && selectedSubcategory ? selectedSubcategory : "Categories"}
+        description={
+          isInProductList
+            ? selectedCategory && selectedSubcategory
+              ? `Products and diaries in ${selectedCategory} → ${selectedSubcategory}.`
+              : "Search results across the catalog."
+            : "Category management — add categories here, then open one to manage products and diaries inside it."
+        }
+      >
+        {isRoot && !search && (
+          <Button onClick={openAddCategoryForm}>
+            <Plus className="h-4 w-4 mr-1.5" />
+            Add new category
+          </Button>
+        )}
+        {isInProductList && (
+          <Button onClick={openNewProduct}>
+            <Plus className="h-4 w-4 mr-1.5" />
+            New product / diary
+          </Button>
+        )}
       </PageHeader>
 
       {/* breadcrumb path bar */}
@@ -505,33 +663,62 @@ function ProductsPage() {
                 const isCustom = customCategories.some((c) => c.name === cat);
                 return (
                   <div key={cat} className="transition-all">
-                    <div className="w-full flex items-center gap-1 px-4 py-3 hover:bg-surface/60 transition-colors group">
+                    <div className="w-full flex items-center gap-2 px-4 py-3 hover:bg-surface/60 transition-colors group">
                       <button
                         onClick={() => setExpandedCategory(isExpanded ? null : cat)}
                         className="flex-1 flex items-center gap-3 text-left min-w-0"
                       >
-                        <Folder className={`h-4 w-4 transition-colors shrink-0 ${isExpanded ? 'text-amber-500' : 'text-primary/70 group-hover:text-primary'}`} />
-                        <span className="flex-1 text-sm font-semibold flex items-center gap-2 min-w-0">
+                        <Folder className={`h-4 w-4 transition-colors shrink-0 ${isExpanded ? "text-amber-500" : "text-primary/70 group-hover:text-primary"}`} />
+                        <span className="flex-1 text-sm font-semibold flex items-center gap-2 min-w-0 truncate">
                           {cat}
                           {isCustom && (
-                            <span className="text-[9px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600 border border-amber-500/25">
+                            <span className="text-[9px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600 border border-amber-500/25 shrink-0">
                               custom
                             </span>
                           )}
+                          {(categorySeo[cat]?.seoTitle || categorySeo[cat]?.seoDescription) && (
+                            <span className="text-[9px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20 shrink-0">
+                              SEO
+                            </span>
+                          )}
                         </span>
-                        <span className="text-xs text-muted-foreground tabular-nums mr-1">
+                        <span className="text-xs text-muted-foreground tabular-nums shrink-0">
                           {categoryCounts[cat] ?? 0} items
                         </span>
-                        <ChevronRight className={`h-3.5 w-3.5 text-muted-foreground transition-transform duration-200 shrink-0 ${isExpanded ? 'rotate-90' : ''}`} />
+                        <ChevronRight className={`h-3.5 w-3.5 text-muted-foreground transition-transform duration-200 shrink-0 ${isExpanded ? "rotate-90" : ""}`} />
                       </button>
+                      {/* Category form (SEO) — always available on the name line */}
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 w-7 p-0 shrink-0 text-muted-foreground hover:text-foreground"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openEditCategoryForm(cat);
+                        }}
+                        title={`Edit category & SEO: ${cat}`}
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      {/* On the category name line when expanded: add another subcategory */}
                       {isExpanded && (
-                        <button
-                          onClick={() => { setAddSubFor(cat); setNewSubName(""); setAddSubOpen(true); }}
-                          className="h-7 w-7 flex items-center justify-center rounded text-muted-foreground hover:text-primary hover:bg-surface-2 transition-colors shrink-0"
-                          title="Add subcategory"
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-7 shrink-0 gap-1 px-2 text-xs"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setAddSubFor(cat);
+                            setNewSubName("");
+                            setAddSubOpen(true);
+                          }}
+                          title={`Add subcategory to ${cat}`}
                         >
                           <Plus className="h-3.5 w-3.5" />
-                        </button>
+                          Subcategory
+                        </Button>
                       )}
                     </div>
                     {isExpanded && (
@@ -553,7 +740,7 @@ function ProductsPage() {
                           );
                         })}
                         {subcats.length === 0 && (
-                          <div className="py-3 text-xs text-muted-foreground italic">No subcategories predefined</div>
+                          <div className="py-3 text-xs text-muted-foreground italic">No subcategories yet — use + Subcategory above</div>
                         )}
                       </div>
                     )}
@@ -581,15 +768,22 @@ function ProductsPage() {
         </div>
       )}
 
-      {/* ── LIST VIEW: flat search or subcategory content ── */}
-      {(!isRoot && !isCategoryOpen || search) && (
+      {/* ── LIST VIEW: subcategory product list or search results ── */}
+      {isInProductList && (
         <>
           <div className="flex items-center gap-2 mb-4">
             {!search && selectedSubcategory && (
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setSelectedSubcategory(null)}
+                onClick={() => {
+                  // Return to category accordion with this parent expanded.
+                  if (selectedCategory && selectedCategory !== "__uncategorised__") {
+                    setExpandedCategory(selectedCategory);
+                  }
+                  setSelectedCategory(null);
+                  setSelectedSubcategory(null);
+                }}
                 className="shrink-0"
               >
                 <ArrowLeft className="h-4 w-4 mr-1" />
@@ -605,10 +799,8 @@ function ProductsPage() {
                 className="pl-8"
               />
             </div>
-            <Button
-              onClick={() => setEditing({ ...empty })}
-              className="shrink-0"
-            >
+            {/* Same add-product action next to the list toolbar */}
+            <Button onClick={openNewProduct} className="shrink-0">
               <Plus className="h-4 w-4 mr-1.5" />
               New product / diary
             </Button>
@@ -624,7 +816,7 @@ function ProductsPage() {
                   <th className="px-2 py-2.5">Price range</th>
                   <th className="px-2 py-2.5">Type</th>
                   <th className="px-2 py-2.5">Status</th>
-                  <th className="px-4 py-2.5 w-24"></th>
+                  <th className="px-4 py-2.5 w-28 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -638,7 +830,19 @@ function ProductsPage() {
                 {!isLoading && filtered.length === 0 && (
                   <tr>
                     <td colSpan={7} className="py-10 text-center text-muted-foreground">
-                      {search ? "No items match your search." : "No products in this subcategory folder."}
+                      <div className="flex flex-col items-center gap-3">
+                        <span>
+                          {search
+                            ? "No items match your search."
+                            : "No products in this subcategory folder yet."}
+                        </span>
+                        {!search && (
+                          <Button size="sm" onClick={openNewProduct}>
+                            <Plus className="h-4 w-4 mr-1.5" />
+                            New product / diary
+                          </Button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 )}
@@ -686,21 +890,33 @@ function ProductsPage() {
                         <span className="gv-chip text-[10px]">Hidden</span>
                       )}
                     </td>
-                    <td className="px-4 py-2.5 text-right">
-                      <div className="flex items-center justify-end gap-1">
+                    <td className="px-3 py-2.5 text-right">
+                      <div className="flex items-center justify-end gap-0.5">
                         <Button
+                          type="button"
                           variant="ghost"
                           size="icon"
-                          onClick={() => duplicateItem(item)}
+                          className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            duplicateItem(item);
+                          }}
                           title="Duplicate"
+                          aria-label={`Duplicate ${item.name}`}
                         >
                           <Copy className="h-4 w-4" />
                         </Button>
                         <Button
+                          type="button"
                           variant="ghost"
                           size="icon"
-                          onClick={() => setEditing(item)}
+                          className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditing(item);
+                          }}
                           title="Edit"
+                          aria-label={`Edit ${item.name}`}
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
@@ -751,57 +967,97 @@ function ProductsPage() {
         </SheetContent>
       </Sheet>
 
-      <Dialog open={addCatOpen} onOpenChange={(o) => !o && setAddCatOpen(false)}>
-        <DialogContent className="sm:max-w-md">
+      <Dialog open={!!catForm} onOpenChange={(o) => !o && setCatForm(null)}>
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Add new category</DialogTitle>
+            <DialogTitle>
+              {catForm?.mode === "edit" ? "Edit category" : "Add new category"}
+            </DialogTitle>
           </DialogHeader>
-          <div className="py-2 space-y-3">
-            <div>
-              <Label htmlFor="new-cat-name">Name</Label>
-              <Input
-                id="new-cat-name"
-                autoFocus
-                value={newCatName}
-                onChange={(e) => setNewCatName(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") addCategory();
-                }}
-                placeholder="e.g. WOODEN GIFTS"
-                className="mt-1.5"
-              />
-              <p className="text-xs text-muted-foreground mt-1.5">
-                Saved in uppercase to match existing category style. Available immediately in product & diary category selectors.
-              </p>
+          {catForm && (
+            <div className="py-2 space-y-4">
+              <div>
+                <Label htmlFor="cat-form-name">Name</Label>
+                <Input
+                  id="cat-form-name"
+                  autoFocus={catForm.mode === "add"}
+                  value={catForm.name}
+                  onChange={(e) => setCatForm({ ...catForm, name: e.target.value })}
+                  placeholder="e.g. WOODEN GIFTS"
+                  className="mt-1.5"
+                  disabled={catForm.mode === "edit"}
+                />
+                <p className="text-xs text-muted-foreground mt-1.5">
+                  {catForm.mode === "add"
+                    ? "Saved in uppercase to match existing category style."
+                    : "Category name is fixed. Update SEO fields below."}
+                </p>
+              </div>
+
+              <div className="border-t border-border pt-4 space-y-3">
+                <div>
+                  <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground mb-1">
+                    SEO
+                  </div>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Meta for this category on the shop (title, description, social image). Used when the storefront filters by this category.
+                  </p>
+                </div>
+                <div>
+                  <Label htmlFor="cat-seo-title">Meta title</Label>
+                  <Input
+                    id="cat-seo-title"
+                    value={catForm.seoTitle}
+                    onChange={(e) => setCatForm({ ...catForm, seoTitle: e.target.value })}
+                    placeholder={`${catForm.name || "Category"} | GiftVibes`}
+                    maxLength={70}
+                    className="mt-1.5"
+                  />
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {catForm.seoTitle.length}/60 recommended
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="cat-seo-desc">Meta description</Label>
+                  <Textarea
+                    id="cat-seo-desc"
+                    rows={3}
+                    value={catForm.seoDescription}
+                    onChange={(e) => setCatForm({ ...catForm, seoDescription: e.target.value })}
+                    placeholder="Short summary for search results and social shares."
+                    maxLength={200}
+                    className="mt-1.5"
+                  />
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {catForm.seoDescription.length}/160 recommended
+                  </div>
+                </div>
+                <div>
+                  <Label>Social share image (og:image)</Label>
+                  <div className="mt-1.5">
+                    <MediaPicker
+                      value={catForm.ogImageUrl}
+                      onChange={(url) => setCatForm({ ...catForm, ogImageUrl: url })}
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="border-t border-border pt-3">
-              <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground mb-2">SEO</div>
-              <Label htmlFor="new-cat-seo-title">Meta title</Label>
-              <Input
-                id="new-cat-seo-title"
-                value={newCatSeoTitle}
-                onChange={(e) => setNewCatSeoTitle(e.target.value)}
-                placeholder="e.g. Wooden Gifts | GiftVibes"
-                className="mt-1.5"
-              />
-              <Label htmlFor="new-cat-seo-desc" className="mt-3 block">Meta description</Label>
-              <Textarea
-                id="new-cat-seo-desc"
-                rows={3}
-                value={newCatSeoDescription}
-                onChange={(e) => setNewCatSeoDescription(e.target.value)}
-                placeholder="Short summary used by search engines and social shares."
-                className="mt-1.5"
-              />
-            </div>
-          </div>
+          )}
           <DialogFooter>
             <DialogClose asChild>
               <Button variant="ghost">Cancel</Button>
             </DialogClose>
-            <Button onClick={addCategory} disabled={!newCatName.trim()}>
-              <Plus className="h-4 w-4 mr-1.5" />
-              Add category
+            <Button
+              onClick={saveCategoryForm}
+              disabled={catForm?.mode === "add" && !catForm.name.trim()}
+            >
+              {catForm?.mode === "edit" ? "Save category" : (
+                <>
+                  <Plus className="h-4 w-4 mr-1.5" />
+                  Add category
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -859,22 +1115,33 @@ function ProductForm({
   defaultCategory?: string;
   defaultSubcategory?: string;
 }) {
-  const [values, setValues] = useState<CatalogItem>(() => ({
-    ...empty,
-    ...product,
-    category: product.category || defaultCategory || "",
-    tags: product.tags && product.tags.length > 0
-      ? product.tags
-      : defaultSubcategory
-        ? [defaultSubcategory]
-        : [],
-  }));
+  const [values, setValues] = useState<CatalogItem>(() => {
+    // Normalize gallery: accept string[] or [{url}] from older rows.
+    const rawGallery = (product as any).gallery;
+    let gallery: string[] = [];
+    if (Array.isArray(rawGallery)) {
+      gallery = rawGallery
+        .map((g) => (typeof g === "string" ? g : g?.url))
+        .filter((u): u is string => typeof u === "string" && u.length > 0);
+    }
+    return {
+      ...empty,
+      ...product,
+      gallery,
+      category: product.category || defaultCategory || "",
+      tags:
+        product.tags && product.tags.length > 0
+          ? product.tags
+          : defaultSubcategory
+            ? [defaultSubcategory]
+            : [],
+    };
+  });
   const [saving, setSaving] = useState(false);
   const [catSearch, setCatSearch] = useState("");
 
-  // ponytail: auto-derive the slug from the name until the user touches the
-  // slug field by hand. After that, edits to the name leave the slug alone.
-  const slugTouched = useRef<boolean>(Boolean(product.slug));
+  // Auto-slug from name until the user edits the slug field manually.
+  const slugTouched = useRef(false);
   useEffect(() => {
     if (slugTouched.current) return;
     const auto = slugify(values.name);
@@ -1031,7 +1298,12 @@ function ProductForm({
 
       <div>
         <Label>Name</Label>
-        <Input value={values.name} onChange={(e) => set("name", e.target.value)} className="mt-1.5" />
+        <Input
+          value={values.name}
+          onChange={(e) => set("name", e.target.value)}
+          className="mt-1.5"
+          placeholder="Product name"
+        />
       </div>
       <div>
         <Label>Slug</Label>
@@ -1041,15 +1313,20 @@ function ProductForm({
             slugTouched.current = true;
             set("slug", e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-"));
           }}
-          placeholder={slugify(values.name)}
+          placeholder={slugify(values.name) || "auto-from-name"}
           className="mt-1.5 font-mono text-xs"
         />
         <p className="text-xs text-muted-foreground mt-1">
-          Auto-derived from the name. Type to override; after that the slug stays put.
+          Auto-detected from the name. Edit manually only if you need a custom URL.
         </p>
       </div>
+
+      {/* Primary image — library / local upload only, no URL field */}
       <div>
         <Label>Primary image</Label>
+        <p className="text-xs text-muted-foreground mt-0.5 mb-1.5">
+          Main product photo. Upload from your computer or pick from the media library.
+        </p>
         <div className="mt-1.5">
           <MediaPicker
             value={values.image_url ?? ""}
@@ -1059,68 +1336,72 @@ function ProductForm({
         </div>
       </div>
 
-      {/* M6: Secondary images gallery */}
-      <div>
-        <Label className="flex items-center justify-between">
-          <span>Secondary images</span>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => set("gallery", [...(values.gallery || []), ""])}
-          >
-            <Plus className="h-3.5 w-3.5 mr-1.5" />
-            Add image
-          </Button>
-        </Label>
-        <p className="text-xs text-muted-foreground mt-1 mb-2">
-          Extra shots shown on the product page. Pick from the media library.
-        </p>
-        <div className="space-y-2">
-          {(values.gallery || []).map((url, i) => (
-            <div key={i} className="flex items-center gap-2 rounded-md border border-border bg-surface/40 p-2">
-              <div className="flex-1">
-                <MediaPicker
-                  value={url}
-                  onChange={(v) => {
-                    const next = [...(values.gallery || [])];
-                    next[i] = v;
-                    set("gallery", next);
-                  }}
-                  hideUrl
-                />
-              </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-destructive hover:text-destructive shrink-0"
-                onClick={() => {
-                  const next = (values.gallery || []).filter((_, j) => j !== i);
-                  set("gallery", next);
-                }}
-                title="Remove image"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          ))}
-          {(values.gallery || []).length === 0 && (
-            <div className="text-xs text-muted-foreground italic px-1">
-              No secondary images yet.
-            </div>
-          )}
-        </div>
-      </div>
+      {/* Secondary images — multi grid with corner remove */}
+      <SecondaryImagesField
+        value={(values.gallery || []).filter(Boolean)}
+        onChange={(next) => set("gallery", next)}
+      />
 
-      {/* M7: Description is now labelled Product Highlights */}
       <div>
-        <Label>Product Highlights</Label>
+        <Label htmlFor="product-highlights">Product Highlights</Label>
         <p className="text-xs text-muted-foreground mt-0.5 mb-1.5">
           Short selling points shown on the product page.
         </p>
-        <Textarea rows={4} value={values.description ?? ""} onChange={(e) => set("description", e.target.value)} className="mt-1.5" />
+        <Textarea
+          id="product-highlights"
+          rows={4}
+          value={values.description ?? ""}
+          onChange={(e) => set("description", e.target.value)}
+          className="mt-1.5"
+          placeholder="Key features and highlights for this product…"
+        />
       </div>
+
+      {/* Specs table: checkbox + value. Only checked rows render on the product page. */}
+      <div>
+        <Label>Specifications</Label>
+        <p className="text-xs text-muted-foreground mt-0.5 mb-2">
+          Tick a property to enable it, then fill the value. Unchecked properties are hidden on the website.
+        </p>
+        <div className="rounded-md border border-border divide-y divide-border overflow-hidden bg-surface/30">
+          {PRODUCT_FEATURES.map((f) => {
+            const entry = (values.features || {})[f.key] || { show: false, value: "" };
+            return (
+              <div key={f.key} className="flex items-center gap-3 px-3 py-2.5">
+                <Checkbox
+                  checked={entry.show}
+                  onCheckedChange={(checked) => {
+                    set("features", {
+                      ...(values.features || {}),
+                      [f.key]: { ...entry, show: Boolean(checked) },
+                    });
+                  }}
+                  id={`feat-${f.key}`}
+                />
+                <label
+                  htmlFor={`feat-${f.key}`}
+                  className="text-sm font-medium w-36 shrink-0 cursor-pointer"
+                >
+                  {f.label}
+                </label>
+                <Input
+                  value={entry.value}
+                  onChange={(e) => {
+                    set("features", {
+                      ...(values.features || {}),
+                      [f.key]: { ...entry, show: entry.show, value: e.target.value },
+                    });
+                  }}
+                  placeholder={f.placeholder}
+                  disabled={!entry.show}
+                  className="flex-1 text-sm"
+                />
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
       <div className="grid grid-cols-2 gap-3">
         <div>
           <Label>Min price (₹)</Label>
@@ -1326,87 +1607,57 @@ function ProductForm({
           value={(values.tags || []).join(", ")}
           onChange={(e) => set("tags", e.target.value.split(",").map((t) => t.trim()).filter(Boolean))}
           className="mt-1.5"
+          placeholder="best corporate gift, diary with pen…"
         />
       </div>
 
-      {/* M8: per-feature { show, value }. Only enabled + non-empty values
-          render on the product page. Static list of common properties for
-          both products and diaries. */}
-      <div>
-        <Label>Product Features</Label>
-        <p className="text-xs text-muted-foreground mt-0.5 mb-2">
-          Tick a property to show it on the product page. Untick to hide.
-        </p>
-        <div className="rounded-md border border-border divide-y divide-border overflow-hidden">
-          {PRODUCT_FEATURES.map((f) => {
-            const entry = (values.features || {})[f.key] || { show: false, value: "" };
-            return (
-              <div key={f.key} className="flex items-center gap-3 px-3 py-2">
-                <Checkbox
-                  checked={entry.show}
-                  onCheckedChange={(checked) => {
-                    set("features", {
-                      ...(values.features || {}),
-                      [f.key]: { ...entry, show: Boolean(checked) },
-                    });
-                  }}
-                />
-                <span className="text-sm font-medium w-32 shrink-0">{f.label}</span>
-                <Input
-                  value={entry.value}
-                  onChange={(e) => {
-                    set("features", {
-                      ...(values.features || {}),
-                      [f.key]: { ...entry, value: e.target.value },
-                    });
-                  }}
-                  placeholder={f.placeholder}
-                  disabled={!entry.show}
-                  className="flex-1 text-sm"
-                />
-              </div>
-            );
-          })}
+      {/* SEO — product page title / meta description for search engines */}
+      <div className="rounded-md border border-border p-4 space-y-3 bg-surface/40">
+        <div>
+          <Label className="text-sm">SEO</Label>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Search listing for this product. Blank fields fall back to the product name and highlights.
+          </p>
         </div>
-      </div>
-
-      {/* M9: SEO meta. Used by the storefront product page's generateMetadata. */}
-      <div>
-        <Label>SEO</Label>
-        <p className="text-xs text-muted-foreground mt-0.5 mb-2">
-          Search engine + social share meta for this product page. Falls back to the product name and product highlights if blank.
-        </p>
-        <div className="space-y-3 rounded-md border border-border p-3 bg-surface/40">
-          <div>
-            <Label htmlFor="seo-title" className="text-xs">Meta title</Label>
-            <Input
-              id="seo-title"
-              value={values.seo_title ?? ""}
-              onChange={(e) => set("seo_title", e.target.value)}
-              placeholder={`${values.name || "Product"} | GiftVibes`}
-              className="mt-1"
-            />
+        <div>
+          <Label htmlFor="seo-title" className="text-xs">Meta title</Label>
+          <Input
+            id="seo-title"
+            value={values.seo_title ?? ""}
+            onChange={(e) => set("seo_title", e.target.value)}
+            placeholder={`${values.name || "Product"} | GiftVibes`}
+            maxLength={70}
+            className="mt-1.5"
+          />
+          <div className="text-[10px] text-muted-foreground mt-1">
+            {(values.seo_title ?? "").length}/60 recommended
           </div>
-          <div>
-            <Label htmlFor="seo-desc" className="text-xs">Meta description</Label>
-            <Textarea
-              id="seo-desc"
-              rows={3}
-              value={values.seo_description ?? ""}
-              onChange={(e) => set("seo_description", e.target.value)}
-              placeholder="One-line summary for search results and social shares."
-              className="mt-1"
-            />
+        </div>
+        <div>
+          <Label htmlFor="seo-desc" className="text-xs">Meta description</Label>
+          <Textarea
+            id="seo-desc"
+            rows={3}
+            value={values.seo_description ?? ""}
+            onChange={(e) => set("seo_description", e.target.value)}
+            placeholder="Short summary for Google and social shares."
+            maxLength={200}
+            className="mt-1.5"
+          />
+          <div className="text-[10px] text-muted-foreground mt-1">
+            {(values.seo_description ?? "").length}/160 recommended
           </div>
         </div>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex flex-wrap items-center gap-6">
         <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
-          <Switch checked={values.featured} onCheckedChange={(v) => set("featured", v)} /> Featured
+          <Switch checked={values.featured} onCheckedChange={(v) => set("featured", v)} />
+          Featured
         </label>
         <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
-          <Switch checked={values.enabled} onCheckedChange={(v) => set("enabled", v)} /> Live on site
+          <Switch checked={values.enabled} onCheckedChange={(v) => set("enabled", v)} />
+          Live on site
         </label>
       </div>
       <div className="flex items-center justify-between pt-4 border-t border-border">
@@ -1429,5 +1680,148 @@ function ProductForm({
 }
 
 function slugify(s: string) {
-  return s.toLowerCase().trim().replace(/[^\w\s-]/g, "").replace(/\s+/g, "-").replace(/-+/g, "-");
+  return s
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+/**
+ * Secondary product images: tile grid, local/library pick, corner remove on each frame.
+ * Shared by product + diary edit form.
+ */
+function SecondaryImagesField({
+  value,
+  onChange,
+}: {
+  value: string[];
+  onChange: (next: string[]) => void;
+}) {
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const qc = useQueryClient();
+
+  async function handleFiles(files: FileList | null) {
+    if (!files?.length) return;
+    setUploading(true);
+    try {
+      const urls: string[] = [];
+      for (const file of Array.from(files)) {
+        const { url } = await uploadFileToBucket(file);
+        urls.push(url);
+      }
+      onChange([...value, ...urls]);
+      toast.success(urls.length === 1 ? "Image added" : `${urls.length} images added`);
+      qc.invalidateQueries({ queryKey: ["media"] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Upload failed");
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  }
+
+  return (
+    <div>
+      <div className="flex items-center justify-between gap-2">
+        <div>
+          <Label>Secondary images</Label>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Extra product shots for the gallery. Upload from your computer or pick from the library.
+          </p>
+        </div>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            multiple
+            hidden
+            onChange={(e) => handleFiles(e.target.files)}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={uploading}
+            onClick={() => fileRef.current?.click()}
+          >
+            {uploading ? "Uploading…" : (
+              <>
+                <Plus className="h-3.5 w-3.5 mr-1" />
+                Upload
+              </>
+            )}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setPickerOpen(true)}
+          >
+            Library
+          </Button>
+        </div>
+      </div>
+
+      <div className="mt-2 grid grid-cols-3 sm:grid-cols-4 gap-2">
+        {value.map((url, i) => (
+          <div
+            key={`${url}-${i}`}
+            className="relative aspect-square rounded-md border border-border bg-surface-2 overflow-hidden group"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={url} alt="" className="h-full w-full object-cover" />
+            <button
+              type="button"
+              title="Remove image"
+              onClick={() => onChange(value.filter((_, j) => j !== i))}
+              className="absolute top-1.5 right-1.5 h-7 w-7 rounded-full bg-black/70 text-white flex items-center justify-center shadow-sm opacity-90 hover:opacity-100 hover:bg-destructive transition"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        ))}
+
+        <button
+          type="button"
+          onClick={() => fileRef.current?.click()}
+          disabled={uploading}
+          className="aspect-square rounded-md border border-dashed border-border bg-surface/40 flex flex-col items-center justify-center gap-1 text-xs text-muted-foreground hover:border-primary/40 hover:text-primary transition"
+        >
+          <Plus className="h-5 w-5" />
+          Add
+        </button>
+      </div>
+
+      {value.length === 0 && (
+        <p className="text-xs text-muted-foreground italic mt-1.5">
+          No secondary images yet.
+        </p>
+      )}
+
+      <Dialog open={pickerOpen} onOpenChange={setPickerOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Add secondary image from library</DialogTitle>
+          </DialogHeader>
+          <div className="py-2 max-h-[60vh] overflow-y-auto">
+            <MediaGrid
+              onPick={(url) => {
+                if (url) {
+                  onChange([...value, url]);
+                  setPickerOpen(false);
+                  toast.success("Image added");
+                }
+              }}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
 }

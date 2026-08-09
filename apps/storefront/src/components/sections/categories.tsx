@@ -117,7 +117,17 @@ const Categories = ({ content }: { content?: any }) => {
   const heading = content?.heading || "Our Products";
   // ponytail: sort by sort_order asc, then drop items with no name. The DB
   // drives the visible list now; categoryData is just the first-install seed.
+  // Accept legacy `image` key from older seeds as image_url.
   const items: Category[] = (content?.items || categoryData)
+    .map((c: any, i: number) => ({
+      name: c.name || "",
+      subtitle: c.subtitle || "",
+      image_url: c.image_url || c.image || "",
+      bgColor: c.bgColor || "#124559",
+      alt: c.alt || c.name || "",
+      href: c.href || "",
+      sort_order: typeof c.sort_order === "number" ? c.sort_order : i + 1,
+    }))
     .filter((c: Category) => c.name)
     .slice()
     .sort((a: Category, b: Category) => (a.sort_order || 0) - (b.sort_order || 0));
@@ -146,18 +156,27 @@ const Categories = ({ content }: { content?: any }) => {
               transition={{ duration: 0.5, delay: index * 0.06, ease: [0.22, 1, 0.36, 1] }}
               className="w-[240px] flex-shrink-0"
             >
-            <Link href={category.href || getCategoryHref(category.name)} className="block group">
+            <Link
+              href={
+                category.href && category.href.trim()
+                  ? category.href.trim()
+                  : getCategoryHref(category.name)
+              }
+              className="block group"
+            >
               <div
                 className="relative h-[280px] rounded-[16px] overflow-hidden transition-all duration-500 ease-out hover:scale-105 hover:shadow-2xl hover:shadow-black/20"
                 style={{ backgroundColor: category.bgColor }}
               >
-                <Image
-                  src={category.image_url}
-                  alt={category.alt}
-                  fill
-                  sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 20vw"
-                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                />
+                {category.image_url ? (
+                  <Image
+                    src={category.image_url}
+                    alt={category.alt || category.name}
+                    fill
+                    sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 20vw"
+                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                  />
+                ) : null}
                 
                 {/* Modern overlay with gradient */}
                 <div className="absolute inset-0 z-[5] bg-gradient-to-br from-black/20 via-transparent to-black/80" />

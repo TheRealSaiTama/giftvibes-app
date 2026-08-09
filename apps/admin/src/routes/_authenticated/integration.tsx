@@ -19,7 +19,7 @@ function IntegrationPage() {
     { label: "Home page (all sections + SEO)", url: `${base}/page/home`, note: "Returns { sections: [...], seo }. Sections come pre-ordered." },
     { label: "Shop page", url: `${base}/page/shop`, note: "" },
     { label: "Product page template copy", url: `${base}/page/product`, note: "" },
-    { label: "Custom design page", url: `${base}/page/custom-design`, note: "" },
+
     { label: "Header + footer nav links", url: `${base}/nav`, note: "Grouped by header / footer_shop / footer_company / footer_support." },
     { label: "Products list", url: `${ORIGIN_HINT}/api/public/products`, note: "?category=&limit= optional." },
     { label: "Single product", url: `${ORIGIN_HINT}/api/public/products/{slug}`, note: "" },

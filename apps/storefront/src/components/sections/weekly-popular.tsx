@@ -66,11 +66,11 @@ function mapDbProduct(p: any): Product {
   return {
     id: p.id,
     name: p.name,
-    image: p.imageUrl || '',
-    minPrice: p.minPrice ?? null,
-    maxPrice: p.maxPrice ?? null,
-    description: p.description || '',
-    currency: 'INR',
+    image: p.imageUrl || p.image_url || "",
+    minPrice: p.minPrice ?? p.min_price ?? null,
+    maxPrice: p.maxPrice ?? p.max_price ?? null,
+    description: p.description || "",
+    currency: "INR",
   };
 }
 
@@ -86,11 +86,15 @@ const WeeklyPopularProducts = ({ content, products: dbProducts }: WeeklyPopularP
     .map((item: any) => item?.productId)
     .filter((id: unknown): id is string => typeof id === "string" && id.length > 0);
 
-  // ponytail: same pattern as best-deals — admin picks products by id,
-  // hardcoded set is the first-install fallback.
-  const items: Product[] = selectedIds.length > 0
-    ? (dbProducts || []).map(mapDbProduct).filter((p) => selectedIds.includes(String(p.id)))
-    : defaultProducts;
+  // ponytail: same pattern as best-deals — admin picks by id (preserve order).
+  // Hardcoded set is the first-install fallback when nothing is picked yet.
+  const byId = new Map(
+    (dbProducts || []).map((p) => [String(p.id), mapDbProduct(p)]),
+  );
+  const items: Product[] =
+    selectedIds.length > 0
+      ? selectedIds.map((id) => byId.get(id)).filter((p): p is Product => !!p)
+      : defaultProducts;
 
   return (
     <section className="py-16 bg-white">

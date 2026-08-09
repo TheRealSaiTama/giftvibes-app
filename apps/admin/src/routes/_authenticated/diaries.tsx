@@ -229,7 +229,20 @@ function DiaryForm({ diary, onClose, onSaved }: { diary: Diary; onClose: () => v
       <div><Label>Name</Label><Input value={v.name} onChange={(e) => s("name", e.target.value)} className="mt-1.5" /></div>
       <div><Label>Slug</Label><Input value={v.slug} onChange={(e) => s("slug", e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-"))} placeholder={slugify(v.name)} className="mt-1.5 font-mono text-xs" /></div>
       <div><Label>Image</Label><div className="mt-1.5"><MediaPicker value={v.image_url ?? ""} onChange={(url) => s("image_url", url)} /></div></div>
-      <div><Label>Description</Label><Textarea rows={4} value={v.description ?? ""} onChange={(e) => s("description", e.target.value)} className="mt-1.5" /></div>
+      <div>
+        <Label htmlFor="diary-highlights">Product Highlights</Label>
+        <p className="text-xs text-muted-foreground mt-0.5 mb-1.5">
+          Short selling points shown on the product page.
+        </p>
+        <Textarea
+          id="diary-highlights"
+          rows={4}
+          value={v.description ?? ""}
+          onChange={(e) => s("description", e.target.value)}
+          className="mt-1.5"
+          placeholder="Key features and highlights…"
+        />
+      </div>
       
       <div className="grid grid-cols-2 gap-3">
         <div><Label>Min price (₹)</Label><Input type="number" value={v.min_price ?? ""} onChange={(e) => s("min_price", e.target.value === "" ? null : Number(e.target.value))} className="mt-1.5" /></div>

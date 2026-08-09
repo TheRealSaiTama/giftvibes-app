@@ -21,9 +21,13 @@ import { getStorefrontData } from "@/lib/site";
 // Without this the webhook no-ops (page would be fully static).
 export const revalidate = 0;
 
-async function getProducts() {
-  const products = await prisma.product.findMany();
-  return products;
+async function getCatalog() {
+  // Products + diaries so home sections can resolve admin-picked IDs from either table.
+  const [products, diaries] = await Promise.all([
+    prisma.product.findMany(),
+    prisma.diary.findMany(),
+  ]);
+  return [...products, ...diaries];
 }
 
 async function getHomeSections() {
@@ -39,8 +43,8 @@ async function getHomeSections() {
 }
 
 export default async function HomePage() {
-  const [products, sections, { settings, headerNav }] = await Promise.all([
-    getProducts(),
+  const [catalog, sections, { settings, headerNav }] = await Promise.all([
+    getCatalog(),
     getHomeSections(),
     getStorefrontData(),
   ]);
@@ -54,11 +58,14 @@ export default async function HomePage() {
         <GiftVibeAbout content={sections.about} />
         <BestDiscountsBanner content={sections.discounts} />
         <Categories content={sections.categories} />
-        <BestDealsSection content={sections.best_deals} products={products} />
+        <BestDealsSection content={sections.best_deals} products={catalog} />
         <BrandsSection content={sections.brands} />
-        <WeeklyPopularProducts content={sections.popular} products={products} />
+        <WeeklyPopularProducts content={sections.popular} products={catalog} />
         <CashBackSection content={sections.cashback} />
-        <TabbedProducts products={products} content={sections.tabbed_products} />
+        <TabbedProducts
+          products={catalog}
+          content={sections.tabbed_products || sections.best_deals_tabbed}
+        />
         {/* Move these two sections just above the special discount banner */}
         <WhyChooseUsSection content={sections.why_choose_us} />
         <CustomerSatisfaction content={sections.satisfaction} />

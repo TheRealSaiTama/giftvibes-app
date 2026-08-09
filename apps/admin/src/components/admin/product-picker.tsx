@@ -12,7 +12,7 @@ import {
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog";
-import { Search, X, Plus, Check, Package } from "lucide-react";
+import { Search, X, Plus, Package } from "lucide-react";
 
 type PickerItem = { productId: string };
 
@@ -23,18 +23,35 @@ type ProductRow = {
   image_url: string | null;
   min_price: number | null;
   max_price: number | null;
+  category: string | null;
+  kind: "product" | "diary";
 };
 
-// ponytail: list products from Supabase for the picker. Same shape as the
-// products admin page; just name + image + price range.
+// Full catalog: products + diaries (same directory the Categories admin uses).
 async function fetchProductsForPicker(): Promise<ProductRow[]> {
-  const { data, error } = await supabase
-    .from("products")
-    .select("id, name, slug, image_url, min_price, max_price")
-    .eq("enabled", true)
-    .order("name");
-  if (error) throw error;
-  return (data || []) as ProductRow[];
+  const [productsRes, diariesRes] = await Promise.all([
+    supabase
+      .from("products")
+      .select("id, name, slug, image_url, min_price, max_price, category")
+      .eq("enabled", true)
+      .order("name"),
+    supabase
+      .from("diaries")
+      .select("id, name, slug, image_url, min_price, max_price, category")
+      .eq("enabled", true)
+      .order("name"),
+  ]);
+  if (productsRes.error) throw productsRes.error;
+  if (diariesRes.error) throw diariesRes.error;
+  const products: ProductRow[] = (productsRes.data || []).map((p) => ({
+    ...(p as Omit<ProductRow, "kind">),
+    kind: "product" as const,
+  }));
+  const diaries: ProductRow[] = (diariesRes.data || []).map((d) => ({
+    ...(d as Omit<ProductRow, "kind">),
+    kind: "diary" as const,
+  }));
+  return [...products, ...diaries].sort((a, b) => a.name.localeCompare(b.name));
 }
 
 function priceLabel(p: ProductRow): string {
@@ -77,7 +94,12 @@ export function ProductPicker({
     const all = products || [];
     if (!search.trim()) return all;
     const q = search.toLowerCase();
-    return all.filter((p) => p.name.toLowerCase().includes(q));
+    return all.filter(
+      (p) =>
+        p.name.toLowerCase().includes(q) ||
+        (p.category || "").toLowerCase().includes(q) ||
+        p.slug.toLowerCase().includes(q),
+    );
   }, [products, search]);
 
   function add(id: string) {
@@ -110,7 +132,10 @@ export function ProductPicker({
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-medium truncate">{p.name}</div>
-                <div className="text-xs text-muted-foreground font-mono">{priceLabel(p)}</div>
+                <div className="text-xs text-muted-foreground font-mono flex items-center gap-2">
+                  <span>{priceLabel(p)}</span>
+                  <span className="uppercase tracking-wider text-[9px] opacity-70">{p.kind}</span>
+                </div>
               </div>
               <span className="text-[10px] text-muted-foreground tabular-nums">#{i + 1}</span>
               <Button
@@ -150,7 +175,7 @@ export function ProductPicker({
         </DialogTrigger>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Choose products</DialogTitle>
+            <DialogTitle>Choose from catalog</DialogTitle>
           </DialogHeader>
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
@@ -158,7 +183,7 @@ export function ProductPicker({
               autoFocus
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search products by name…"
+              placeholder="Search products & diaries by name or category…"
               className="pl-8 h-9"
             />
           </div>
@@ -186,7 +211,13 @@ export function ProductPicker({
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-medium truncate">{p.name}</div>
-                    <div className="text-xs text-muted-foreground font-mono">{priceLabel(p)}</div>
+                    <div className="text-xs text-muted-foreground font-mono flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                      <span>{priceLabel(p)}</span>
+                      {p.category && (
+                        <span className="truncate max-w-[140px] opacity-80">{p.category}</span>
+                      )}
+                      <span className="uppercase tracking-wider text-[9px] opacity-70">{p.kind}</span>
+                    </div>
                   </div>
                   {isSelected ? (
                     <Button

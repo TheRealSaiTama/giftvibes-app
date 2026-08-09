@@ -4,7 +4,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   LayoutDashboard,
   FileText,
-  Package,
   BookText,
   Images,
   Settings,
@@ -12,12 +11,11 @@ import {
   Compass,
   ExternalLink,
   LogOut,
-  Gift,
   ChevronRight,
   Home,
   ShoppingBag,
-  Sparkles,
   Link2,
+  FolderTree,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -51,13 +49,12 @@ const NAV: NavGroup[] = [
       { label: "Home page", to: "/pages/home", icon: Home },
       { label: "Shop page", to: "/pages/shop", icon: ShoppingBag },
       { label: "Product template", to: "/pages/product", icon: FileText },
-      { label: "Custom design", to: "/pages/custom-design", icon: Sparkles },
     ],
   },
   {
     heading: "Catalog",
     items: [
-      { label: "Products", to: "/products", icon: Package },
+      { label: "Categories", to: "/products", icon: FolderTree },
       { label: "Diaries", to: "/diaries", icon: BookText },
     ],
   },
@@ -229,6 +226,8 @@ function buildBreadcrumbs(pathname: string): { label: string; to: string }[] {
 }
 
 function prettify(seg: string) {
+  // Route path is still /products; surface it as Categories in the chrome.
+  if (seg === "products") return "Categories";
   return seg
     .replace(/-/g, " ")
     .replace(/\b\w/g, (c) => c.toUpperCase());

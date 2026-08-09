@@ -20,7 +20,6 @@ const PAGES = [
   { key: "home", label: "Home" },
   { key: "shop", label: "Shop" },
   { key: "product", label: "Product template" },
-  { key: "custom-design", label: "Custom design" },
 ];
 
 type Seo = { page_key: string; title: string | null; description: string | null; og_image_url: string | null };

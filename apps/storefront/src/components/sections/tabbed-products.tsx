@@ -8,7 +8,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { useSelectedProducts } from '@/context/ProductContext';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Product as DbProduct } from '@prisma/client';
 import type { Product } from '@/types/Product';
 
 interface ProductCardProps {
@@ -103,18 +102,31 @@ function getFileIdFromUrl(url: string): string | null {
   return match ? match[1] : null;
 }
 
-export default function TabbedProducts({ products: dbProducts, content }: { products: DbProduct[], content?: any }) {
+export default function TabbedProducts({
+  products: dbProducts,
+  content,
+}: {
+  products: any[];
+  content?: any;
+}) {
   const heading = content?.heading || "Todays Best Deals for you!";
 
   // ponytail: if the admin has set custom tabs in the section content, use
   // those. Each tab has a name and a list of productIds. The storefront
-  // looks each id up in dbProducts. Otherwise fall back to grouping
-  // products by their `category` field (the original behavior).
-  const customTabs: { name: string; productIds: string[] }[] = Array.isArray(content?.tabs) ? content.tabs : [];
+  // looks each id up in dbProducts (products + diaries catalog). Otherwise
+  // fall back to grouping products by their `category` field.
+  const customTabs: { name: string; productIds: string[] }[] = Array.isArray(content?.tabs)
+    ? content.tabs.map((t: any) => ({
+        name: typeof t?.name === "string" && t.name.trim() ? t.name.trim() : "Tab",
+        productIds: Array.isArray(t?.productIds)
+          ? t.productIds.filter((id: unknown): id is string => typeof id === "string" && id.length > 0)
+          : [],
+      }))
+    : [];
 
-  const products: Product[] = dbProducts.map(p => {
-    const url = p.imageUrl?.trim();
-    
+  const products: Product[] = dbProducts.map((p) => {
+    const url = (p.imageUrl || p.image_url || "").trim();
+
     const placeholderSvg = `
       <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 800 600">
         <defs>
@@ -127,52 +139,61 @@ export default function TabbedProducts({ products: dbProducts, content }: { prod
         <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="24" fill="#9e9e9e">No Image Available</text>
       </svg>
     `;
-    let imageUrl = `data:image/svg+xml;base64,${Buffer.from(placeholderSvg).toString('base64')}`;
+    // Client-safe placeholder (no Node Buffer in browser).
+    let imageUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(placeholderSvg)}`;
 
     if (url) {
-      if (url.includes('drive.google.com')) {
+      if (url.includes("drive.google.com")) {
         const fileId = getFileIdFromUrl(url);
         if (fileId) {
           imageUrl = `https://drive.google.com/uc?id=${fileId}`;
         }
-      } else if (/^https?:\/\//i.test(url)) {
+      } else if (/^https?:\/\//i.test(url) || url.startsWith("/")) {
         imageUrl = url;
       }
     }
 
+    const minPrice = p.minPrice ?? p.min_price ?? null;
+    const maxPrice = p.maxPrice ?? p.max_price ?? null;
+
     return {
       id: p.id,
       name: p.name,
-      minPrice: p.minPrice ?? null,
-      maxPrice: p.maxPrice ?? null,
-      price: p.minPrice ?? undefined,
-      description: p.description || '',
+      minPrice,
+      maxPrice,
+      price: minPrice ?? undefined,
+      description: p.description || "",
       image: imageUrl,
       rating: 5,
       reviewCount: 121,
-      currency: 'INR',
+      currency: "INR" as const,
       category: p.category,
     };
   });
 
-  const categories = [...new Set(products.map(p => p.category).filter(Boolean))];
-  const productsByCategory = categories.reduce((acc, category) => {
-    if (category) {
-        acc[category] = products.filter(p => p.category === category);
-    }
-    return acc;
-  }, {} as { [key: string]: Product[] });
+  const byId = new Map(products.map((p) => [String(p.id), p]));
+
+  const categories = [...new Set(products.map((p) => p.category).filter(Boolean))];
+  const productsByCategory = categories.reduce(
+    (acc, category) => {
+      if (category) {
+        acc[category] = products.filter((p) => p.category === category);
+      }
+      return acc;
+    },
+    {} as { [key: string]: Product[] },
+  );
 
   // ponytail: render custom tabs if defined, otherwise fall back to category grouping.
-  const tabKeys: string[] = customTabs.length > 0
-    ? customTabs.map((t) => t.name)
-    : Object.keys(productsByCategory);
+  const tabKeys: string[] =
+    customTabs.length > 0 ? customTabs.map((t) => t.name) : Object.keys(productsByCategory);
 
   const productsForTab = (tabKey: string): Product[] => {
     if (customTabs.length > 0) {
       const t = customTabs.find((ct) => ct.name === tabKey);
       if (!t) return [];
-      return products.filter((p) => t.productIds.includes(String(p.id)));
+      // Preserve admin picker order
+      return t.productIds.map((id) => byId.get(String(id))).filter((p): p is Product => !!p);
     }
     return productsByCategory[tabKey] || [];
   };

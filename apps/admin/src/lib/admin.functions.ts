@@ -380,63 +380,31 @@ export const seedHomeSections = createServerFn({ method: "POST" })
         content: {
           heading: "Our Products",
           items: [
-            { name: 'CORPORATE GIFT SETS', subtitle: '120+ Packages Available', image: '/Giftvibes categories/CORPORATE GIFTSETS.png', bgColor: '#124559', alt: 'Professional corporate gift sets and custom diaries' },
-            { name: 'NEW YEAR DIARY', subtitle: '80+ Styles Available', image: '/Giftvibes categories/NEW YEAR DIARY.png', bgColor: '#1a5d73', alt: 'Premium New Year themed diaries and planners' },
-            { name: 'LEATHER GIFT ITEMS', subtitle: 'Premium Collection', image: '/Giftvibes categories/LEATHER GIFT ITEMS.png', bgColor: '#2c3e50', alt: 'High-quality leather gift items and accessories' },
-            { name: 'LEATHER BAGS', subtitle: 'Executive Collection', image: '/Giftvibes categories/LEATHER BAGS.png', bgColor: '#E8923C', alt: 'Premium leather bags and accessories' },
-            { name: 'JUTE BAGS', subtitle: 'Eco-Friendly Options', image: '/Giftvibes categories/JUTE BAGS.png', bgColor: '#28966E', alt: 'Sustainable jute bags for promotional use' },
-            { name: 'BOTTLES GIFT SET', subtitle: 'Premium Combos', image: '/Giftvibes categories/BOTTLE GIFT SETS.png', bgColor: '#124559', alt: 'Gift sets with premium bottles and accessories' },
-            { name: 'POWER BANK DIARIES', subtitle: 'Tech-Integrated', image: '/Giftvibes categories/POWERBANK DIARIES.png', bgColor: '#1a5d73', alt: 'Diaries with built-in power bank functionality' },
-            { name: 'PEN STANDS', subtitle: 'Desktop Essentials', image: '/Giftvibes categories/PEN STANDS.png', bgColor: '#2c3e50', alt: 'Elegant pen stands and desk accessories' },
-            { name: 'PROMOTIONAL UMBRELLAS', subtitle: 'Branded Solutions', image: '/Giftvibes categories/PROMOTIONAL UMBRELLAS.jpg', bgColor: '#8b4513', alt: 'Custom promotional umbrellas for marketing' },
-            { name: 'CUSTOMISED DIARY & NOTE BOOKS', subtitle: '150+ Designs Available', image: '/Giftvibes categories/PROMOTIONAL DIARIES AND NOTEBOOKS.jpg', bgColor: '#E8923C', alt: 'Fully customized diaries and notebooks' },
-            { name: 'CALENDARS', subtitle: 'Desktop & Wall Options', image: '/Giftvibes categories/CALENDARS.png', bgColor: '#28966E', alt: 'Custom table and wall calendars' },
-            { name: "EXHIBITION VISITOR'S GIFT IDEAS", subtitle: 'Trade Show Specials', image: '/Giftvibes categories/EXHIBITION GIVEAWAY IDEAS.png', bgColor: '#124559', alt: 'Special gift ideas for exhibition visitors' },
+            { name: 'CORPORATE GIFT SETS', subtitle: '120+ Packages Available', image_url: '/Giftvibes categories/CORPORATE GIFTSETS.png', bgColor: '#124559', alt: 'Professional corporate gift sets and custom diaries', href: '', sort_order: 1 },
+            { name: 'NEW YEAR DIARY', subtitle: '80+ Styles Available', image_url: '/Giftvibes categories/NEW YEAR DIARY.png', bgColor: '#1a5d73', alt: 'Premium New Year themed diaries and planners', href: '', sort_order: 2 },
+            { name: 'LEATHER GIFT ITEMS', subtitle: 'Premium Collection', image_url: '/Giftvibes categories/LEATHER GIFT ITEMS.png', bgColor: '#2c3e50', alt: 'High-quality leather gift items and accessories', href: '', sort_order: 3 },
+            { name: 'LEATHER BAGS', subtitle: 'Executive Collection', image_url: '/Giftvibes categories/LEATHER BAGS.png', bgColor: '#E8923C', alt: 'Premium leather bags and accessories', href: '', sort_order: 4 },
+            { name: 'JUTE BAGS', subtitle: 'Eco-Friendly Options', image_url: '/Giftvibes categories/JUTE BAGS.png', bgColor: '#28966E', alt: 'Sustainable jute bags for promotional use', href: '', sort_order: 5 },
+            { name: 'BOTTLES GIFT SET', subtitle: 'Premium Combos', image_url: '/Giftvibes categories/BOTTLE GIFT SETS.png', bgColor: '#124559', alt: 'Gift sets with premium bottles and accessories', href: '', sort_order: 6 },
+            { name: 'POWER BANK DIARIES', subtitle: 'Tech-Integrated', image_url: '/Giftvibes categories/POWERBANK DIARIES.png', bgColor: '#1a5d73', alt: 'Diaries with built-in power bank functionality', href: '', sort_order: 7 },
+            { name: 'PEN STANDS', subtitle: 'Desktop Essentials', image_url: '/Giftvibes categories/PEN STANDS.png', bgColor: '#2c3e50', alt: 'Elegant pen stands and desk accessories', href: '', sort_order: 8 },
+            { name: 'PROMOTIONAL UMBRELLAS', subtitle: 'Branded Solutions', image_url: '/Giftvibes categories/PROMOTIONAL UMBRELLAS.jpg', bgColor: '#8b4513', alt: 'Custom promotional umbrellas for marketing', href: '', sort_order: 9 },
+            { name: 'CUSTOMISED DIARY & NOTE BOOKS', subtitle: '150+ Designs Available', image_url: '/Giftvibes categories/PROMOTIONAL DIARIES AND NOTEBOOKS.jpg', bgColor: '#E8923C', alt: 'Fully customized diaries and notebooks', href: '', sort_order: 10 },
+            { name: 'CALENDARS', subtitle: 'Desktop & Wall Options', image_url: '/Giftvibes categories/CALENDARS.png', bgColor: '#28966E', alt: 'Custom table and wall calendars', href: '', sort_order: 11 },
+            { name: "EXHIBITION VISITOR'S GIFT IDEAS", subtitle: 'Trade Show Specials', image_url: '/Giftvibes categories/EXHIBITION GIVEAWAY IDEAS.png', bgColor: '#124559', alt: 'Special gift ideas for exhibition visitors', href: '', sort_order: 12 },
           ]
         }
       },
       {
         page_key: 'home',
-        section_key: 'deals',
-        title: 'Best Deals',
+        section_key: 'best_deals',
+        title: 'Latest Diaries Section',
         sort_order: 50,
         content: {
           heading: "Latest 2026 Diaries",
-          items: [
-            {
-              name: 'Management Premium PU Leather Diary 2026',
-              price: 240,
-              minPrice: 240,
-              maxPrice: 300,
-              description: 'Magnetic flap executive diary with soft-touch PU cover and premium natural shade paper.',
-              image: 'https://drive.google.com/uc?id=11sbS-XW7D6BsdoMYkXkINTHFsxp2NVx-',
-            },
-            {
-              name: 'DIRECTORS Premium Leather Diary 2026',
-              price: 172,
-              minPrice: 172,
-              maxPrice: 195,
-              description: 'Director edition PU leather diary with sponge padding and elegant magnetic flap finish.',
-              image: 'https://drive.google.com/uc?id=1YqUkhJ9YX33wuuJcH_qGCaAsZ0GIDNNZ',
-            },
-            {
-              name: 'Heritage Leather Executive Diary 2026',
-              price: 137,
-              minPrice: 137,
-              maxPrice: 153,
-              description: 'Heritage inspired PU leather diary with foam padding and one-date-per-page layout.',
-              image: 'https://drive.google.com/uc?id=1ntl6n5DQpoF-FkfxYO1Rs49nJHl-NWsF',
-            },
-            {
-              name: 'Paipin Brown Executive Leather Diary',
-              price: 154,
-              minPrice: 154,
-              maxPrice: 176,
-              description: 'Two-tone brown magnetic flap diary crafted in soft PU with premium writing paper.',
-              image: 'https://drive.google.com/uc?id=1lfIN2mDTjNwAMYX1xbnPBkqkl95OTuzL',
-            },
-          ]
-        }
+          // Admin picks up to 4 catalog IDs via ProductPicker; empty → storefront defaults.
+          items: [] as { productId: string }[],
+        },
       },
       {
         page_key: 'home',
@@ -459,53 +427,13 @@ export const seedHomeSections = createServerFn({ method: "POST" })
       {
         page_key: 'home',
         section_key: 'popular',
-        title: 'Weekly Popular',
+        title: 'Trending Diary Giftsets',
         sort_order: 70,
         content: {
           heading: "Trending Diary Giftsets",
-          items: [
-            {
-              name: "Primo A5 Corporate Diary and Pen Set",
-              price: 225,
-              minPrice: 225,
-              maxPrice: 255,
-              description: "Soft-touch PU diary with matching metal pen and premium planner pages in an elegant gift box.",
-              image: "https://drive.google.com/uc?id=1UcB8Gmh4knL15Su_DsD5D0WihKEFN6pH",
-            },
-            {
-              name: "Wooden A5 Corporate Diary and Pen Set",
-              price: 230,
-              minPrice: 230,
-              maxPrice: 250,
-              description: "Wood grain inspired diary with smooth pen, monthly planner inserts and custom branding ready box.",
-              image: "https://drive.google.com/uc?id=1gfUUIhJoA_fhUtO5q8cosOqV9I8fGkVV",
-            },
-            {
-              name: "Polo A5 Corporate Diary and Pen Set",
-              price: 220,
-              minPrice: 220,
-              maxPrice: 245,
-              description: "Premium PU diary combo with elastic closure, satin ribbon and logo-ready keepsake packaging.",
-              image: "https://drive.google.com/uc?id=11pKAL_jh7Af3IQxxa49_MIbMXOT0tx7e",
-            },
-            {
-              name: "50-50 B5 Diary Calendar with Pen Combo Set",
-              price: 315,
-              minPrice: 315,
-              maxPrice: 332,
-              description: "Executive B5 diary with detachable desk calendar, heavyweight pen and luxe presentation box.",
-              image: "https://drive.google.com/uc?id=1ZHcdURpLfDV5ZQsoXlrRjttX_d5IT_86",
-            },
-            {
-              name: "Oval Leather B5 Diary with Pen Gift Set",
-              price: 300,
-              minPrice: 300,
-              maxPrice: 310,
-              description: "Oval motif B5 diary in plush leatherette with premium metal pen and foil-ready gift box.",
-              image: "https://drive.google.com/uc?id=1jIxlNwdi-E1f_-LyXT5eoP7g_JECd3JM",
-            }
-          ]
-        }
+          // Admin picks up to 5 catalog IDs via ProductPicker; empty → storefront defaults.
+          items: [] as { productId: string }[],
+        },
       },
       {
         page_key: 'home',
@@ -525,11 +453,13 @@ export const seedHomeSections = createServerFn({ method: "POST" })
       {
         page_key: 'home',
         section_key: 'tabbed_products',
-        title: 'Tabbed Products',
+        title: "Today's Best Deals",
         sort_order: 90,
         content: {
-          heading: "Todays Best Deals for you!"
-        }
+          heading: "Todays Best Deals for you!",
+          // Admin creates named tabs; each tab holds up to 8 productIds.
+          tabs: [] as { name: string; productIds: string[] }[],
+        },
       },
       {
         page_key: 'home',

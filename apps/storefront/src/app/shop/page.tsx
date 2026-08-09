@@ -38,29 +38,38 @@ async function getDiaries(): Promise<any[]> {
 }
 
 async function getProducts(): Promise<Product[]> {
-  const { prisma } = await import('@/lib/prisma');
-  const products = await prisma.product.findMany({
-    orderBy: { minPrice: 'asc' },
-    take: 1000,
-  });
-  return products;
+  try {
+    const { prisma } = await import('@/lib/prisma');
+    const products = await prisma.product.findMany({
+      orderBy: { minPrice: 'asc' },
+      take: 1000,
+    });
+    return products;
+  } catch (err) {
+    // Don't white-screen the whole shop (navbar category deep-links) if DB is down.
+    console.error("shop getProducts failed", err);
+    return [];
+  }
 }
 
 // ponytail: revalidate=0 above + admin webhook means no more "re-trigger build" dance.
 export default async function ShopPage() {
-  const [allDiaries, allProducts, { settings, headerNav }] = await Promise.all([
-    getDiaries(),
+  const [allDiaries, allProducts, storefront] = await Promise.all([
+    getDiaries().catch((e) => {
+      console.error("shop getDiaries failed", e);
+      return [] as any[];
+    }),
     getProducts(),
     getStorefrontData(),
   ]);
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header nav={headerNav} />
+      <Header nav={storefront.headerNav} />
       <Suspense fallback={<div className="container py-16 text-sm text-muted-foreground">Loading shop…</div>}>
-        <ShopClient initialDiaries={allDiaries} initialProducts={allProducts} />
+        <ShopClient initialDiaries={allDiaries as any} initialProducts={allProducts} />
       </Suspense>
-      <Footer settings={settings} />
+      <Footer settings={storefront.settings} />
     </div>
   );
 }

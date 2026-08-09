@@ -74,7 +74,7 @@ function Dashboard() {
       <h2 className="mt-10 mb-4 font-display text-lg font-semibold">Jump back in</h2>
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
         <QuickLink to="/pages/home" label="Edit home page" description="Hero, categories, banners and 15 sections" icon={FileText} />
-        <QuickLink to="/products" label="Manage products" description="Add, edit, hide catalog items" icon={Package} />
+        <QuickLink to="/products" label="Manage categories" description="Add categories and open them to edit products" icon={Package} />
         <QuickLink to="/diaries" label="Manage diaries" description="Diary-specific fields and images" icon={BookText} />
         <QuickLink to="/media" label="Media library" description="Upload and reuse images" icon={Images} />
         <QuickLink to="/settings" label="Global settings" description="Brand, WhatsApp, contact, socials" icon={Settings} />

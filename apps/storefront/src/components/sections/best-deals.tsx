@@ -129,17 +129,17 @@ const ProductCard = ({ product }: { product: Product }) => {
   );
 };
 
-// ponytail: map a Prisma products row to the storefront's Product shape.
+// ponytail: map a Prisma products/diaries row to the storefront's Product shape.
 // The component only needs name, image, price range, description, id.
 function mapDbProduct(p: any): Product {
   return {
     id: p.id,
     name: p.name,
-    image: p.imageUrl || '',
-    minPrice: p.minPrice ?? null,
-    maxPrice: p.maxPrice ?? null,
-    description: p.description || '',
-    currency: 'INR',
+    image: p.imageUrl || p.image_url || "",
+    minPrice: p.minPrice ?? p.min_price ?? null,
+    maxPrice: p.maxPrice ?? p.max_price ?? null,
+    description: p.description || "",
+    currency: "INR",
   };
 }
 
@@ -156,13 +156,15 @@ const BestDealsSection = ({ content, products: dbProducts }: BestDealsSectionPro
     .map((item: any) => item?.productId)
     .filter((id: unknown): id is string => typeof id === "string" && id.length > 0);
 
-  // ponytail: if the admin picked products, use them. Otherwise show the
-  // hardcoded default set so the section never looks empty on a fresh install.
-  const items: Product[] = selectedIds.length > 0
-    ? (dbProducts || [])
-        .map(mapDbProduct)
-        .filter((p) => selectedIds.includes(String(p.id)))
-    : defaultProducts;
+  // ponytail: if the admin picked products, use them (preserve picker order).
+  // Otherwise show the hardcoded default set so the section never looks empty.
+  const byId = new Map(
+    (dbProducts || []).map((p) => [String(p.id), mapDbProduct(p)]),
+  );
+  const items: Product[] =
+    selectedIds.length > 0
+      ? selectedIds.map((id) => byId.get(id)).filter((p): p is Product => !!p)
+      : defaultProducts;
 
   return (
     <section className="bg-background py-16">

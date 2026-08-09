@@ -90,16 +90,16 @@ export function MediaPicker({
 
   return (
     <div className="flex items-start gap-3">
-      <div className="h-16 w-16 rounded bg-surface-2 overflow-hidden flex items-center justify-center border border-border shrink-0">
+      <div className="h-20 w-20 rounded-md bg-surface-2 overflow-hidden flex items-center justify-center border border-border shrink-0 relative">
         {value ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={value} alt="" className="h-full w-full object-cover" />
         ) : (
-          <ImageIcon className="h-6 w-6 text-muted-foreground" />
+          <ImageIcon className="h-7 w-7 text-muted-foreground" />
         )}
       </div>
-      <div className="flex-1 space-y-2">
-        <div className="flex gap-2">
+      <div className="flex-1 space-y-2 min-w-0">
+        <div className="flex flex-wrap gap-2">
           <Dialog open={open} onOpenChange={handleOpen}>
             <DialogTrigger asChild>
               <Button variant="outline" size="sm">
@@ -134,7 +134,7 @@ export function MediaPicker({
                     ) : (
                       <Upload className="h-4 w-4 mr-2" />
                     )}
-                    Upload new
+                    Upload from computer
                   </Button>
                 </div>
                 <MediaGrid
@@ -153,6 +153,7 @@ export function MediaPicker({
             </Button>
           )}
         </div>
+        {/* Never show the raw URL when hideUrl — product form primary/secondary use this. */}
         {!hideUrl && (
           <Input
             value={value}

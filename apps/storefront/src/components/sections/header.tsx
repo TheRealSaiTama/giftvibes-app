@@ -45,7 +45,7 @@ const megaMenuItems = [
   { name: 'CUSTOMISED DIARY & NOTE BOOKS', items: 'Personalized Products', image: '/Giftvibes categories/PROMOTIONAL DIARIES AND NOTEBOOKS.jpg' },
   { name: 'CALENDARS', items: 'Yearly Planners', image: '/Giftvibes categories/CALENDARS.png' },
   { name: "EXHIBITION VISITOR'S GIFT IDEAS", items: 'Event Specials', image: '/Giftvibes categories/EXHIBITION GIVEAWAY IDEAS.png' },
-];
+] as const;
 
 // ponytail: optional nav prop renders the admin-managed header links (nav_links where
 // group_key='header'). When undefined, the hardcoded list below is used.
@@ -207,25 +207,36 @@ const Header = ({ nav }: { nav?: { label: string; href: string }[] }) => {
               <DropdownMenuContent className="p-6 w-[560px]">
                 <div className="font-semibold text-dark-gray mb-4">Our Products</div>
                 <div className="grid grid-cols-3 gap-x-6 gap-y-4">
-                  {megaMenuItems.map((item) => (
-                    <Link href={getCategoryHref(item.name)} key={item.name} className="group">
-                      <div className="flex items-start gap-3">
-                        <div className="w-[60px] h-[60px] bg-gray-100 rounded-md flex-shrink-0 relative overflow-hidden">
-                          <Image 
-                            src={item.image} 
-                            alt={item.name}
-                            fill
-                            className="object-cover group-hover:scale-110 transition-transform duration-300"
-                            sizes="60px"
-                          />
+                  {megaMenuItems.map((item) => {
+                    // Plain string href from category-links (navbar Category dropdown).
+                    const href = getCategoryHref(item.name);
+                    return (
+                      <Link
+                        href={href}
+                        key={item.name}
+                        className="group"
+                        prefetch={false}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className="w-[60px] h-[60px] bg-gray-100 rounded-md flex-shrink-0 relative overflow-hidden">
+                            <Image
+                              src={item.image}
+                              alt={item.name}
+                              fill
+                              className="object-cover group-hover:scale-110 transition-transform duration-300"
+                              sizes="60px"
+                            />
+                          </div>
+                          <div>
+                            <p className="font-medium text-sm text-dark-gray group-hover:text-primary">
+                              {item.name}
+                            </p>
+                            <p className="text-xs text-medium-gray">{item.items}</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-medium text-sm text-dark-gray group-hover:text-primary">{item.name}</p>
-                          <p className="text-xs text-medium-gray">{item.items}</p>
-                        </div>
-                      </div>
-                    </Link>
-                  ))}
+                      </Link>
+                    );
+                  })}
                 </div>
                 <div className="mt-4 flex justify-end">
                   <Link href="/shop" className="text-sm font-medium text-primary hover:underline">

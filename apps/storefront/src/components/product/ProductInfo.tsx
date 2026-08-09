@@ -21,6 +21,8 @@ interface Product {
   imageUrl: string;
   description: string;
   tags?: string[] | string | null;
+  /** Admin features: { [key]: { show, value } }. Only show=true + value render. */
+  features?: Record<string, { show?: boolean; value?: string }> | null;
 }
 
 interface ProductInfoProps {
@@ -30,6 +32,50 @@ interface ProductInfoProps {
 interface Specification {
   label: string;
   value: string;
+}
+
+/** Ordered labels matching the admin product form. */
+const FEATURE_ORDER: { key: string; label: string }[] = [
+  { key: "size", label: "Size" },
+  { key: "paper_quality", label: "Paper Quality" },
+  { key: "page_format", label: "Page Format" },
+  { key: "cover_binding", label: "Cover Binding" },
+  { key: "monthly_planner", label: "Monthly Planner" },
+  { key: "month_cutting", label: "Month Cutting" },
+  { key: "cover_colors", label: "Cover Colors" },
+  // legacy keys still supported if saved earlier
+  { key: "material", label: "Material" },
+  { key: "color", label: "Color" },
+  { key: "pages", label: "Pages" },
+  { key: "cover_type", label: "Cover Binding" },
+  { key: "weight", label: "Weight" },
+  { key: "dimensions", label: "Size" },
+];
+
+function specsFromFeatures(
+  features?: Record<string, { show?: boolean; value?: string }> | null,
+): Specification[] {
+  if (!features || typeof features !== "object") return [];
+  const seen = new Set<string>();
+  const out: Specification[] = [];
+  for (const { key, label } of FEATURE_ORDER) {
+    const entry = features[key];
+    if (!entry?.show) continue;
+    const value = typeof entry.value === "string" ? entry.value.trim() : "";
+    if (!value) continue;
+    if (seen.has(label)) continue;
+    seen.add(label);
+    out.push({ label, value });
+  }
+  // Any custom keys not in FEATURE_ORDER
+  for (const [key, entry] of Object.entries(features)) {
+    if (FEATURE_ORDER.some((f) => f.key === key)) continue;
+    if (!entry?.show) continue;
+    const value = typeof entry.value === "string" ? entry.value.trim() : "";
+    if (!value) continue;
+    out.push({ label: key.replace(/_/g, " "), value });
+  }
+  return out;
 }
 
 export default function ProductInfo({ product }: ProductInfoProps) {
@@ -126,7 +172,10 @@ export default function ProductInfo({ product }: ProductInfoProps) {
   };
 
   const highlights = parseHighlights(product.description);
-  const specifications = parseSpecifications(product.description);
+  // Prefer structured admin features; fall back to parsing legacy description specs.
+  const fromFeatures = specsFromFeatures(product.features);
+  const specifications =
+    fromFeatures.length > 0 ? fromFeatures : parseSpecifications(product.description);
   const notes = parseNotes(product.description);
 
   return (

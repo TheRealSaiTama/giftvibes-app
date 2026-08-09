@@ -1,25 +1,45 @@
-type CategoryHref = string | {
-  pathname: string;
-  query?: Record<string, string | string[]>;
+/** Always return a plain string href — safest for Next.js App Router <Link>. */
+function shopCategoryHref(category: string): string {
+  return `/shop?category=${encodeURIComponent(category)}`;
+}
+
+/**
+ * Navbar mega-menu + home carousel labels → shop filter values.
+ * Prefer the same labels used on product/diary `category` fields so filters match.
+ */
+const categoryHrefMap: Record<string, string> = {
+  // Navbar: CORPORATE GIFT SETS
+  "CORPORATE GIFT SETS": shopCategoryHref("CORPORATE GIFT SETS"),
+  "Corporate Gift Sets": shopCategoryHref("CORPORATE GIFT SETS"),
+  "Corporate Gift Set": shopCategoryHref("CORPORATE GIFT SETS"),
+  "Best Seller Corporate Gifts": shopCategoryHref("CORPORATE GIFT SETS"),
+  // Navbar: NEW YEAR DIARY BOOKS
+  "NEW YEAR DIARY BOOKS": shopCategoryHref("NEW YEAR DIARY"),
+  "NEW YEAR DIARY": shopCategoryHref("NEW YEAR DIARY"),
+  "New Year Diary": shopCategoryHref("NEW YEAR DIARY"),
+  "CUSTOMISED DIARY & NOTE BOOKS": shopCategoryHref("CUSTOMISED DIARY & NOTE BOOKS"),
+  "CUSTOMISED DIARY AND NOTE BOOKS": shopCategoryHref("CUSTOMISED DIARY & NOTE BOOKS"),
+  "Premium Diary": shopCategoryHref("CUSTOMISED DIARY & NOTE BOOKS"),
+  "LEATHER GIFT ITEMS": shopCategoryHref("LEATHER GIFT ITEMS"),
+  "LEATHER BAGS": shopCategoryHref("LEATHER BAGS"),
+  "JUTE BAGS": shopCategoryHref("JUTE BAGS"),
+  "BOTTLES GIFT SET": shopCategoryHref("BOTTLES GIFT SET"),
+  "BOTTLE GIFT SETS": shopCategoryHref("BOTTLES GIFT SET"),
+  "POWER BANK DIARIES": shopCategoryHref("POWER BANK DIARIES"),
+  "PEN STANDS": shopCategoryHref("PEN STANDS"),
+  "PROMOTIONAL UMBRELLAS": shopCategoryHref("PROMOTIONAL UMBRELLAS"),
+  "CALENDARS": shopCategoryHref("CALENDARS"),
+  "EXHIBITION VISITOR'S GIFT IDEAS": shopCategoryHref("EXHIBITION VISITOR'S GIFT IDEAS"),
 };
 
-const categoryHrefMap: Record<string, CategoryHref> = {
-  'CORPORATE GIFT SETS': { pathname: '/shop', query: { category: 'Corporate Gift Set' } },
-  'NEW YEAR DIARY BOOKS': { pathname: '/shop', query: { category: 'NEW YEAR DIARY' } },
-  'NEW YEAR DIARY': { pathname: '/shop', query: { category: 'NEW YEAR DIARY' } },
-  'CUSTOMISED DIARY & NOTE BOOKS': { pathname: '/shop', query: { category: 'NEW YEAR DIARY , CUSTOMISED DIARY & NOTE BOOKS' } },
-  'CUSTOMISED DIARY AND NOTE BOOKS': { pathname: '/shop', query: { category: 'NEW YEAR DIARY , CUSTOMISED DIARY & NOTE BOOKS' } },
-  'Premium Diary': { pathname: '/shop', query: { category: 'NEW YEAR DIARY , CUSTOMISED DIARY & NOTE BOOKS' } },
-  'New Year Diary': { pathname: '/shop', query: { category: 'NEW YEAR DIARY' } },
-  'Corporate Gift Sets': { pathname: '/shop', query: { category: 'Corporate Gift Set' } },
-  'Best Seller Corporate Gifts': { pathname: '/shop', query: { category: 'Corporate Gift Set' } },
-};
+const fallbackHref = "/shop";
 
-const fallbackHref: CategoryHref = '/shop';
-
-export function getCategoryHref(label: string): CategoryHref {
+export function getCategoryHref(label: string): string {
   const normalized = label.trim();
-  return categoryHrefMap[normalized] ?? fallbackHref;
+  if (categoryHrefMap[normalized]) return categoryHrefMap[normalized];
+  // Unknown CMS category name → still deep-link by that label so shop can filter.
+  if (normalized) return shopCategoryHref(normalized);
+  return fallbackHref;
 }
 
 export function hasCategoryProducts(label: string): boolean {
