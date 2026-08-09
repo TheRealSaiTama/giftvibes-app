@@ -10,6 +10,10 @@ import {
   isRemoteOrDataImage,
   PRODUCT_IMAGE_PLACEHOLDER,
 } from "@/lib/product-image";
+import {
+  DEFAULT_BEST_DEALS_NAMES,
+  matchCatalogIdsByNames,
+} from "@/lib/cms/mappers";
 
 // Local public assets — Drive hotlinks break on production.
 const defaultProducts: Product[] = [
@@ -163,15 +167,23 @@ const BestDealsSection = ({ content, products: dbProducts }: BestDealsSectionPro
     .map((item: any) => item?.productId)
     .filter((id: unknown): id is string => typeof id === "string" && id.length > 0);
 
-  // ponytail: if the admin picked products, use them (preserve picker order).
-  // Otherwise show the hardcoded default set so the section never looks empty.
+  // Admin picks by id (preserve order). Empty picks → match catalog by default
+  // product names so site shows real DB rows (images + /shop/{uuid} links).
+  // Offline hardcoded defaults only when catalog has no matches.
   const byId = new Map(
     (dbProducts || []).map((p) => [String(p.id), mapDbProduct(p)]),
   );
-  const items: Product[] =
+  let items: Product[] =
     selectedIds.length > 0
       ? selectedIds.map((id) => byId.get(id)).filter((p): p is Product => !!p)
-      : defaultProducts;
+      : [];
+  if (items.length === 0 && (dbProducts || []).length > 0) {
+    const matched = matchCatalogIdsByNames(dbProducts || [], DEFAULT_BEST_DEALS_NAMES, 4);
+    items = matched
+      .map((m) => byId.get(m.productId))
+      .filter((p): p is Product => !!p);
+  }
+  if (items.length === 0) items = defaultProducts;
 
   return (
     <section className="bg-background py-16">

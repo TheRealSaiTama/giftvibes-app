@@ -10,6 +10,10 @@ import {
   isRemoteOrDataImage,
   PRODUCT_IMAGE_PLACEHOLDER,
 } from "@/lib/product-image";
+import {
+  DEFAULT_POPULAR_NAMES,
+  matchCatalogIdsByNames,
+} from "@/lib/cms/mappers";
 
 // Local public assets — Drive hotlinks break on production (HTML interstitial / 403).
 const defaultProducts: Product[] = [
@@ -92,15 +96,21 @@ const WeeklyPopularProducts = ({ content, products: dbProducts }: WeeklyPopularP
     .map((item: any) => item?.productId)
     .filter((id: unknown): id is string => typeof id === "string" && id.length > 0);
 
-  // ponytail: same pattern as best-deals — admin picks by id (preserve order).
-  // Hardcoded set is the first-install fallback when nothing is picked yet.
+  // Admin picks by id. Empty → name-match live catalog (same as best_deals).
   const byId = new Map(
     (dbProducts || []).map((p) => [String(p.id), mapDbProduct(p)]),
   );
-  const items: Product[] =
+  let items: Product[] =
     selectedIds.length > 0
       ? selectedIds.map((id) => byId.get(id)).filter((p): p is Product => !!p)
-      : defaultProducts;
+      : [];
+  if (items.length === 0 && (dbProducts || []).length > 0) {
+    const matched = matchCatalogIdsByNames(dbProducts || [], DEFAULT_POPULAR_NAMES, 5);
+    items = matched
+      .map((m) => byId.get(m.productId))
+      .filter((p): p is Product => !!p);
+  }
+  if (items.length === 0) items = defaultProducts;
 
   return (
     <section className="py-16 bg-white">

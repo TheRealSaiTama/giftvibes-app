@@ -744,7 +744,86 @@ export const seedHomeSections = createServerFn({ method: "POST" })
       inserted++;
     }
 
+    // Sync empty product pickers (best_deals / popular) with live catalog by name.
+    let syncedPicks = 0;
+    try {
+      const {
+        DEFAULT_BEST_DEALS_NAMES,
+        DEFAULT_POPULAR_NAMES,
+        matchCatalogIdsByNames,
+        sectionItemsEmpty,
+      } = await import("@/lib/catalog-match");
+
+      const [productsRes, diariesRes] = await Promise.all([
+        context.supabase
+          .from("products")
+          .select("id, name")
+          .eq("enabled", true)
+          .order("name"),
+        context.supabase
+          .from("diaries")
+          .select("id, name")
+          .eq("enabled", true)
+          .order("name"),
+      ]);
+      const catalog = [
+        ...((productsRes.data || []) as { id: string; name: string }[]),
+        ...((diariesRes.data || []) as { id: string; name: string }[]),
+      ];
+
+      if (catalog.length > 0) {
+        const pickTargets: {
+          section_key: string;
+          names: readonly string[];
+          max: number;
+        }[] = [
+          { section_key: "best_deals", names: DEFAULT_BEST_DEALS_NAMES, max: 4 },
+          { section_key: "popular", names: DEFAULT_POPULAR_NAMES, max: 5 },
+        ];
+
+        for (const target of pickTargets) {
+          const { data: row } = await context.supabase
+            .from("page_sections")
+            .select("id, content")
+            .eq("page_key", "home")
+            .eq("section_key", target.section_key)
+            .maybeSingle();
+          if (!row) continue;
+          if (!sectionItemsEmpty(row.content)) continue;
+
+          const items = matchCatalogIdsByNames(catalog, target.names, target.max);
+          if (items.length === 0) continue;
+
+          const prev =
+            row.content && typeof row.content === "object" && !Array.isArray(row.content)
+              ? (row.content as Record<string, unknown>)
+              : {};
+          const { error } = await context.supabase
+            .from("page_sections")
+            .update({
+              content: {
+                ...prev,
+                heading:
+                  typeof prev.heading === "string"
+                    ? prev.heading
+                    : target.section_key === "best_deals"
+                      ? "Latest 2026 Diaries"
+                      : "Trending Diary Giftsets",
+                items,
+              },
+            })
+            .eq("id", row.id);
+          if (error) throw new Error(`Error syncing ${target.section_key} picks: ${error.message}`);
+          syncedPicks += items.length;
+          repaired++;
+        }
+      }
+    } catch (e) {
+      console.error("seed product-pick sync failed", e);
+      // Don't fail whole seed if catalog is empty/unavailable.
+    }
+
     await notifyStorefront(["/", "/shop"]);
-    return { ok: true, inserted, repaired, totalHome: sections.length };
+    return { ok: true, inserted, repaired, syncedPicks, totalHome: sections.length };
   });
 

@@ -208,15 +208,23 @@ function PageEditor() {
   async function handleSeed() {
     setSeeding(true);
     try {
-      const res = (await runSeed()) as { inserted?: number; repaired?: number } | undefined;
+      const res = (await runSeed()) as {
+        inserted?: number;
+        repaired?: number;
+        syncedPicks?: number;
+      } | undefined;
       await qc.invalidateQueries({ queryKey: ["sections"] });
       const inserted = res?.inserted ?? 0;
       const repaired = res?.repaired ?? 0;
-      if (inserted > 0 || repaired > 0) {
+      const syncedPicks = res?.syncedPicks ?? 0;
+      if (inserted > 0 || repaired > 0 || syncedPicks > 0) {
         toast.success(
           [
             inserted > 0 ? `Added ${inserted} section(s)` : null,
             repaired > 0 ? `repaired ${repaired}` : null,
+            syncedPicks > 0
+              ? `linked ${syncedPicks} catalog product(s) into empty pickers`
+              : null,
           ]
             .filter(Boolean)
             .join(", ") + ". Open each accordion to edit.",

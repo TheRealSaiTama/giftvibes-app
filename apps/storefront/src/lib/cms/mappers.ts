@@ -387,6 +387,77 @@ export function mapProductChrome(content: unknown): ProductChromeOut {
   };
 }
 
+/** Names used by storefront offline defaults for Latest Diaries (best_deals). */
+export const DEFAULT_BEST_DEALS_NAMES = [
+  "Management Premium PU Leather Diary 2026",
+  "DIRECTORS Premium Leather Diary 2026",
+  "Heritage Leather Executive Diary 2026",
+  "Paipin Brown Executive Leather Diary",
+] as const;
+
+/** Names used by storefront offline defaults for Trending Diary Giftsets (popular). */
+export const DEFAULT_POPULAR_NAMES = [
+  "Primo A5 Corporate Diary and Pen Set",
+  "Wooden A5 Corporate Diary and Pen Set",
+  "Polo A5 Corporate Diary and Pen Set",
+  "50-50 B5 Diary Calendar with Pen Combo Set",
+  "Oval Leather B5 Diary with Pen Gift Set",
+] as const;
+
+export function normalizeCatalogName(name: string): string {
+  return String(name || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
+ * Match wanted display names to live catalog IDs (products + diaries).
+ * Fuzzy: exact normalize, then includes either way. Prefer first hit; no duplicates.
+ * If nothing matches by name, fill remaining slots with first catalog rows.
+ */
+export function matchCatalogIdsByNames(
+  catalog: { id: string | number; name?: string | null }[] | null | undefined,
+  wantedNames: readonly string[],
+  max: number,
+): { productId: string }[] {
+  if (!catalog?.length || max <= 0) return [];
+  const used = new Set<string>();
+  const out: { productId: string }[] = [];
+
+  for (const want of wantedNames) {
+    if (out.length >= max) break;
+    const nw = normalizeCatalogName(want);
+    if (!nw) continue;
+    const hit = catalog.find((c) => {
+      const id = String(c.id);
+      if (!id || used.has(id)) return false;
+      const nc = normalizeCatalogName(c.name || "");
+      if (!nc) return false;
+      return nc === nw || nc.includes(nw) || nw.includes(nc);
+    });
+    if (hit) {
+      const id = String(hit.id);
+      used.add(id);
+      out.push({ productId: id });
+    }
+  }
+
+  // If name-match found nothing, seed first N catalog items so admin/storefront stay in sync.
+  if (out.length === 0) {
+    for (const c of catalog) {
+      if (out.length >= max) break;
+      const id = String(c.id);
+      if (!id || used.has(id)) continue;
+      used.add(id);
+      out.push({ productId: id });
+    }
+  }
+
+  return out;
+}
+
 /**
  * Prefer CMS footer groups when non-empty; offline fallback only when empty.
  * company → INFORMATION column; shop → OUR PRODUCT; support merges into INFORMATION.

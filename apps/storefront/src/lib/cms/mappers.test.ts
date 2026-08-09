@@ -19,6 +19,8 @@ import {
   mapShopChrome,
   mapProductChrome,
   resolveFooterColumns,
+  matchCatalogIdsByNames,
+  DEFAULT_BEST_DEALS_NAMES,
   REQUIRED_HOME_SECTION_KEYS,
 } from "./mappers.ts";
 
@@ -192,6 +194,32 @@ describe("mapProductChrome", () => {
     assert.equal(c.related_heading, "Similar picks");
     assert.equal(c.enquiry_cta, "Ask us");
     assert.equal(c.quote_cta, "Get quote");
+  });
+});
+
+describe("matchCatalogIdsByNames", () => {
+  const catalog = [
+    { id: "a", name: "Management Premium PU Leather Diary 2026" },
+    { id: "b", name: "DIRECTORS Premium Leather Diary 2026" },
+    { id: "c", name: "Other Gift Set" },
+    { id: "d", name: "Heritage Leather Executive Diary 2026" },
+  ];
+  it("matches default best_deals names by fuzzy name", () => {
+    const ids = matchCatalogIdsByNames(catalog, DEFAULT_BEST_DEALS_NAMES, 4);
+    assert.deepEqual(
+      ids.map((x) => x.productId),
+      ["a", "b", "d"],
+    );
+  });
+  it("fills from catalog when names miss entirely", () => {
+    const ids = matchCatalogIdsByNames(
+      [{ id: "x", name: "Only Item" }],
+      ["Totally Unknown Product"],
+      2,
+    );
+    // no name hit → falls through to first catalog rows
+    assert.equal(ids.length, 1);
+    assert.equal(ids[0].productId, "x");
   });
 });
 
