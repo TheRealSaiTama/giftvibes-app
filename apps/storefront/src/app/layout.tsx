@@ -31,7 +31,9 @@ export async function generateMetadata(): Promise<Metadata> {
       ?? `${brand} | Customised Diaries 2026 | Customised Note Books | Customised Corporate Gifts`;
     const defaultDescription = homeSeo?.description
       ?? `${brand} crafts personalised diaries, notebooks, planners, and premium corporate gifts for 2026 with bespoke branding and nationwide delivery.`;
-    const siteUrl = safeSiteUrl(settings.siteUrl);
+    // Always use the real public domain — DB had a typo "giftvibe.in" (missing s).
+    const siteUrl = "https://www.giftvibes.in";
+    void safeSiteUrl(settings.siteUrl); // keep helper for future use / validation
     const ogImage = homeSeo?.ogImageUrl || settings.logoUrl || "/logo.png";
     const favicon = settings.faviconUrl || "/favicon/favicon.png";
 
@@ -84,25 +86,30 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Visual edit / Orchids tooling only inside iframes (builder preview) — not on the live site.
+  const enableVisualEdits = process.env.NEXT_PUBLIC_ENABLE_VISUAL_EDITS === "true";
+
   return (
     <html lang="en">
       <body className="antialiased">
         <ProductProvider>
-          <ErrorReporter />
-          <Script
-            src="https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/scripts//route-messenger.js"
-            strategy="afterInteractive"
-            data-target-origin="*"
-            data-message-type="ROUTE_CHANGE"
-            data-include-search-params="true"
-            data-only-in-iframe="true"
-            data-debug="true"
-            data-custom-data='{"appName": "YourApp", "version": "1.0.0", "greeting": "hi"}'
-          />
+          {enableVisualEdits && <ErrorReporter />}
+          {enableVisualEdits && (
+            <Script
+              src="https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/scripts//route-messenger.js"
+              strategy="afterInteractive"
+              data-target-origin="*"
+              data-message-type="ROUTE_CHANGE"
+              data-include-search-params="true"
+              data-only-in-iframe="true"
+              data-debug="true"
+              data-custom-data='{"appName": "YourApp", "version": "1.0.0", "greeting": "hi"}'
+            />
+          )}
           <Toaster position="top-center" richColors expand />
           {children}
           <WhatsAppButton />
-          <VisualEditsMessenger />
+          {enableVisualEdits && <VisualEditsMessenger />}
         </ProductProvider>
       </body>
     </html>

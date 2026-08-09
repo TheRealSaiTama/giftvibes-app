@@ -19,21 +19,36 @@ const brandsData: Brand[] = [
   { name: 'Brand 7', logo: '/brand/image_2025-09-23_00-56-33.png' },
 ];
 
-const BrandLogo = ({ brand }: { brand: Brand }) => (
-  <div className="mx-16 min-w-[200px] flex items-center justify-center py-2">
-    <Image
-      src={brand.logo}
-      alt={`${brand.name} logo`}
-      width={240}
-      height={240}
-      className="h-24 w-auto object-contain opacity-90 hover:opacity-100 transition-opacity"
-    />
-  </div>
-);
+const BrandLogo = ({ brand }: { brand: Brand }) => {
+  const src =
+    brand.logo && (brand.logo.startsWith("http") || brand.logo.startsWith("/"))
+      ? brand.logo
+      : "/logo.png";
+  return (
+    <div className="mx-16 min-w-[200px] flex items-center justify-center py-2">
+      <Image
+        src={src}
+        alt={`${brand.name || "Brand"} logo`}
+        width={240}
+        height={240}
+        className="h-24 w-auto object-contain opacity-90 hover:opacity-100 transition-opacity"
+      />
+    </div>
+  );
+};
 
 const BrandsSection = ({ content }: { content?: any }) => {
   const heading = content?.heading || "Trusted by Leading Brands";
-  const items = content?.items || brandsData;
+  // CMS may use logo or image/image_url — normalize so next/image never gets "".
+  const rawItems = Array.isArray(content?.items) ? content.items : brandsData;
+  const items: Brand[] = rawItems
+    .map((b: any, i: number) => ({
+      name: String(b?.name || `Brand ${i + 1}`),
+      logo: String(b?.logo || b?.image_url || b?.image || ""),
+    }))
+    .filter((b: Brand) => b.logo);
+
+  const loop = items.length > 0 ? items : brandsData;
 
   return (
     <section className="py-[100px]">
@@ -54,7 +69,7 @@ const BrandsSection = ({ content }: { content?: any }) => {
             animate={{ x: ['0%', '-50%'] }}
             transition={{ duration: 25, repeat: Infinity, ease: 'linear' }}
           >
-            {[...items, ...items].map((brand: Brand, idx: number) => (
+            {[...loop, ...loop].map((brand: Brand, idx: number) => (
               <BrandLogo key={`marquee-${brand.name}-${idx}`} brand={brand} />
             ))}
           </motion.div>
