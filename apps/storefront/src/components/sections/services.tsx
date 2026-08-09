@@ -40,13 +40,13 @@ const ServicesSection = ({ content }: { content?: any }) => {
           {items.map((service: any, index: number) => (
             <div
               key={index}
-              className={`group ${service.bgColorClass || 'bg-[#124559]'} rounded-2xl p-8 text-white relative overflow-hidden min-h-[220px] transition-all duration-300 ease-in-out hover:shadow-2xl hover:shadow-black/25`}
+              className="group bg-white rounded-2xl p-8 text-black relative overflow-hidden min-h-[220px] border border-border shadow-md transition-all duration-300 ease-in-out hover:shadow-2xl hover:shadow-black/15"
             >
               <div className="relative z-10">
-                <h4 className="text-2xl font-semibold tracking-tight">
+                <h4 className="text-2xl font-semibold tracking-tight text-black">
                   {service.title}
                 </h4>
-                <p className="mt-2 text-base font-normal text-white/90 max-w-[200px]">
+                <p className="mt-2 text-base font-normal text-black/80 max-w-[200px]">
                   {service.subtitle}
                 </p>
               </div>
@@ -54,8 +54,8 @@ const ServicesSection = ({ content }: { content?: any }) => {
               {/* Circular image window */}
               <div className="absolute -bottom-10 -right-10 w-40 h-40 rounded-full overflow-hidden transition-all duration-500 ease-in-out group-hover:scale-110">
                 <Image
-                  src={service.image}
-                  alt={service.alt || service.title}
+                  src={service.image || service.image_url || "/logo3.png"}
+                  alt={service.alt || service.title || "Service"}
                   fill
                   className="object-cover transition-transform duration-500 ease-in-out group-hover:scale-125"
                 />
