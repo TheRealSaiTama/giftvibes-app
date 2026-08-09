@@ -58,7 +58,12 @@ const Header = ({
 }) => {
   const navLinks = nav && nav.length ? nav : FALLBACK_NAV;
   const megaItems = megaMenu && megaMenu.length ? megaMenu : [];
-  const logo = logoUrl?.trim() || "/logo3.png";
+  // Prefer compact wide logo. Ignore the square /logo.png (2048² + white padding).
+  const rawLogo = logoUrl?.trim() || "";
+  const logo =
+    !rawLogo || rawLogo === "/logo.png" || rawLogo.endsWith("/logo.png")
+      ? "/logo3.png"
+      : rawLogo;
   const brand = brandName?.trim() || "GiftVibes";
   const [isEnquiryModalOpen, setIsEnquiryModalOpen] = React.useState(false);
   const { selectedProducts, clearSelected } = useSelectedProducts();
@@ -191,13 +196,14 @@ const Header = ({
       {/* Main Navigation */}
       <div className="border-b">
         <div className="container flex items-center justify-between h-[88px] px-10">
-          <Link href="/">
+          <Link href="/" className="flex items-center shrink-0 max-h-10">
             <Image
               src={logo}
               alt={brand}
               width={170}
               height={40}
               priority
+              className="h-10 w-auto max-h-10 object-contain object-left"
             />
           </Link>
 

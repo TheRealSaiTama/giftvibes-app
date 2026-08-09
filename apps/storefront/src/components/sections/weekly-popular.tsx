@@ -5,7 +5,13 @@ import Link from "next/link";
 import { useSelectedProducts } from '@/context/ProductContext';
 import { Checkbox } from '@/components/ui/checkbox';
 import type { Product } from '@/types/Product';
+import {
+  resolveProductImage,
+  isRemoteOrDataImage,
+  PRODUCT_IMAGE_PLACEHOLDER,
+} from "@/lib/product-image";
 
+// Local public assets — Drive hotlinks break on production (HTML interstitial / 403).
 const defaultProducts: Product[] = [
   {
     id: 1,
@@ -15,7 +21,7 @@ const defaultProducts: Product[] = [
     maxPrice: 255,
     currency: "INR" as const,
     description: "Soft-touch PU diary with matching metal pen and premium planner pages in an elegant gift box.",
-    image: "https://drive.google.com/uc?id=1UcB8Gmh4knL15Su_DsD5D0WihKEFN6pH",
+    image: "/diary/trendingdiary.png",
   },
   {
     id: 2,
@@ -25,7 +31,7 @@ const defaultProducts: Product[] = [
     maxPrice: 250,
     currency: "INR" as const,
     description: "Wood grain inspired diary with smooth pen, monthly planner inserts and custom branding ready box.",
-    image: "https://drive.google.com/uc?id=1gfUUIhJoA_fhUtO5q8cosOqV9I8fGkVV",
+    image: "/diary/trendingdiary2.png",
   },
   {
     id: 3,
@@ -35,7 +41,7 @@ const defaultProducts: Product[] = [
     maxPrice: 245,
     currency: "INR" as const,
     description: "Premium PU diary combo with elastic closure, satin ribbon and logo-ready keepsake packaging.",
-    image: "https://drive.google.com/uc?id=11pKAL_jh7Af3IQxxa49_MIbMXOT0tx7e",
+    image: "/diary/trendingdiary3.png",
   },
   {
     id: 4,
@@ -45,7 +51,7 @@ const defaultProducts: Product[] = [
     maxPrice: 332,
     currency: "INR" as const,
     description: "Executive B5 diary with detachable desk calendar, heavyweight pen and luxe presentation box.",
-    image: "https://drive.google.com/uc?id=1ZHcdURpLfDV5ZQsoXlrRjttX_d5IT_86",
+    image: "/diary/trendingdiary4.png",
   },
   {
     id: 5,
@@ -55,7 +61,7 @@ const defaultProducts: Product[] = [
     maxPrice: 310,
     currency: "INR" as const,
     description: "Oval motif B5 diary in plush leatherette with premium metal pen and foil-ready gift box.",
-    image: "https://drive.google.com/uc?id=1jIxlNwdi-E1f_-LyXT5eoP7g_JECd3JM",
+    image: "/diary/trendingdiary5.png",
   },
 ];
 
@@ -63,12 +69,10 @@ const RATING = 5;
 const REVIEWS = 121;
 
 function mapDbProduct(p: any): Product {
-  const raw = String(p.imageUrl || p.image_url || "").trim();
-  const image = raw && (raw.startsWith("http") || raw.startsWith("/")) ? raw : "/logo.png";
   return {
     id: p.id,
     name: p.name || "Product",
-    image,
+    image: resolveProductImage(p.imageUrl || p.image_url || p.image),
     minPrice: p.minPrice ?? p.min_price ?? null,
     maxPrice: p.maxPrice ?? p.max_price ?? null,
     description: p.description || "",
@@ -132,15 +136,11 @@ const WeeklyPopularProducts = ({ content, products: dbProducts }: WeeklyPopularP
                 </div>
                 <Link href={`/shop/${product.id || index}`} className="relative bg-white p-6 flex items-center justify-center aspect-square overflow-hidden product-image-container pt-8 pl-8 block">
                   <Image
-                    src={product.image || "/logo.png"}
+                    src={product.image || PRODUCT_IMAGE_PLACEHOLDER}
                     alt={product.name}
                     width={200}
                     height={200}
-                    unoptimized={
-                      !product.image ||
-                      product.image.includes("drive.google.com") ||
-                      product.image.startsWith("data:")
-                    }
+                    unoptimized={isRemoteOrDataImage(product.image || "")}
                     className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105"
                   />
                   <span className="absolute top-4 right-4 bg-white w-9 h-9 flex items-center justify-center rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity duration-300">

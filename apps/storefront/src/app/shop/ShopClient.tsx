@@ -9,6 +9,7 @@ import { EnquiryFormContent } from '@/components/sections/enquiry-modal'; // Ass
 import { Dialog, DialogTrigger, DialogContent } from '@/components/ui/dialog';
 import type { Product as ProductType } from '@/types/Product';
 import { useSelectedProducts } from '@/context/ProductContext';
+import { resolveProductImage, isRemoteOrDataImage } from "@/lib/product-image";
 
 type ShopProduct = {
   id: string | number;
@@ -392,22 +393,7 @@ export default function ShopClient({
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {results.map((product) => {
-                  const url = product.imageUrl?.trim() || "";
-                  // Client-safe placeholder — Buffer is Node-only and crashed this page in the browser.
-                  const placeholderSvg =
-                    '<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600"><rect fill="#f5f5f5" width="100%" height="100%"/><text x="50%" y="50%" text-anchor="middle" fill="#9e9e9e" font-family="sans-serif" font-size="24">No Image</text></svg>';
-                  let imageUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(placeholderSvg)}`;
-
-                  if (url) {
-                    if (url.includes("drive.google.com")) {
-                      const fileId = getFileIdFromUrl(url);
-                      if (fileId) {
-                        imageUrl = `https://drive.google.com/uc?id=${fileId}`;
-                      }
-                    } else if (/^https?:\/\//i.test(url) || url.startsWith("/")) {
-                      imageUrl = url;
-                    }
-                  }
+                  const imageUrl = resolveProductImage(product.imageUrl);
 
                   return (
                     <article key={String(product.id)} className="bg-white rounded-xl shadow-md hover:shadow-xl overflow-hidden transition-all duration-300 border border-gray-100 hover:border-primary/30">
@@ -417,7 +403,7 @@ export default function ShopClient({
                             src={imageUrl}
                             alt={product.name || "Product"}
                             fill
-                            unoptimized={imageUrl.startsWith("data:") || imageUrl.includes("drive.google.com")}
+                            unoptimized={isRemoteOrDataImage(imageUrl)}
                             className="object-cover group-hover:scale-105 transition-transform duration-500"
                             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
                           />

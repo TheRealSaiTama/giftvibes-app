@@ -5,7 +5,13 @@ import { Button } from "@/components/ui/button";
 import { useSelectedProducts } from '@/context/ProductContext';
 import { Checkbox } from '@/components/ui/checkbox';
 import type { Product } from '@/types/Product';
+import {
+  resolveProductImage,
+  isRemoteOrDataImage,
+  PRODUCT_IMAGE_PLACEHOLDER,
+} from "@/lib/product-image";
 
+// Local public assets — Drive hotlinks break on production.
 const defaultProducts: Product[] = [
   {
     id: 100000,
@@ -14,7 +20,7 @@ const defaultProducts: Product[] = [
     minPrice: 240,
     maxPrice: 300,
     description: 'Magnetic flap executive diary with soft-touch PU cover and premium natural shade paper.',
-    image: 'https://drive.google.com/uc?id=11sbS-XW7D6BsdoMYkXkINTHFsxp2NVx-',
+    image: '/diary/directors.png',
     currency: 'INR',
   },
   {
@@ -24,7 +30,7 @@ const defaultProducts: Product[] = [
     minPrice: 172,
     maxPrice: 195,
     description: 'Director edition PU leather diary with sponge padding and elegant magnetic flap finish.',
-    image: 'https://drive.google.com/uc?id=1YqUkhJ9YX33wuuJcH_qGCaAsZ0GIDNNZ',
+    image: '/diary/regularleather.png',
     currency: 'INR',
   },
   {
@@ -34,7 +40,7 @@ const defaultProducts: Product[] = [
     minPrice: 137,
     maxPrice: 153,
     description: 'Heritage inspired PU leather diary with foam padding and one-date-per-page layout.',
-    image: 'https://drive.google.com/uc?id=1ntl6n5DQpoF-FkfxYO1Rs49nJHl-NWsF',
+    image: '/diary/antleather.png',
     currency: 'INR',
   },
   {
@@ -44,7 +50,7 @@ const defaultProducts: Product[] = [
     minPrice: 154,
     maxPrice: 176,
     description: 'Two-tone brown magnetic flap diary crafted in soft PU with premium writing paper.',
-    image: 'https://drive.google.com/uc?id=1lfIN2mDTjNwAMYX1xbnPBkqkl95OTuzL',
+    image: '/diary/papin.png',
     currency: 'INR',
   },
 ];
@@ -73,14 +79,10 @@ const ProductCard = ({ product }: { product: Product }) => {
       </div>
       <Link href={`/shop/${product.id}`} className="relative bg-white aspect-square overflow-hidden product-image-container pt-8 pl-8 block">
         <Image
-          src={product.image || "/logo.png"}
+          src={product.image || PRODUCT_IMAGE_PLACEHOLDER}
           alt={product.name}
           fill
-          unoptimized={
-            !product.image ||
-            product.image.includes("drive.google.com") ||
-            product.image.startsWith("data:")
-          }
+          unoptimized={isRemoteOrDataImage(product.image || "")}
           sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
           className="object-contain transition-transform duration-300 group-hover:scale-105"
         />
@@ -137,13 +139,10 @@ const ProductCard = ({ product }: { product: Product }) => {
 // ponytail: map a Prisma products/diaries row to the storefront's Product shape.
 // The component only needs name, image, price range, description, id.
 function mapDbProduct(p: any): Product {
-  const raw = String(p.imageUrl || p.image_url || "").trim();
-  // Never pass empty string to next/image — it throws in production.
-  const image = raw && (raw.startsWith("http") || raw.startsWith("/")) ? raw : "/logo.png";
   return {
     id: p.id,
     name: p.name || "Product",
-    image,
+    image: resolveProductImage(p.imageUrl || p.image_url || p.image),
     minPrice: p.minPrice ?? p.min_price ?? null,
     maxPrice: p.maxPrice ?? p.max_price ?? null,
     description: p.description || "",

@@ -9,6 +9,11 @@ import { cn } from "@/lib/utils";
 import { useSelectedProducts } from '@/context/ProductContext';
 import { Checkbox } from '@/components/ui/checkbox';
 import type { Product } from '@/types/Product';
+import {
+  resolveProductImage,
+  isRemoteOrDataImage,
+  PRODUCT_IMAGE_PLACEHOLDER,
+} from "@/lib/product-image";
 
 interface ProductCardProps {
   product: Product;
@@ -57,14 +62,10 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, className }) => {
       </div>
       <Link href={`/shop/${product.id}`} className="relative bg-white flex items-center justify-center p-5 mb-5 h-[230px] overflow-hidden product-image-container pt-8 pl-8 block">
         <Image
-          src={product.image || "/logo.png"}
+          src={product.image || PRODUCT_IMAGE_PLACEHOLDER}
           alt={product.name}
           fill
-          unoptimized={
-            !product.image ||
-            product.image.includes("drive.google.com") ||
-            product.image.startsWith("data:")
-          }
+          unoptimized={isRemoteOrDataImage(product.image || "")}
           className="object-contain transition-transform duration-300 group-hover:scale-105"
           sizes="(max-width: 640px) 90vw, (max-width: 1024px) 45vw, 22vw"
         />
@@ -130,22 +131,7 @@ export default function TabbedProducts({
       }))
     : [];
 
-  // Static public placeholder — never use data: URLs with next/image (throws in prod).
-  const PLACEHOLDER = "/logo.png";
-
   const products: Product[] = (dbProducts || []).map((p) => {
-    const url = String(p.imageUrl || p.image_url || "").trim();
-    let imageUrl = PLACEHOLDER;
-
-    if (url) {
-      if (url.includes("drive.google.com")) {
-        const fileId = getFileIdFromUrl(url);
-        if (fileId) imageUrl = `https://drive.google.com/uc?id=${fileId}`;
-      } else if (/^https?:\/\//i.test(url) || url.startsWith("/")) {
-        imageUrl = url;
-      }
-    }
-
     const minPrice = p.minPrice ?? p.min_price ?? null;
     const maxPrice = p.maxPrice ?? p.max_price ?? null;
 
@@ -156,7 +142,7 @@ export default function TabbedProducts({
       maxPrice,
       price: minPrice ?? undefined,
       description: p.description || "",
-      image: imageUrl,
+      image: resolveProductImage(p.imageUrl || p.image_url || p.image),
       rating: 5,
       reviewCount: 121,
       currency: "INR" as const,

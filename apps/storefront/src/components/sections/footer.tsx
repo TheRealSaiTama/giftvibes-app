@@ -359,7 +359,11 @@ export default function Footer({
   const phone = settings?.phone ?? "+91 9899223130";
   const email = settings?.email ?? "support@giftvibes.in";
   const address = settings?.address ?? "4487, Roshan Pura(Daiwara), Near Metro Station, Nai Sarak, Delhi 110006";
-  const logoSrc = settings?.logoUrl ?? "/logo3.png";
+  const rawLogo = settings?.logoUrl?.trim() || "";
+  const logoSrc =
+    !rawLogo || rawLogo === "/logo.png" || rawLogo.endsWith("/logo.png")
+      ? "/logo3.png"
+      : rawLogo;
   const {
     company: companyLinks,
     shop: shopLinks,
@@ -448,8 +452,14 @@ export default function Footer({
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
           {/* Contact Info */}
           <div>
-            <a href="#" className="inline-block mb-6">
-              <Image src={logoSrc} alt={`${brand} logo`} width={140} height={34} />
+            <a href="#" className="inline-block mb-6 max-h-9">
+              <Image
+                src={logoSrc}
+                alt={`${brand} logo`}
+                width={140}
+                height={34}
+                className="h-9 w-auto max-h-9 object-contain object-left"
+              />
             </a>
             <h3 className="text-base font-bold text-foreground mb-4">CONTACT INFO</h3>
             <ul className="space-y-4 text-sm text-medium-gray">

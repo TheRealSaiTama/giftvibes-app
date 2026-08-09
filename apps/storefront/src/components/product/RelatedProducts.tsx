@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useState } from 'react';
+import { resolveProductImage, isRemoteOrDataImage } from '@/lib/product-image';
 
 interface Product {
   id: string | number;
@@ -76,19 +77,7 @@ export default function RelatedProducts({ products, heading }: RelatedProductsPr
 
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
           {visibleProducts.map((product) => {
-            const url = product.imageUrl?.trim();
-            let imageUrl = '/placeholder-product.jpg';
-
-            if (url) {
-              if (url.includes('drive.google.com')) {
-                const fileId = getFileIdFromUrl(url);
-                if (fileId) {
-                  imageUrl = `https://drive.google.com/uc?id=${fileId}`;
-                }
-              } else if (/^https?:\/\//i.test(url)) {
-                imageUrl = url;
-              }
-            }
+            const imageUrl = resolveProductImage(product.imageUrl);
 
             const hasRange =
               typeof product.minPrice === 'number' &&

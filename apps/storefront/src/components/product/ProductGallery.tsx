@@ -2,28 +2,16 @@
 
 import Image from 'next/image';
 import { useState } from 'react';
+import {
+  resolveProductImage,
+  isRemoteOrDataImage,
+  PRODUCT_IMAGE_PLACEHOLDER,
+} from '@/lib/product-image';
 
 interface ProductGalleryProps {
   imageUrl: string;
   productName: string;
   gallery?: string[];
-}
-
-function getFileIdFromUrl(url: string): string | null {
-  if (!url) return null;
-  const regex = /(?:\/d\/|\?id=|&id=)([a-zA-Z0-9_-]{28,})/;
-  const match = url.match(regex);
-  return match ? match[1] : null;
-}
-
-function normalizeUrl(url: string): string {
-  if (!url) return '/placeholder-product.jpg';
-  if (url.includes('drive.google.com')) {
-    const fileId = getFileIdFromUrl(url);
-    if (fileId) return `https://drive.google.com/uc?id=${fileId}`;
-  }
-  if (/^https?:\/\//i.test(url)) return url;
-  return url;
 }
 
 export default function ProductGallery({ imageUrl, productName, gallery }: ProductGalleryProps) {
@@ -33,10 +21,12 @@ export default function ProductGallery({ imageUrl, productName, gallery }: Produ
   // ponytail: primary image first, then any gallery entries. M6 secondary
   // images flow through as the rest of the array.
   const images: string[] = [
-    normalizeUrl(imageUrl),
-    ...(Array.isArray(gallery) ? gallery : []).map(normalizeUrl).filter((u) => u && u !== '/placeholder-product.jpg'),
+    resolveProductImage(imageUrl),
+    ...(Array.isArray(gallery) ? gallery : [])
+      .map((u) => resolveProductImage(u))
+      .filter((u) => u && u !== PRODUCT_IMAGE_PLACEHOLDER),
   ].filter(Boolean);
-  const safeImages = images.length > 0 ? images : ['/placeholder-product.jpg'];
+  const safeImages = images.length > 0 ? images : [PRODUCT_IMAGE_PLACEHOLDER];
 
   return (
     <div className="space-y-4">
@@ -53,6 +43,7 @@ export default function ProductGallery({ imageUrl, productName, gallery }: Produ
             src={safeImages[selectedImage] || safeImages[0]}
             alt={productName}
             fill
+            unoptimized={isRemoteOrDataImage(safeImages[selectedImage] || safeImages[0])}
             className={`object-contain transition-transform duration-300 ${
               isZoomed ? 'scale-150' : 'scale-100'
             }`}

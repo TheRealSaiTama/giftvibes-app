@@ -36,7 +36,9 @@ export type SiteSettingsOut = {
 const SETTINGS_FALLBACK: SiteSettingsOut = {
   brandName: "GiftVibes",
   tagline: "Customised Diaries, Notebooks & Corporate Gifts",
-  logoUrl: "/logo.png",
+  // logo3.png is the wide header mark (438×125). logo.png is a 2048² square with
+  // white padding and must not be the default chrome logo.
+  logoUrl: "/logo3.png",
   faviconUrl: "/favicon/favicon.png",
   primaryColor: "#c4654a",
   whatsappNumber: null,
