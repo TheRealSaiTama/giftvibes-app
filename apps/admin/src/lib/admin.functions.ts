@@ -612,17 +612,28 @@ export const seedHomeSections = createServerFn({ method: "POST" })
     // Only INSERT missing sections — never overwrite content the user already edited.
     const { data: existing, error: listErr } = await context.supabase
       .from("page_sections")
-      .select("section_key, content")
+      .select("id, section_key, content")
       .eq("page_key", "home");
-    if (listErr) throw new Error(listErr.message);
+    if (listErr) {
+      throw new Error(
+        `Cannot read page_sections: ${listErr.message}. Check you are signed in as the owner account.`,
+      );
+    }
 
     const existingKeys = new Set((existing || []).map((r: any) => r.section_key as string));
     let inserted = 0;
+    let repaired = 0;
 
     for (const section of sections) {
       if (existingKeys.has(section.section_key)) continue;
       const { error } = await context.supabase.from("page_sections").insert(section as any);
-      if (error) throw new Error(`Error inserting ${section.section_key}: ${error.message}`);
+      if (error) {
+        const hint =
+          /policy|permission|row-level/i.test(error.message)
+            ? " Your account may not be the owner — check public.user_roles."
+            : "";
+        throw new Error(`Error inserting ${section.section_key}: ${error.message}.${hint}`);
+      }
       inserted++;
     }
 
@@ -630,8 +641,8 @@ export const seedHomeSections = createServerFn({ method: "POST" })
     const heroRow = (existing || []).find((r: any) => r.section_key === "hero");
     if (heroRow && heroRow.content && typeof heroRow.content === "object") {
       const c = heroRow.content as Record<string, any>;
-      if (!c.heading_1 && (c.headline || c.heading)) {
-        const repaired = {
+      if (!c.heading_1 && (c.headline || c.heading || Object.keys(c).length <= 2)) {
+        const repairedContent = {
           heading_1: c.headline || c.heading || "Custom Diaries",
           heading_2: c.headline_line2 || c.heading_2 || "Corporate Gifts.",
           subheading_1:
@@ -648,10 +659,11 @@ export const seedHomeSections = createServerFn({ method: "POST" })
         };
         const { error } = await context.supabase
           .from("page_sections")
-          .update({ content: repaired, title: "Hero Section" })
+          .update({ content: repairedContent, title: "Hero Section" })
           .eq("page_key", "home")
           .eq("section_key", "hero");
         if (error) throw new Error(`Error repairing hero: ${error.message}`);
+        repaired++;
       }
     }
 
@@ -733,6 +745,6 @@ export const seedHomeSections = createServerFn({ method: "POST" })
     }
 
     await notifyStorefront(["/", "/shop"]);
-    return { ok: true, inserted, totalHome: sections.length };
+    return { ok: true, inserted, repaired, totalHome: sections.length };
   });
 

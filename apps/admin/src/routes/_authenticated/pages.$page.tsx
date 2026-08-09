@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createFileRoute, notFound, useParams } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -20,6 +20,15 @@ import {
 } from "@/components/ui/accordion";
 import { toast } from "sonner";
 import { Eye, EyeOff, Plus, Trash2, Monitor, Smartphone, RefreshCw, ExternalLink } from "lucide-react";
+import { MediaPicker } from "@/components/admin/media-picker";
+import { ProductPicker } from "@/components/admin/product-picker";
+import { TabManager } from "@/components/admin/tab-manager";
+import {
+  CategoryItemsEditor,
+  defaultCategoryItems,
+  normalizeCategoryItem,
+  type CategoryCarouselItem,
+} from "@/components/admin/category-items-editor";
 
 /** Expected home section keys (must match seedHomeSections). */
 const HOME_SECTION_KEYS = [
@@ -38,15 +47,6 @@ const HOME_SECTION_KEYS = [
   "services",
   "corporate_showcase",
 ] as const;
-import { MediaPicker } from "@/components/admin/media-picker";
-import { ProductPicker } from "@/components/admin/product-picker";
-import { TabManager } from "@/components/admin/tab-manager";
-import {
-  CategoryItemsEditor,
-  defaultCategoryItems,
-  normalizeCategoryItem,
-  type CategoryCarouselItem,
-} from "@/components/admin/category-items-editor";
 
 const PAGE_PREVIEW_PATHS: Record<string, string> = {
   home: "/",
@@ -80,6 +80,8 @@ type Section = {
 /** Map legacy / partial DB content into the fields the storefront + editor expect. */
 function normalizeSectionForEditor(section: Section): Section {
   const c = section.content || {};
+
+  // Hero: expand old single-field rows into full editable schema.
   if (section.section_key === "hero" && !c.heading_1) {
     return {
       ...section,
@@ -100,6 +102,29 @@ function normalizeSectionForEditor(section: Section): Section {
       },
     };
   }
+
+  // Shop / product template: ensure default editable keys always exist.
+  if (section.page_key === "shop" && section.section_key === "main") {
+    return {
+      ...section,
+      content: {
+        heading: c.heading ?? "Our Products",
+        subheading: c.subheading ?? "Browse diaries, gift sets, and corporate essentials.",
+        empty_state: c.empty_state ?? "No products match your filters. Try clearing filters.",
+      },
+    };
+  }
+  if (section.page_key === "product" && section.section_key === "main") {
+    return {
+      ...section,
+      content: {
+        related_heading: c.related_heading ?? "You may also like",
+        enquiry_cta: c.enquiry_cta ?? "Enquire Now",
+        quote_cta: c.quote_cta ?? "Request Quote",
+      },
+    };
+  }
+
   return section;
 }
 
@@ -110,12 +135,19 @@ function PageEditor() {
   const runUpdate = useServerFn(updateSection);
   const runSeed = useServerFn(seedHomeSections);
   const [seeding, setSeeding] = useState(false);
+  const autoSeedTried = useRef(false);
 
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewDevice, setPreviewDevice] = useState<"desktop" | "mobile">("desktop");
   const [previewNonce, setPreviewNonce] = useState(0);
 
-  const { data: sections, isLoading } = useQuery<Section[]>({
+  const {
+    data: sections,
+    isLoading,
+    isError,
+    error: loadError,
+    refetch,
+  } = useQuery<Section[]>({
     queryKey: ["sections", page],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -123,9 +155,10 @@ function PageEditor() {
         .select("*")
         .eq("page_key", page)
         .order("sort_order");
-      if (error) throw error;
-      return data as Section[];
+      if (error) throw new Error(error.message || "Failed to load page sections");
+      return (data ?? []) as Section[];
     },
+    retry: 1,
   });
 
   const { data: settings } = useQuery<{ preview_url: string | null; site_url: string | null }>({
@@ -161,37 +194,74 @@ function PageEditor() {
       ? missingHomeCount > 0 || (sections?.length ?? 0) === 0
       : (sections?.length ?? 0) === 0;
 
+  // Legacy hero with only `headline` needs repair even when the row exists.
+  const heroNeedsRepair =
+    page === "home" &&
+    !!sections?.some((s) => {
+      if (s.section_key !== "hero") return false;
+      const c = s.content || {};
+      return !c.heading_1 && !!(c.headline || c.heading);
+    });
+
+  const showSeedBanner = needsSeed || heroNeedsRepair;
+
   async function handleSeed() {
     setSeeding(true);
     try {
-      const res = await runSeed({ data: undefined as never });
+      const res = (await runSeed()) as { inserted?: number; repaired?: number } | undefined;
       await qc.invalidateQueries({ queryKey: ["sections"] });
-      const inserted = (res as any)?.inserted ?? 0;
-      toast.success(
-        inserted > 0
-          ? `Added ${inserted} missing section(s). Open each accordion to edit.`
-          : "Sections already complete (hero fields repaired if needed).",
-      );
+      const inserted = res?.inserted ?? 0;
+      const repaired = res?.repaired ?? 0;
+      if (inserted > 0 || repaired > 0) {
+        toast.success(
+          [
+            inserted > 0 ? `Added ${inserted} section(s)` : null,
+            repaired > 0 ? `repaired ${repaired}` : null,
+          ]
+            .filter(Boolean)
+            .join(", ") + ". Open each accordion to edit.",
+        );
+      } else {
+        toast.success("Sections already complete.");
+      }
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Seed failed — are you signed in as owner?");
+      const msg = e instanceof Error ? e.message : "Seed failed — are you signed in as owner?";
+      toast.error(msg);
     } finally {
       setSeeding(false);
     }
   }
 
+  // Auto-repair once when home/shop/product is incomplete so editors aren't stuck with only Hero.
+  useEffect(() => {
+    if (isLoading || isError || autoSeedTried.current) return;
+    if (!showSeedBanner) return;
+    autoSeedTried.current = true;
+    void handleSeed();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once when first incomplete load detected
+  }, [isLoading, isError, showSeedBanner, page]);
+
+  useEffect(() => {
+    if (!isError || !loadError) return;
+    toast.error(loadError instanceof Error ? loadError.message : "Failed to load page sections");
+  }, [isError, loadError]);
+
   return (
     <div>
       <PageHeader title={meta.title} description={meta.description}>
-        {needsSeed && (
-          <Button variant="default" size="sm" onClick={handleSeed} disabled={seeding}>
-            <RefreshCw className={`h-4 w-4 mr-1.5 ${seeding ? "animate-spin" : ""}`} />
-            {seeding
-              ? "Adding sections…"
-              : page === "home"
+        {/* Always available — seed is insert-missing only, never wipes edits */}
+        <Button variant={showSeedBanner ? "default" : "outline"} size="sm" onClick={handleSeed} disabled={seeding}>
+          <RefreshCw className={`h-4 w-4 mr-1.5 ${seeding ? "animate-spin" : ""}`} />
+          {seeding
+            ? "Repairing…"
+            : page === "home"
+              ? showSeedBanner
                 ? `Add missing sections${missingHomeCount ? ` (${missingHomeCount})` : ""}`
-                : "Create page sections"}
-          </Button>
-        )}
+                : "Repair sections"
+              : showSeedBanner
+                ? "Create page sections"
+                : "Repair sections"}
+        </Button>
         <Button
           variant={previewOpen ? "default" : "outline"}
           size="sm"
@@ -206,17 +276,33 @@ function PageEditor() {
         <div>
           {isLoading && <div className="text-sm text-muted-foreground">Loading sections…</div>}
 
-          {needsSeed && (
+          {isError && (
+            <Card className="p-5 mb-4 text-sm border-destructive/40 bg-destructive/5">
+              <p className="font-medium text-foreground mb-1">Could not load page sections</p>
+              <p className="text-muted-foreground mb-3">
+                {loadError instanceof Error ? loadError.message : "Unknown error talking to the database."}
+                {" "}If this keeps happening, confirm you signed in with the owner account and that Supabase env vars are set on Vercel.
+              </p>
+              <Button onClick={() => void refetch()} size="sm" variant="outline">
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Retry
+              </Button>
+            </Card>
+          )}
+
+          {showSeedBanner && !isError && (
             <Card className="p-5 mb-4 text-sm border-primary/30 bg-primary-soft/30">
               <p className="font-medium text-foreground mb-1">
                 {page === "home"
-                  ? "Home page is missing editable sections"
+                  ? heroNeedsRepair && missingHomeCount === 0
+                    ? "Hero section needs a field repair"
+                    : "Home page is missing editable sections"
                   : "This page has no editable sections yet"}
               </p>
               <p className="text-muted-foreground mb-3">
                 {page === "home"
                   ? `Only ${sections?.length ?? 0} of ${HOME_SECTION_KEYS.length} sections exist in the database (e.g. just Hero). Click the button to add Categories, Latest Diaries, Trending, Best Deals, etc. Existing edits are kept.`
-                  : "Click the button above to create default fields you can edit."}
+                  : "Click the button to create default fields you can edit. Existing content is never overwritten."}
               </p>
               <Button onClick={handleSeed} disabled={seeding} size="sm">
                 <RefreshCw className={`w-4 h-4 mr-2 ${seeding ? "animate-spin" : ""}`} />
@@ -225,7 +311,7 @@ function PageEditor() {
             </Card>
           )}
 
-          {sections && sections.length === 0 && !isLoading && (
+          {sections && sections.length === 0 && !isLoading && !isError && (
             <Card className="p-8 text-center text-sm text-muted-foreground">
               No sections yet. Use <strong>Add / repair sections</strong> above.
             </Card>
