@@ -20,6 +20,11 @@ const PAGES = [
   { key: "home", label: "Home" },
   { key: "shop", label: "Shop" },
   { key: "product", label: "Product template" },
+  { key: "corporate-gifting", label: "Corporate gifting hub" },
+  { key: "new-year-diaries", label: "New Year diaries" },
+  { key: "pu-leather-diaries", label: "PU leather diaries" },
+  { key: "corporate-gift-sets", label: "Corporate gift sets" },
+  { key: "promotional-diaries", label: "Promotional diaries" },
 ];
 
 type Seo = { page_key: string; title: string | null; description: string | null; og_image_url: string | null };
