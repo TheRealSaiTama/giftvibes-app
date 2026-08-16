@@ -4,4 +4,4 @@ Disallow: /api/
 Disallow: /_next/
 
 Sitemap: https://www.giftvibes.in/sitemap.xml
-Host: https://www.giftvibes.in
+Sitemap: https://www.giftvibes.in/sitemap-products.xml
