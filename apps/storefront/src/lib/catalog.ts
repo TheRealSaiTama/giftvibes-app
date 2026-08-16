@@ -1,5 +1,21 @@
 import { isUuid } from "@/lib/seo";
 
+/** Columns that exist on the original products/diaries tables (no seo/features). */
+const SAFE_SELECT = {
+  id: true,
+  slug: true,
+  name: true,
+  description: true,
+  minPrice: true,
+  maxPrice: true,
+  imageUrl: true,
+  category: true,
+  tags: true,
+  gallery: true,
+  enabled: true,
+  featured: true,
+} as const;
+
 export type CatalogItem = {
   id: string;
   slug: string | null;
@@ -46,8 +62,8 @@ export async function findCatalogItem(param: string): Promise<CatalogItem | null
 
   const bySlug = async () => {
     const [p, d] = await Promise.all([
-      prisma.product.findUnique({ where: { slug: key } }).catch(() => null),
-      prisma.diary.findUnique({ where: { slug: key } }).catch(() => null),
+      prisma.product.findUnique({ where: { slug: key }, select: SAFE_SELECT }).catch(() => null),
+      prisma.diary.findUnique({ where: { slug: key }, select: SAFE_SELECT }).catch(() => null),
     ]);
     if (p && p.enabled !== false) return mapRow(p, "product");
     if (d && d.enabled !== false) return mapRow(d, "diary");
@@ -60,8 +76,8 @@ export async function findCatalogItem(param: string): Promise<CatalogItem | null
   if (!isUuid(key)) return null;
 
   const [p, d] = await Promise.all([
-    prisma.product.findUnique({ where: { id: key } }).catch(() => null),
-    prisma.diary.findUnique({ where: { id: key } }).catch(() => null),
+    prisma.product.findUnique({ where: { id: key }, select: SAFE_SELECT }).catch(() => null),
+    prisma.diary.findUnique({ where: { id: key }, select: SAFE_SELECT }).catch(() => null),
   ]);
   if (p && p.enabled !== false) return mapRow(p, "product");
   if (d && d.enabled !== false) return mapRow(d, "diary");
@@ -69,21 +85,28 @@ export async function findCatalogItem(param: string): Promise<CatalogItem | null
 }
 
 export async function listLiveCatalog(take = 200) {
-  const { prisma } = await import("@/lib/prisma");
-  const [products, diaries] = await Promise.all([
-    prisma.product.findMany({
-      where: { enabled: true },
-      orderBy: { minPrice: "asc" },
-      take,
-    }),
-    prisma.diary.findMany({
-      where: { enabled: true },
-      orderBy: { minPrice: "asc" },
-      take,
-    }),
-  ]);
-  return [
-    ...products.map((p) => mapRow(p, "product")),
-    ...diaries.map((d) => mapRow(d, "diary")),
-  ];
+  try {
+    const { prisma } = await import("@/lib/prisma");
+    const [products, diaries] = await Promise.all([
+      prisma.product.findMany({
+        where: { enabled: true },
+        orderBy: { minPrice: "asc" },
+        take,
+        select: SAFE_SELECT,
+      }),
+      prisma.diary.findMany({
+        where: { enabled: true },
+        orderBy: { minPrice: "asc" },
+        take,
+        select: SAFE_SELECT,
+      }),
+    ]);
+    return [
+      ...products.map((p) => mapRow(p, "product")),
+      ...diaries.map((d) => mapRow(d, "diary")),
+    ];
+  } catch (e) {
+    console.error("listLiveCatalog failed", e);
+    return [];
+  }
 }
