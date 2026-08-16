@@ -4,9 +4,11 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useState } from 'react';
 import { resolveProductImage, isRemoteOrDataImage } from '@/lib/product-image';
+import { productHref } from '@/lib/seo';
 
 interface Product {
   id: string | number;
+  slug?: string | null;
   name: string;
   imageUrl: string;
   minPrice: number | null;
@@ -89,7 +91,7 @@ export default function RelatedProducts({ products, heading }: RelatedProductsPr
             return (
               <Link
                 key={product.id}
-                href={`/shop/${product.id}`}
+                href={productHref(product)}
                 className="group bg-white rounded-xl shadow-md hover:shadow-xl overflow-hidden transition-all duration-300 border border-gray-100 hover:border-primary/30"
               >
                 <div className="relative aspect-square bg-gradient-to-br from-gray-50 to-white overflow-hidden">

@@ -15,6 +15,7 @@ import {
   matchCatalogIdsByNames,
 } from "@/lib/cms/mappers";
 import { teaserDescription } from "@/lib/teaser";
+import { productHref } from "@/lib/seo";
 
 // Local public assets — Drive hotlinks break on production.
 const defaultProducts: Product[] = [
@@ -61,8 +62,6 @@ const defaultProducts: Product[] = [
 ];
 
 const heartIconUrl = "https://cdn.prod.website-files.com/63e857eaeaf853471d5335ff/63e9df775b939f51a0b22f6d_Icon.svg";
-const starIconUrl = "https://cdn.prod.website-files.com/63e857eaeaf853471d5335ff/63e9d9ee08987e0ffb064bca_Star.svg";
-
 const ProductCard = ({ product }: { product: Product }) => {
   const { selectProduct, deselectProduct, isSelected } = useSelectedProducts();
   const selected = isSelected(product.id);
@@ -82,7 +81,7 @@ const ProductCard = ({ product }: { product: Product }) => {
           className="data-[state=checked]:bg-[#124559] data-[state=checked]:border-[#124559]"
         />
       </div>
-      <Link href={`/shop/${product.id}`} className="relative bg-white aspect-square overflow-hidden product-image-container pt-8 pl-8 block">
+      <Link href={productHref(product)} className="relative bg-white aspect-square overflow-hidden product-image-container pt-8 pl-8 block">
         <Image
           src={product.image || PRODUCT_IMAGE_PLACEHOLDER}
           alt={product.name}
@@ -98,7 +97,7 @@ const ProductCard = ({ product }: { product: Product }) => {
       <div className="p-6 flex flex-col flex-grow">
         <div className="flex justify-between items-start mb-1.5">
           <h3 className="text-[18px] font-semibold text-dark-gray leading-tight mr-2">
-            <Link href={`/shop/${product.id}`} className="hover:text-primary transition-colors">
+            <Link href={productHref(product)} className="hover:text-primary transition-colors">
               {product.name}
             </Link>
           </h3>
@@ -117,14 +116,7 @@ const ProductCard = ({ product }: { product: Product }) => {
           </p>
         </div>
         <p className="text-sm text-medium-gray mb-3.5 line-clamp-2 min-h-[40px]">{product.description}</p>
-        <div className="flex items-center mb-5">
-          <div className="flex items-center">
-            {Array(5).fill(0).map((_, i) => (
-              <Image key={i} src={starIconUrl} alt="star" width={16} height={16} className="mr-0.5" />
-            ))}
-          </div>
-          <span className="small ml-2">(121)</span>
-        </div>
+        <div className="mb-5" />
         <Button
           onClick={() => {
             selectProduct(product);
@@ -146,6 +138,7 @@ const ProductCard = ({ product }: { product: Product }) => {
 function mapDbProduct(p: any): Product {
   return {
     id: p.id,
+    slug: p.slug,
     name: p.name || "Product",
     image: resolveProductImage(p.imageUrl || p.image_url || p.image),
     minPrice: p.minPrice ?? p.min_price ?? null,

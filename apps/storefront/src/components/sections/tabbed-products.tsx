@@ -15,6 +15,7 @@ import {
   PRODUCT_IMAGE_PLACEHOLDER,
 } from "@/lib/product-image";
 import { parseCustomTabs, resolveProductsByIds } from "@/lib/cms/mappers";
+import { productHref } from "@/lib/seo";
 
 interface ProductCardProps {
   product: Product;
@@ -61,7 +62,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, className }) => {
           className="data-[state=checked]:bg-[#124559] data-[state=checked]:border-[#124559]"
         />
       </div>
-      <Link href={`/shop/${product.id}`} className="relative bg-white flex items-center justify-center p-5 mb-5 h-[230px] overflow-hidden product-image-container pt-8 pl-8 block">
+      <Link href={productHref(product)} className="relative bg-white flex items-center justify-center p-5 mb-5 h-[230px] overflow-hidden product-image-container pt-8 pl-8 block">
         <Image
           src={product.image || PRODUCT_IMAGE_PLACEHOLDER}
           alt={product.name}
@@ -82,7 +83,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, className }) => {
       </Link>
       <div className="flex flex-col flex-grow">
         <div className="flex justify-between items-start gap-2 mb-4">
-          <Link href={`/shop/${product.id}`} className="text-base font-semibold text-dark-gray leading-tight hover:text-primary transition-colors">
+          <Link href={productHref(product)} className="text-base font-semibold text-dark-gray leading-tight hover:text-primary transition-colors">
             {product.name}
           </Link>
           <span className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold whitespace-nowrap ${priceBadgeClass}`}>
@@ -123,6 +124,7 @@ export default function TabbedProducts({
 
     return {
       id,
+      slug: p.slug,
       name: p.name || "Product",
       minPrice,
       maxPrice,

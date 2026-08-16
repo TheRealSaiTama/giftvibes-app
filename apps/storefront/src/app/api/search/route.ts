@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { productHref } from "@/lib/seo";
 
 interface SearchResult {
   id: string | number;
@@ -48,7 +49,7 @@ async function searchDatabaseProducts(query: string, limit: number): Promise<Sea
       imageUrl: resolveImageUrl(product.imageUrl ?? ""),
       category: product.category,
       source: "product" as const,
-      path: `/shop/${product.id}`,
+      path: productHref(product),
     }));
   } catch (e) {
     console.error("search products failed", e);
@@ -80,7 +81,7 @@ async function searchDatabaseDiaries(query: string, limit: number): Promise<Sear
       imageUrl: resolveImageUrl(diary.imageUrl ?? ""),
       category: diary.category,
       source: "diary" as const,
-      path: `/shop/${diary.id}`,
+      path: productHref(diary),
     }));
   } catch (e) {
     console.error("search diaries failed", e);

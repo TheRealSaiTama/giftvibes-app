@@ -9,6 +9,7 @@ import { Toaster } from "sonner";
 import { ProductProvider } from '@/context/ProductContext';
 import { getSettings, getSeo } from "@/lib/site";
 import { normalizePublicSiteUrl } from "@/lib/cms/mappers";
+import { organizationJsonLd } from "@/lib/seo";
 
 // ponytail: metadata now comes from admin's site_settings + page_seo (home) with the previous
 // hardcoded values as fallback. DB down → site still ships SEO.
@@ -19,11 +20,11 @@ export async function generateMetadata(): Promise<Metadata> {
 
     const brand = settings.brandName || "GiftVibes";
     const defaultTitle = homeSeo?.title
-      ?? `${brand} | Customised Diaries 2026 | Customised Note Books | Customised Corporate Gifts`;
+      ?? `${brand} | Customised Corporate Diaries Manufacturer Delhi`;
     const defaultDescription = homeSeo?.description
-      ?? `${brand} crafts personalised diaries, notebooks, planners, and premium corporate gifts for 2026 with bespoke branding and nationwide delivery.`;
+      ?? `${brand} (Ravindra Enterprises) manufactures customised diaries, planners and corporate gift sets in Delhi since 1999. Bulk branding, PAN-India delivery.`;
     const siteUrl = normalizePublicSiteUrl(settings.siteUrl);
-    const ogImage = homeSeo?.ogImageUrl || settings.logoUrl || "/logo.png";
+    const ogImage = homeSeo?.ogImageUrl || settings.logoUrl || "/logo3.png";
     const favicon = settings.faviconUrl || "/favicon/favicon.png";
 
     return {
@@ -34,22 +35,20 @@ export async function generateMetadata(): Promise<Metadata> {
       },
       description: defaultDescription,
       keywords: [
-        "customised diaries",
-        "personalised notebooks",
-        "corporate gifts india",
-        "diary printing 2026",
+        "customised diaries manufacturer Delhi",
+        "bulk corporate diaries India",
+        "promotional diaries with logo",
+        "PU leather diary wholesale",
+        "New Year diary 2027 bulk",
         brand.toLowerCase(),
-        "custom planners",
       ],
-      alternates: { canonical: "/" },
       openGraph: {
         title: defaultTitle,
         description: defaultDescription,
-        url: "/",
         siteName: brand,
         locale: "en_IN",
         type: "website",
-        images: [{ url: ogImage, width: 1200, height: 630, alt: `${brand} customised diaries, notebooks, and corporate gifts` }],
+        images: [{ url: ogImage, width: 1200, height: 630, alt: `${brand} customised diaries and corporate gifts` }],
       },
       twitter: {
         card: "summary_large_image",
@@ -95,6 +94,10 @@ export default function RootLayout({
               data-custom-data='{"appName": "YourApp", "version": "1.0.0", "greeting": "hi"}'
             />
           )}
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd()) }}
+          />
           <Toaster position="top-center" richColors expand />
           {children}
           <WhatsAppButton />

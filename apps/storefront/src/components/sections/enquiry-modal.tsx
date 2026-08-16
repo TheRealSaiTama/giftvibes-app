@@ -43,6 +43,9 @@ const formSchema = z.object({
   address: z.string().min(5, "Address is required"),
   description: z.string().optional(),
   companyName: z.string().optional(),
+  budgetRange: z.string().optional(),
+  deliveryDate: z.string().optional(),
+  brandingNeeds: z.string().optional(),
   gst: z.string().optional(),
   orderNotes: z.string().optional(),
 });
@@ -65,6 +68,9 @@ export function EnquiryFormContent({ open, onOpenChange, selectedProducts = [], 
       description: "",
       fullName: "",
       companyName: "",
+      budgetRange: "",
+      deliveryDate: "",
+      brandingNeeds: "",
       gst: "",
       phone: "",
       email: "",
@@ -90,6 +96,9 @@ export function EnquiryFormContent({ open, onOpenChange, selectedProducts = [], 
       const submitData = new FormData();
       submitData.append('fullName', data.fullName);
       submitData.append('companyName', data.companyName || '');
+      submitData.append('budgetRange', data.budgetRange || '');
+      submitData.append('deliveryDate', data.deliveryDate || '');
+      submitData.append('brandingNeeds', data.brandingNeeds || '');
       submitData.append('phone', data.phone);
       submitData.append('email', data.email);
       submitData.append('quantity', data.quantity.toString());
@@ -204,6 +213,60 @@ export function EnquiryFormContent({ open, onOpenChange, selectedProducts = [], 
               )}
             />
           </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <FormField
+              control={form.control}
+              name="budgetRange"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-sm font-semibold text-gray-700 mb-2 block">Budget range (optional)</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="e.g. ₹150–250 per piece"
+                      className="h-12 px-4 border border-gray-300 rounded-lg focus:border-[#124559] focus:ring-2 focus:ring-[#124559]/10 transition-all"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage className="text-xs text-red-500 mt-1" />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="deliveryDate"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-sm font-semibold text-gray-700 mb-2 block">Required delivery date</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="date"
+                      className="h-12 px-4 border border-gray-300 rounded-lg focus:border-[#124559] focus:ring-2 focus:ring-[#124559]/10 transition-all"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage className="text-xs text-red-500 mt-1" />
+                </FormItem>
+              )}
+            />
+          </div>
+          <FormField
+            control={form.control}
+            name="brandingNeeds"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-sm font-semibold text-gray-700 mb-2 block">Branding / customisation</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="Emboss, foil, each-page logo, box print…"
+                    className="h-12 px-4 border border-gray-300 rounded-lg focus:border-[#124559] focus:ring-2 focus:ring-[#124559]/10 transition-all"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage className="text-xs text-red-500 mt-1" />
+              </FormItem>
+            )}
+          />
 
           {/* Contact Info Row */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

@@ -2,11 +2,13 @@ import type { Metadata } from "next";
 import Header from "@/components/sections/header";
 import Footer from "@/components/sections/footer";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import ProductGallery from "@/components/product/ProductGallery";
 import ProductInfo from "@/components/product/ProductInfo";
 import RelatedProducts from "@/components/product/RelatedProducts";
 import { getStorefrontData, getProductChrome } from "@/lib/site";
+import { findCatalogItem } from "@/lib/catalog";
+import { productHref, productJsonLd } from "@/lib/seo";
 
 // ponytail: revalidate=0 so /api/revalidate can bust this page after admin edits.
 export const revalidate = 0;
@@ -19,16 +21,19 @@ export async function generateMetadata({
   params: Promise<{ id: string }> | { id: string };
 }): Promise<Metadata> {
   const resolvedParams = "then" in params ? await params : params;
-  const product = await getProduct(resolvedParams.id);
+  const product = await findCatalogItem(resolvedParams.id);
   if (!product) return {};
   const title = product.seoTitle || product.name;
-  const description = product.seoDescription || product.description || product.name;
+  const description = (product.seoDescription || product.description || product.name).slice(0, 200);
+  const path = productHref(product);
   return {
     title,
-    description: description.slice(0, 200),
+    description,
+    alternates: { canonical: path },
     openGraph: {
       title,
-      description: description.slice(0, 200),
+      description,
+      url: path,
       images: product.imageUrl ? [{ url: product.imageUrl }] : undefined,
     },
   };
@@ -44,54 +49,13 @@ function normalizeTags(value?: string | string[] | null): string[] {
   return Array.from(new Set(tags));
 }
 
-/** Live Prisma product or diary only. No CSV path — hide/delete is end-to-end. */
-async function getProduct(id: string): Promise<any | null> {
+async function getProduct(id: string) {
   try {
-    const { prisma } = await import("@/lib/prisma");
-    const dbProduct = await prisma.product.findUnique({ where: { id } });
-    if (dbProduct) {
-      if (dbProduct.enabled === false) return null;
-      return {
-        id: dbProduct.id,
-        name: dbProduct.name,
-        description: dbProduct.description,
-        minPrice: dbProduct.minPrice ?? null,
-        maxPrice: dbProduct.maxPrice ?? null,
-        imageUrl: dbProduct.imageUrl ?? "",
-        category: dbProduct.category,
-        tags: dbProduct.tags || [],
-        gallery: Array.isArray(dbProduct.gallery) ? (dbProduct.gallery as string[]) : [],
-        features:
-          dbProduct.features && typeof dbProduct.features === "object" ? dbProduct.features : {},
-        seoTitle: dbProduct.seoTitle ?? null,
-        seoDescription: dbProduct.seoDescription ?? null,
-        enabled: dbProduct.enabled,
-      };
-    }
-    const dbDiary = await prisma.diary.findUnique({ where: { id } });
-    if (dbDiary) {
-      if (dbDiary.enabled === false) return null;
-      return {
-        id: dbDiary.id,
-        name: dbDiary.name,
-        description: dbDiary.description,
-        minPrice: dbDiary.minPrice ?? null,
-        maxPrice: dbDiary.maxPrice ?? null,
-        imageUrl: dbDiary.imageUrl ?? "",
-        category: dbDiary.category,
-        tags: dbDiary.tags || [],
-        gallery: Array.isArray(dbDiary.gallery) ? (dbDiary.gallery as string[]) : [],
-        features:
-          dbDiary.features && typeof dbDiary.features === "object" ? dbDiary.features : {},
-        seoTitle: dbDiary.seoTitle ?? null,
-        seoDescription: dbDiary.seoDescription ?? null,
-        enabled: dbDiary.enabled,
-      };
-    }
+    return await findCatalogItem(id);
   } catch (e) {
     console.error("DB lookup failed", e);
+    return null;
   }
-  return null;
 }
 
 /** Related items from live Prisma products + diaries only (enabled). */
@@ -129,6 +93,7 @@ async function getRelatedProducts(
     for (const item of [...dbProducts, ...dbDiaries]) {
       related.push({
         id: item.id,
+        slug: item.slug,
         name: item.name,
         description: item.description,
         minPrice: item.minPrice ?? null,
@@ -162,6 +127,11 @@ export default async function ProductDetailPage({
     notFound();
   }
 
+  const canonicalPath = productHref(product);
+  if (product.slug && resolvedParams.id !== product.slug) {
+    permanentRedirect(canonicalPath);
+  }
+
   const relatedProducts = await getRelatedProducts(product.category || "", product.id);
   const { settings, headerNav, megaMenu, footerLinks } = storefront;
 
@@ -172,6 +142,10 @@ export default async function ProductDetailPage({
         megaMenu={megaMenu}
         logoUrl={settings?.logoUrl}
         brandName={settings?.brandName}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd(product)) }}
       />
       <main className="container mx-auto px-4 py-4">
         <nav className="flex items-center space-x-2 text-sm text-gray-600 mb-6">

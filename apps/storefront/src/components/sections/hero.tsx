@@ -28,12 +28,8 @@ const Hero = ({ content }: { content?: any }) => {
         <div className="relative z-10 w-full md:w-3/5 lg:w-1/2">
           <div className="overflow-hidden">
             <h1 className="text-[48px] md:text-[56px] lg:text-[72px] font-bold leading-[1.1] -tracking-[1.8px] text-[#124559] drop-shadow-lg">
-              {heading_1}
-            </h1>
-          </div>
-          <div className="overflow-hidden">
-            <h1 className="text-[48px] md:text-[56px] lg:text-[72px] font-bold leading-[1.1] -tracking-[1.8px] text-[#124559] drop-shadow-lg">
-              {heading_2}
+              {heading_1}{" "}
+              <span className="block">{heading_2}</span>
             </h1>
           </div>
           <div className="mt-6 overflow-hidden">

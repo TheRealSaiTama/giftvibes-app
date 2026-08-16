@@ -40,9 +40,9 @@ type MegaItem = {
 // Offline-only fallback if parent passes nothing (e.g. error path).
 const FALLBACK_NAV = [
   { label: "Shop", href: "/shop" },
-  { label: "Bulk Orders", href: "#our-products" },
+  { label: "Corporate Gifting", href: "/corporate-gifting" },
   { label: "Custom Print", href: "/custom-design" },
-  { label: "About Us", href: "#about" },
+  { label: "Guides", href: "/guides" },
 ];
 
 const Header = ({

@@ -15,6 +15,7 @@ import {
   matchCatalogIdsByNames,
 } from "@/lib/cms/mappers";
 import { teaserDescription } from "@/lib/teaser";
+import { productHref } from "@/lib/seo";
 
 // Local public assets — Drive hotlinks break on production (HTML interstitial / 403).
 const defaultProducts: Product[] = [
@@ -71,11 +72,10 @@ const defaultProducts: Product[] = [
 ];
 
 const RATING = 5;
-const REVIEWS = 121;
-
 function mapDbProduct(p: any): Product {
   return {
     id: p.id,
+    slug: p.slug,
     name: p.name || "Product",
     image: resolveProductImage(p.imageUrl || p.image_url || p.image),
     minPrice: p.minPrice ?? p.min_price ?? null,
@@ -145,7 +145,7 @@ const WeeklyPopularProducts = ({ content, products: dbProducts }: WeeklyPopularP
                     className="data-[state=checked]:bg-[#124559] data-[state=checked]:border-[#124559]"
                   />
                 </div>
-                <Link href={`/shop/${product.id || index}`} className="relative bg-white p-6 flex items-center justify-center aspect-square overflow-hidden product-image-container pt-8 pl-8 block">
+                <Link href={productHref(product)} className="relative bg-white p-6 flex items-center justify-center aspect-square overflow-hidden product-image-container pt-8 pl-8 block">
                   <Image
                     src={product.image || PRODUCT_IMAGE_PLACEHOLDER}
                     alt={product.name}
@@ -165,7 +165,7 @@ const WeeklyPopularProducts = ({ content, products: dbProducts }: WeeklyPopularP
                 </Link>
                 <div className="pt-4 flex flex-col flex-grow">
                   <div className="flex justify-between items-start gap-2">
-                    <Link href={`/shop/${product.id || index}`} className="text-base font-semibold text-[#333333] leading-tight hover:text-primary transition-colors">
+                    <Link href={productHref(product)} className="text-base font-semibold text-[#333333] leading-tight hover:text-primary transition-colors">
                       {product.name}
                     </Link>
                     <p className="text-lg font-bold text-[#333333] whitespace-nowrap">{displayPrice}</p>
@@ -183,7 +183,7 @@ const WeeklyPopularProducts = ({ content, products: dbProducts }: WeeklyPopularP
                         />
                       ))}
                     </div>
-                    <span className="text-xs text-[#888888]">({REVIEWS})</span>
+
                   </div>
                   <button
                     type="button"

@@ -1,9 +1,18 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
 import Header from "@/components/sections/header";
 import Footer from "@/components/sections/footer";
 import ShopClient from "./ShopClient";
 import { getStorefrontData, getShopChrome } from "@/lib/site";
 import { filterLiveCatalog } from "@/lib/cms/mappers";
+import { productHref } from "@/lib/seo";
+
+export const metadata: Metadata = {
+  title: "Shop Customised Diaries & Corporate Gift Sets",
+  description:
+    "Browse PU leather diaries, New Year planners, gift sets and promotional notebooks. Factory-direct from GiftVibes, Delhi. Bulk enquiry welcome.",
+  alternates: { canonical: "/shop" },
+};
 
 // ponytail: revalidate=0 so /api/revalidate can bust this page after admin edits.
 export const revalidate = 0;
@@ -67,6 +76,18 @@ export default async function ShopPage() {
           chrome={chrome}
         />
       </Suspense>
+      <nav className="container py-8" aria-label="Product index">
+        <h2 className="sr-only">All live products and diaries</h2>
+        <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 text-sm">
+          {[...allProducts, ...allDiaries].slice(0, 200).map((item: any) => (
+            <li key={String(item.id)}>
+              <a className="text-[#124559] hover:underline" href={productHref(item)}>
+                {item.name}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </nav>
       <Footer settings={storefront.settings} footerLinks={storefront.footerLinks} />
     </div>
   );

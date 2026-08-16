@@ -58,16 +58,16 @@ export async function getHeaderNav(): Promise<StorefrontNavLink[]> {
     if (mapped.length) return mapped;
     return mapEnabledNavLinks([
       { label: "Shop", href: "/shop", enabled: true, sort_order: 0 },
-      { label: "Bulk Orders", href: "#our-products", enabled: true, sort_order: 1 },
+      { label: "Corporate Gifting", href: "/corporate-gifting", enabled: true, sort_order: 1 },
       { label: "Custom Print", href: "/custom-design", enabled: true, sort_order: 2 },
-      { label: "About Us", href: "#about", enabled: true, sort_order: 3 },
+      { label: "Guides", href: "/guides", enabled: true, sort_order: 3 },
     ]);
   } catch {
     return mapEnabledNavLinks([
       { label: "Shop", href: "/shop", enabled: true, sort_order: 0 },
-      { label: "Bulk Orders", href: "#our-products", enabled: true, sort_order: 1 },
+      { label: "Corporate Gifting", href: "/corporate-gifting", enabled: true, sort_order: 1 },
       { label: "Custom Print", href: "/custom-design", enabled: true, sort_order: 2 },
-      { label: "About Us", href: "#about", enabled: true, sort_order: 3 },
+      { label: "Guides", href: "/guides", enabled: true, sort_order: 3 },
     ]);
   }
 }

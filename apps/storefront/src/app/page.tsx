@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Header from "@/components/sections/header";
 import Hero from "@/components/sections/hero";
 import Categories from "@/components/sections/categories";
@@ -15,7 +16,7 @@ import GiftVibeAbout from "@/components/sections/giftvibe-about";
 import Footer from "@/components/sections/footer";
 import CorporateShowcase from "@/components/sections/corporate-showcase";
 import { prisma } from '@/lib/prisma';
-import { getStorefrontData } from "@/lib/site";
+import { getStorefrontData, getSeo } from "@/lib/site";
 import {
   mapEnabledSections,
   filterLiveCatalog,
@@ -27,9 +28,25 @@ import {
 // Without this the webhook no-ops (page would be fully static).
 export const revalidate = 0;
 
+export async function generateMetadata(): Promise<Metadata> {
+  const seo = await getSeo("home").catch(() => null);
+  return {
+    title: seo?.title || "Customised Corporate Diaries Manufacturer Delhi",
+    description:
+      seo?.description ||
+      "GiftVibes (Ravindra Enterprises) manufactures customised diaries, planners and corporate gift sets in Delhi since 1999. Bulk logo branding. PAN-India delivery.",
+    alternates: { canonical: "/" },
+    openGraph: {
+      title: seo?.title || "Customised Corporate Diaries Manufacturer Delhi | GiftVibes",
+      url: "/",
+    },
+  };
+}
+
 /** Fields home sections need for product cards + ID lookup (avoid full-row schema drift). */
 const catalogSelect = {
   id: true,
+  slug: true,
   name: true,
   description: true,
   minPrice: true,

@@ -34,6 +34,9 @@ export async function POST(request: NextRequest) {
     // Extract form fields (with fallbacks)
     const fullName = (formData.get('fullName') as string)?.trim() || 'N/A';
     const companyName = (formData.get('companyName') as string)?.trim() || 'N/A';
+    const budgetRange = (formData.get('budgetRange') as string)?.trim() || 'N/A';
+    const deliveryDate = (formData.get('deliveryDate') as string)?.trim() || 'N/A';
+    const brandingNeeds = (formData.get('brandingNeeds') as string)?.trim() || 'N/A';
     const phone = (formData.get('phone') as string)?.trim() || 'N/A';
     const email = (formData.get('email') as string)?.trim() || 'N/A';
     const quantity = formData.get('quantity') as string || 'N/A';
@@ -145,6 +148,9 @@ export async function POST(request: NextRequest) {
                 <table class="content-table">
                     <tr><th>Full Name</th><td>${fullName}</td></tr>
                     <tr><th>Company Name</th><td>${companyName}</td></tr>
+                    <tr><th>Budget range</th><td>${budgetRange}</td></tr>
+                    <tr><th>Delivery date</th><td>${deliveryDate}</td></tr>
+                    <tr><th>Branding</th><td>${brandingNeeds}</td></tr>
                     <tr><th>Phone</th><td>${phone}</td></tr>
                     <tr><th>Email</th><td>${email}</td></tr>
                     <tr><th>GST Number</th><td>${gst}</td></tr>

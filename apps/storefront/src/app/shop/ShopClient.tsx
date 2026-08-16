@@ -10,9 +10,11 @@ import { Dialog, DialogTrigger, DialogContent } from '@/components/ui/dialog';
 import type { Product as ProductType } from '@/types/Product';
 import { useSelectedProducts } from '@/context/ProductContext';
 import { resolveProductImage, isRemoteOrDataImage } from "@/lib/product-image";
+import { productHref } from "@/lib/seo";
 
 type ShopProduct = {
   id: string | number;
+  slug?: string | null;
   name: string;
   description: string | null;
   imageUrl: string | null;
@@ -171,6 +173,7 @@ export default function ShopClient({
   const combinedProducts = useMemo(() => {
     const diariesAsProducts: ShopProduct[] = (initialDiaries || []).map((diary: any) => ({
       id: diary.id,
+      slug: diary.slug ?? null,
       name: diary.name,
       description: diary.description ?? null,
       imageUrl: diary.imageUrl ?? diary.image_url ?? null,
@@ -181,6 +184,7 @@ export default function ShopClient({
     }));
     const productsAsShopProducts: ShopProduct[] = (initialProducts || []).map((product: any) => ({
       id: product.id,
+      slug: product.slug ?? null,
       name: product.name,
       description: product.description ?? null,
       imageUrl: product.imageUrl ?? product.image_url ?? null,
@@ -397,7 +401,7 @@ export default function ShopClient({
 
                   return (
                     <article key={String(product.id)} className="bg-white rounded-xl shadow-md hover:shadow-xl overflow-hidden transition-all duration-300 border border-gray-100 hover:border-primary/30">
-                      <Link href={`/shop/${product.id}`} className="block group">
+                      <Link href={productHref(product)} className="block group">
                         <div className="relative h-56 bg-gradient-to-br from-gray-50 to-white overflow-hidden">
                           <Image
                             src={imageUrl}
@@ -414,7 +418,7 @@ export default function ShopClient({
                       </Link>
                       <div className="p-5">
                         <h3 className="text-base font-semibold text-gray-800 line-clamp-2 mb-4 hover:text-primary transition-colors">
-                          <Link href={`/shop/${product.id}`}>{product.name}</Link>
+                          <Link href={productHref(product)}>{product.name}</Link>
                         </h3>
                         <div className="flex items-center justify-between">
                           {(() => {
