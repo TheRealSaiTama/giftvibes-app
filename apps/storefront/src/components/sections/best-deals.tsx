@@ -14,6 +14,7 @@ import {
   DEFAULT_BEST_DEALS_NAMES,
   matchCatalogIdsByNames,
 } from "@/lib/cms/mappers";
+import { teaserDescription } from "@/lib/teaser";
 
 // Local public assets — Drive hotlinks break on production.
 const defaultProducts: Product[] = [
@@ -115,7 +116,7 @@ const ProductCard = ({ product }: { product: Product }) => {
             })()}
           </p>
         </div>
-        <p className="text-sm text-medium-gray mb-3.5">{product.description}</p>
+        <p className="text-sm text-medium-gray mb-3.5 line-clamp-2 min-h-[40px]">{product.description}</p>
         <div className="flex items-center mb-5">
           <div className="flex items-center">
             {Array(5).fill(0).map((_, i) => (
@@ -149,7 +150,7 @@ function mapDbProduct(p: any): Product {
     image: resolveProductImage(p.imageUrl || p.image_url || p.image),
     minPrice: p.minPrice ?? p.min_price ?? null,
     maxPrice: p.maxPrice ?? p.max_price ?? null,
-    description: p.description || "",
+    description: teaserDescription(p.description),
     currency: "INR",
   };
 }

@@ -14,6 +14,7 @@ import {
   DEFAULT_POPULAR_NAMES,
   matchCatalogIdsByNames,
 } from "@/lib/cms/mappers";
+import { teaserDescription } from "@/lib/teaser";
 
 // Local public assets — Drive hotlinks break on production (HTML interstitial / 403).
 const defaultProducts: Product[] = [
@@ -79,7 +80,7 @@ function mapDbProduct(p: any): Product {
     image: resolveProductImage(p.imageUrl || p.image_url || p.image),
     minPrice: p.minPrice ?? p.min_price ?? null,
     maxPrice: p.maxPrice ?? p.max_price ?? null,
-    description: p.description || "",
+    description: teaserDescription(p.description),
     currency: "INR",
   };
 }
@@ -169,7 +170,7 @@ const WeeklyPopularProducts = ({ content, products: dbProducts }: WeeklyPopularP
                     </Link>
                     <p className="text-lg font-bold text-[#333333] whitespace-nowrap">{displayPrice}</p>
                   </div>
-                  <p className="text-sm text-[#666666] mt-2 min-h-[40px]">{product.description}</p>
+                  <p className="text-sm text-[#666666] mt-2 line-clamp-2 min-h-[40px]">{product.description}</p>
                   <div className="flex items-center gap-1.5 mt-2 mb-4">
                     <div className="flex gap-0.5">
                       {[...Array(RATING)].map((_, i) => (
