@@ -4,8 +4,8 @@ import Header from "@/components/sections/header";
 import Footer from "@/components/sections/footer";
 import ShopClient from "./ShopClient";
 import { getStorefrontData, getShopChrome } from "@/lib/site";
-import { filterLiveCatalog } from "@/lib/cms/mappers";
 import { productHref } from "@/lib/seo";
+import { listLiveCatalog } from "@/lib/catalog";
 
 export const metadata: Metadata = {
   title: "Shop Customised Diaries & Corporate Gift Sets",
@@ -14,48 +14,19 @@ export const metadata: Metadata = {
   alternates: { canonical: "/shop" },
 };
 
-// ponytail: revalidate=0 so /api/revalidate can bust this page after admin edits.
+export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-/** Live Prisma products only (admin enabled). No CSV. */
-async function getProducts() {
-  try {
-    const { prisma } = await import("@/lib/prisma");
-    const products = await prisma.product.findMany({
-      where: { enabled: true },
-      orderBy: { minPrice: "asc" },
-      take: 1000,
-    });
-    return filterLiveCatalog(products as any[]);
-  } catch (err) {
-    console.error("shop getProducts failed", err);
-    return [];
-  }
-}
-
-/** Live Prisma diaries only (admin enabled). No CSV — hide/delete is real end-to-end. */
-async function getDiaries() {
-  try {
-    const { prisma } = await import("@/lib/prisma");
-    const diaries = await prisma.diary.findMany({
-      where: { enabled: true },
-      orderBy: { minPrice: "asc" },
-      take: 1000,
-    });
-    return filterLiveCatalog(diaries as any[]);
-  } catch (err) {
-    console.error("shop getDiaries failed", err);
-    return [];
-  }
-}
-
 export default async function ShopPage() {
-  const [allDiaries, allProducts, storefront, chrome] = await Promise.all([
-    getDiaries(),
-    getProducts(),
+  const [catalog, storefront, chrome] = await Promise.all([
+    listLiveCatalog(500),
     getStorefrontData(),
     getShopChrome(),
   ]);
+
+  const allDiaries = catalog.filter((i) => i.kind === "diary");
+  const allProducts = catalog.filter((i) => i.kind === "product");
+  const heading = chrome.heading?.trim() || "Customised diaries & corporate gift sets";
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -65,9 +36,18 @@ export default async function ShopPage() {
         logoUrl={storefront.settings?.logoUrl}
         brandName={storefront.settings?.brandName}
       />
+      <section className="container pt-10 pb-4">
+        <h1 className="text-3xl md:text-4xl font-bold text-gray-800">{heading}</h1>
+        <p className="mt-3 max-w-3xl text-gray-600">
+          Wholesale catalogue from GiftVibes (Ravindra Enterprises), Delhi. PU leather diaries, New
+          Year planners, gift sets and promotional notebooks. Minimum order typically 100. Filter
+          below or open a product to request a bulk quote.
+        </p>
+        <p className="mt-2 text-sm text-gray-500">{catalog.length} live items</p>
+      </section>
       <Suspense
         fallback={
-          <div className="container py-16 text-sm text-muted-foreground">Loading shop…</div>
+          <div className="container py-8 text-sm text-muted-foreground">Loading filters…</div>
         }
       >
         <ShopClient
@@ -76,11 +56,11 @@ export default async function ShopPage() {
           chrome={chrome}
         />
       </Suspense>
-      <nav className="container py-8" aria-label="Product index">
-        <h2 className="sr-only">All live products and diaries</h2>
+      <nav className="container py-10" aria-label="Full catalogue">
+        <h2 className="text-xl font-semibold text-[#124559] mb-4">Full catalogue</h2>
         <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 text-sm">
-          {[...allProducts, ...allDiaries].slice(0, 200).map((item: any) => (
-            <li key={String(item.id)}>
+          {catalog.map((item) => (
+            <li key={item.id}>
               <a className="text-[#124559] hover:underline" href={productHref(item)}>
                 {item.name}
               </a>

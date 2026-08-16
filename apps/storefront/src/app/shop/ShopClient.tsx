@@ -359,9 +359,9 @@ export default function ShopClient({
           </aside>
           <div className="lg:w-4/5 order-1 lg:order-2">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
-              <h1 className="text-3xl md:text-4xl font-bold text-gray-800">
+              <h2 className="text-2xl md:text-3xl font-bold text-gray-800">
                 {heading} ({results.length})
-              </h1>
+              </h2>
               <div className="flex items-center gap-4">
                 <DialogTrigger asChild>
                   <button className="px-4 py-2 bg-primary text-white font-medium rounded-lg hover:bg-primary/90 transition-colors">
