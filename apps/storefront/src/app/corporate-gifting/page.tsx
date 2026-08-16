@@ -1,13 +1,18 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { MarketingShell } from "@/components/seo/marketing-shell";
+import { getSeo } from "@/lib/site";
 
-export const metadata: Metadata = {
-  title: "Corporate Gifting Company India | Diary Manufacturer Delhi",
-  description:
-    "GiftVibes (Ravindra Enterprises) is a Delhi manufacturer of corporate diaries, gift sets and promotional products since 1999. Bulk branding, wholesale pricing, PAN-India delivery.",
-  alternates: { canonical: "/corporate-gifting" },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const seo = await getSeo("corporate-gifting").catch(() => null);
+  return {
+    title: seo?.title || "Corporate Gifting Company India | Diary Manufacturer Delhi",
+    description:
+      seo?.description ||
+      "GiftVibes (Ravindra Enterprises) is a Delhi manufacturer of corporate diaries, gift sets and promotional products since 1999. Bulk branding, wholesale pricing, PAN-India delivery.",
+    alternates: { canonical: "/corporate-gifting" },
+  };
+}
 
 export default function CorporateGiftingPage() {
   return (

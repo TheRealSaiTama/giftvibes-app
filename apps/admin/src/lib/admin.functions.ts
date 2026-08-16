@@ -823,6 +823,38 @@ export const seedHomeSections = createServerFn({ method: "POST" })
       // Don't fail whole seed if catalog is empty/unavailable.
     }
 
+    // Backfill empty slugs so storefront can use /shop/pretty-name URLs.
+    try {
+      const slugify = (s: string) =>
+        String(s || "")
+          .toLowerCase()
+          .replace(/&/g, " and ")
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-+|-+$/g, "")
+          .slice(0, 80) || "item";
+      const used = new Set<string>();
+      for (const table of ["products", "diaries"] as const) {
+        const { data: rows } = await context.supabase.from(table).select("id, name, slug");
+        for (const row of rows || []) {
+          const current = String((row as any).slug || "").trim();
+          if (current) {
+            used.add(current);
+            continue;
+          }
+          let base = slugify((row as any).name);
+          let slug = base;
+          let n = 2;
+          while (used.has(slug)) {
+            slug = `${base}-${n++}`;
+          }
+          used.add(slug);
+          await context.supabase.from(table).update({ slug }).eq("id", (row as any).id);
+        }
+      }
+    } catch (e) {
+      console.error("slug backfill failed", e);
+    }
+
     await notifyStorefront(["/", "/shop"]);
     return { ok: true, inserted, repaired, syncedPicks, totalHome: sections.length };
   });
