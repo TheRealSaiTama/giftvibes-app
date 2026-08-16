@@ -16,6 +16,33 @@ const SAFE_SELECT = {
   featured: true,
 } as const;
 
+/** Homepage-proven columns. No gallery / orderBy / enabled-where. */
+const LIST_SELECT = {
+  id: true,
+  slug: true,
+  name: true,
+  description: true,
+  minPrice: true,
+  maxPrice: true,
+  imageUrl: true,
+  category: true,
+  tags: true,
+  enabled: true,
+  featured: true,
+} as const;
+
+const MIN_SELECT = {
+  id: true,
+  slug: true,
+  name: true,
+  description: true,
+  minPrice: true,
+  maxPrice: true,
+  imageUrl: true,
+  category: true,
+  enabled: true,
+} as const;
+
 export type CatalogItem = {
   id: string;
   slug: string | null;
@@ -84,29 +111,31 @@ export async function findCatalogItem(param: string): Promise<CatalogItem | null
   return null;
 }
 
-export async function listLiveCatalog(take = 200) {
+async function listTable(kind: "product" | "diary", take: number) {
+  const { prisma } = await import("@/lib/prisma");
+  const model = kind === "product" ? prisma.product : prisma.diary;
   try {
-    const { prisma } = await import("@/lib/prisma");
-    const [products, diaries] = await Promise.all([
-      prisma.product.findMany({
-        where: { enabled: true },
-        orderBy: { minPrice: "asc" },
-        take,
-        select: SAFE_SELECT,
-      }),
-      prisma.diary.findMany({
-        where: { enabled: true },
-        orderBy: { minPrice: "asc" },
-        take,
-        select: SAFE_SELECT,
-      }),
-    ]);
-    return [
-      ...products.map((p) => mapRow(p, "product")),
-      ...diaries.map((d) => mapRow(d, "diary")),
-    ];
+    return await model.findMany({ select: LIST_SELECT, take });
   } catch (e) {
-    console.error("listLiveCatalog failed", e);
-    return [];
+    console.error(`listLiveCatalog ${kind} failed`, e);
+    try {
+      return await model.findMany({ select: MIN_SELECT, take });
+    } catch (e2) {
+      console.error(`listLiveCatalog ${kind} retry failed`, e2);
+      return [] as any[];
+    }
   }
+}
+
+export async function listLiveCatalog(take = 200) {
+  const [products, diaries] = await Promise.all([
+    listTable("product", take),
+    listTable("diary", take),
+  ]);
+  const rows = [
+    ...products.map((p) => mapRow(p, "product")),
+    ...diaries.map((d) => mapRow(d, "diary")),
+  ].filter((item) => item.enabled);
+  rows.sort((a, b) => (a.minPrice ?? Number.POSITIVE_INFINITY) - (b.minPrice ?? Number.POSITIVE_INFINITY));
+  return rows;
 }

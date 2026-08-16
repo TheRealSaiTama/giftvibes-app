@@ -18,8 +18,10 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function ShopPage() {
-  const [catalog, storefront, chrome] = await Promise.all([
-    listLiveCatalog(500),
+  // Catalogue first so it is not starved by header/footer/chrome queries
+  // on the same serverless Prisma pool (that race rendered "0 live items").
+  const catalog = await listLiveCatalog(500);
+  const [storefront, chrome] = await Promise.all([
     getStorefrontData(),
     getShopChrome(),
   ]);
