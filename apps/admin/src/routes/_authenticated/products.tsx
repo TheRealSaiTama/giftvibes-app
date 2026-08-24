@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/admin/admin-shell";
-import { saveProduct, deleteProduct, saveDiary, deleteDiary } from "@/lib/admin.functions";
+import { saveProduct, deleteProduct, saveDiary, deleteDiary, repairCatalogSchema } from "@/lib/admin.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -306,9 +306,11 @@ function ProductsPage() {
   const [catForm, setCatForm] = useState<CategoryFormState | null>(null);
   const [subForm, setSubForm] = useState<SubFormState | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [repairing, setRepairing] = useState(false);
   const qc = useQueryClient();
   const runDeleteProduct = useServerFn(deleteProduct);
   const runDeleteDiary = useServerFn(deleteDiary);
+  const runRepairCatalog = useServerFn(repairCatalogSchema);
 
   // ponytail: client-side custom categories + subcategories + SEO. localStorage
   // is enough for now; promote to a Supabase table when the catalog team needs
@@ -932,18 +934,40 @@ function ProductsPage() {
             : "Category management — add categories here, then open one to manage products and diaries inside it."
         }
       >
-        {isRoot && !search && (
-          <Button onClick={openAddCategoryForm}>
-            <Plus className="h-4 w-4 mr-1.5" />
-            Add new category
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            disabled={repairing}
+            onClick={async () => {
+              setRepairing(true);
+              try {
+                const result = await runRepairCatalog();
+                toast.success(
+                  `Catalog database repaired. ${result.columns?.length ?? 0} columns visible.`,
+                );
+              } catch (e) {
+                toast.error(e instanceof Error ? e.message : "Repair failed");
+              } finally {
+                setRepairing(false);
+              }
+            }}
+          >
+            {repairing ? "Repairing database…" : "Repair catalog database"}
           </Button>
-        )}
-        {isInProductList && (
-          <Button onClick={openNewProduct}>
-            <Plus className="h-4 w-4 mr-1.5" />
-            New product / diary
-          </Button>
-        )}
+          {isRoot && !search && (
+            <Button onClick={openAddCategoryForm}>
+              <Plus className="h-4 w-4 mr-1.5" />
+              Add new category
+            </Button>
+          )}
+          {isInProductList && (
+            <Button onClick={openNewProduct}>
+              <Plus className="h-4 w-4 mr-1.5" />
+              New product / diary
+            </Button>
+          )}
+        </div>
       </PageHeader>
 
       {/* breadcrumb path bar */}

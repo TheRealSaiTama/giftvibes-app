@@ -178,13 +178,38 @@ const productShape = z.object({
   seo_description: z.string().nullable(),
 });
 
-/** Production is missing products.features / seo_* until migration 20260809170000
- *  is applied. Strip the unknown column and retry so admin create/update still works. */
+/** Columns from migration 20260809170000 — missing on production Postgres. */
+const OPTIONAL_CATALOG_COLS = new Set(["features", "seo_title", "seo_description"]);
+
 function missingColumn(message: string): string | null {
   const schemaCache = message.match(/Could not find the '([^']+)' column/i);
   if (schemaCache?.[1]) return schemaCache[1];
   const pg = message.match(/column ["']?(\w+)["']? (?:of relation .* )?does not exist/i);
   return pg?.[1] ?? null;
+}
+
+function friendlyDbError(message: string): string {
+  const lower = message.toLowerCase();
+  if (lower.includes("duplicate") || lower.includes("unique")) {
+    return "A product with this URL slug already exists. Change the slug and save again.";
+  }
+  if (lower.includes("row-level security") || lower.includes("rls")) {
+    return "Database blocked the write (owner permission). Re-login to admin and try again.";
+  }
+  if (lower.includes("schema cache") || lower.includes("could not find the")) {
+    return "Database is missing a column the form is sending. Click “Repair catalog database” on the Products page, then save again.";
+  }
+  return message;
+}
+
+function splitCatalogPayload(values: Record<string, unknown>) {
+  const core: Record<string, unknown> = {};
+  const extra: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(values)) {
+    if (OPTIONAL_CATALOG_COLS.has(key)) extra[key] = value;
+    else core[key] = value;
+  }
+  return { core, extra };
 }
 
 async function writeCatalogRow(
@@ -193,26 +218,55 @@ async function writeCatalogRow(
   values: Record<string, unknown>,
   id?: string,
 ) {
-  const payload: Record<string, unknown> = { ...values };
+  const { core, extra } = splitCatalogPayload(values);
+  let payload: Record<string, unknown> = { ...core };
   let lastMessage = "";
-  for (let i = 0; i < 6; i++) {
-    if (id) {
-      const { error } = await supabase.from(table).update(payload).eq("id", id);
-      if (!error) return { id };
-      lastMessage = error.message || "Save failed";
-    } else {
-      const { data: row, error } = await supabase.from(table).insert(payload).select("id").single();
-      if (!error && row?.id) return { id: row.id as string };
-      lastMessage = error?.message || "Save failed";
+
+  const persist = async (body: Record<string, unknown>, rowId?: string) => {
+    if (rowId) {
+      const { error } = await supabase.from(table).update(body).eq("id", rowId);
+      return { id: rowId as string, error };
     }
+    const { data: row, error } = await supabase.from(table).insert(body).select("id").single();
+    return { id: (row?.id as string | undefined) ?? "", error };
+  };
+
+  let savedId = id || "";
+  for (let i = 0; i < 8; i++) {
+    const result = await persist(payload, savedId || undefined);
+    if (!result.error && result.id) {
+      savedId = result.id;
+      break;
+    }
+    lastMessage = result.error?.message || "Save failed";
     const col = missingColumn(lastMessage);
     if (col && col in payload) {
       delete payload[col];
       continue;
     }
-    throw new Error(lastMessage);
+    throw new Error(friendlyDbError(lastMessage));
   }
-  throw new Error(lastMessage || "Save failed");
+  if (!savedId) throw new Error(friendlyDbError(lastMessage || "Save failed"));
+
+  if (Object.keys(extra).length) {
+    const { error } = await supabase.from(table).update(extra).eq("id", savedId);
+    if (error) {
+      console.warn(`optional ${table} columns not saved`, error.message);
+    }
+  }
+
+  const { data: check, error: checkError } = await supabase
+    .from(table)
+    .select("id, name, slug")
+    .eq("id", savedId)
+    .maybeSingle();
+  if (checkError) throw new Error(friendlyDbError(checkError.message));
+  if (!check) {
+    throw new Error(
+      "Save did not persist. The admin user may not be the database owner, or admin and shop are on different databases.",
+    );
+  }
+  return { id: savedId };
 }
 
 export const saveProduct = createServerFn({ method: "POST" })
@@ -277,6 +331,33 @@ export const deleteDiary = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     await notifyStorefront(["/", "/shop", `/shop/${data.id}`]);
     return { ok: true };
+  });
+
+/** Ask the storefront (Prisma / Postgres) to add missing catalog columns and reload PostgREST. */
+export const repairCatalogSchema = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async () => {
+    const revalidateUrl = process.env.STOREFRONT_REVALIDATE_URL || "https://www.giftvibes.in/api/revalidate";
+    const secret = process.env.STOREFRONT_REVALIDATE_SECRET;
+    if (!secret) {
+      throw new Error("STOREFRONT_REVALIDATE_SECRET is not set on the admin project.");
+    }
+    let origin: string;
+    try {
+      origin = new URL(revalidateUrl).origin;
+    } catch {
+      origin = "https://www.giftvibes.in";
+    }
+    const res = await fetch(`${origin}/api/repair-catalog-schema`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ secret }),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(body.error || `Repair failed (${res.status})`);
+    }
+    return body as { ok: boolean; added: string[]; columns: string[] };
   });
 
 // -------- MEDIA --------
