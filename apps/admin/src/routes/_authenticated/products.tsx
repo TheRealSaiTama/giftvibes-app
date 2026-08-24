@@ -25,6 +25,20 @@ import { toast } from "sonner";
 const CUSTOM_CATEGORIES_KEY = "gv_custom_categories";
 const CUSTOM_SUBCATEGORIES_KEY = "gv_custom_subcategories";
 const CATEGORY_SEO_KEY = "gv_category_seo";
+const HIDDEN_CATEGORIES_KEY = "gv_hidden_categories";
+const CATEGORY_RENAMES_KEY = "gv_category_renames";
+const HIDDEN_SUBCATEGORIES_KEY = "gv_hidden_subcategories";
+const SUBCATEGORY_RENAMES_KEY = "gv_subcategory_renames";
+
+function readLs<T>(key: string, fallback: T): T {
+  if (typeof window === "undefined") return fallback;
+  try {
+    const raw = JSON.parse(localStorage.getItem(key) || "null");
+    return raw == null ? fallback : (raw as T);
+  } catch {
+    return fallback;
+  }
+}
 
 type CustomCategory = {
   name: string;
@@ -47,12 +61,21 @@ const emptyCategorySeo = (): CategorySeo => ({
 
 type CategoryFormState = {
   mode: "add" | "edit";
-  /** Original name when editing (built-ins cannot rename). */
+  /** Display name currently shown (before this edit). */
   originalName?: string;
+  /** Built-in key, or the custom name. Stable across renames. */
+  originalKey?: string;
   name: string;
   seoTitle: string;
   seoDescription: string;
   ogImageUrl: string;
+};
+
+type SubFormState = {
+  mode: "add" | "edit";
+  cat: string;
+  originalName?: string;
+  name: string;
 };
 
 // Spec table on product page. Each row: checkbox + value.
@@ -159,28 +182,56 @@ function normCat(s: string) {
 }
 
 /** Match products or diaries against a normalized storefront category */
-function matchCategory(productCat: string | null, targetCat: string): boolean {
+function matchCategory(
+  productCat: string | null,
+  targetCat: string,
+  aliases: Record<string, string> = {},
+): boolean {
   if (!productCat) return false;
-  const targetNorm = targetCat.trim().toUpperCase();
-  const productCats = productCat.split(",").map((c) => c.trim().toUpperCase());
+  const names = new Set<string>([normCat(targetCat)]);
+  for (const [orig, renamed] of Object.entries(aliases)) {
+    if (normCat(orig) === normCat(targetCat) || normCat(renamed) === normCat(targetCat)) {
+      names.add(normCat(orig));
+      names.add(normCat(renamed));
+    }
+  }
+  const productCats = productCat.split(",").map((c) => normCat(c));
   return productCats.some((pc) => {
-    if (pc === targetNorm) return true;
-    if (pc + "S" === targetNorm || pc === targetNorm + "S") return true;
-    if (targetNorm === "CORPORATE GIFT SETS" && pc === "CORPORATE GIFT SET") return true;
-    if (targetNorm === "CUSTOMISED DIARY & NOTE BOOKS" && pc.includes("CUSTOMISED DIARY")) return true;
+    if (!pc) return false;
+    if (names.has(pc)) return true;
+    for (const t of names) {
+      if (pc + "S" === t || pc === t + "S") return true;
+      if (t === "CORPORATE GIFT SETS" && pc === "CORPORATE GIFT SET") return true;
+      if (t === "CUSTOMISED DIARY & NOTE BOOKS" && pc.includes("CUSTOMISED DIARY")) return true;
+    }
     return false;
   });
 }
 
 /** Determine the subcategory mapping dynamically based on tags and product details */
-function getSubcategory(item: CatalogItem, category: string): string {
-  const categoryNorm = category.trim().toUpperCase();
-  
+function getSubcategory(
+  item: CatalogItem,
+  category: string,
+  ctx?: { key: string; subs: string[]; subRenames: Record<string, string> },
+): string {
+  const categoryNorm = (ctx?.key || category).trim().toUpperCase();
+  const tags = item.tags || [];
+
+  if (ctx?.subs?.length) {
+    const reverse: Record<string, string> = {};
+    for (const [orig, renamed] of Object.entries(ctx.subRenames || {})) reverse[renamed] = orig;
+    const explicit = ctx.subs.find((sub) => tags.includes(sub) || tags.includes(reverse[sub] || ""));
+    if (explicit) return explicit;
+    for (const [orig, renamed] of Object.entries(ctx.subRenames || {})) {
+      if (tags.includes(orig)) return renamed;
+    }
+  }
+
   // First, check if the item has an explicit subcategory tag saved from the dropdown
   const predefined = STOREFRONT_SUBCATEGORIES[categoryNorm];
   if (predefined) {
     const explicitMatch = predefined.find(sub => (item.tags || []).includes(sub));
-    if (explicitMatch) return explicitMatch;
+    if (explicitMatch) return ctx?.subRenames?.[explicitMatch] || explicitMatch;
   }
 
   const nameLower = item.name.toLowerCase();
@@ -188,61 +239,62 @@ function getSubcategory(item: CatalogItem, category: string): string {
 
   const hasKeyword = (keywords: string[]) =>
     keywords.some((k) => nameLower.includes(k) || tagsLower.some((t) => t.includes(k)));
+  const label = (s: string) => ctx?.subRenames?.[s] || s;
 
   if (categoryNorm === "CORPORATE GIFT SETS" || categoryNorm === "CORPORATE GIFT SET") {
-    if (hasKeyword(["diary and pen", "diary & pen", "pen set"])) return "Diary & Pen Sets";
-    if (hasKeyword(["calendar"])) return "Calendar Sets";
-    if (hasKeyword(["gift set", "giftset", "combo"])) return "Giftsets";
-    return "General / Others";
+    if (hasKeyword(["diary and pen", "diary & pen", "pen set"])) return label("Diary & Pen Sets");
+    if (hasKeyword(["calendar"])) return label("Calendar Sets");
+    if (hasKeyword(["gift set", "giftset", "combo"])) return label("Giftsets");
+    return label("General / Others");
   }
 
   if (categoryNorm === "NEW YEAR DIARY" || categoryNorm === "CUSTOMISED DIARY & NOTE BOOKS") {
-    if (hasKeyword(["go green", "eco", "wood", "woody", "green"])) return "Eco-Friendly & Green";
-    if (hasKeyword(["leather", "pu leather"])) return "Leather Diaries";
-    if (hasKeyword(["hard bound", "hard cover", "hb"])) return "Hard Bound Diaries";
-    if (hasKeyword(["planner", "motivation", "theme"])) return "Planners & Themes";
-    if (hasKeyword(["economy", "economical", "regular"])) return "Economy & Regular";
-    return "General / Others";
+    if (hasKeyword(["go green", "eco", "wood", "woody", "green"])) return label("Eco-Friendly & Green");
+    if (hasKeyword(["leather", "pu leather"])) return label("Leather Diaries");
+    if (hasKeyword(["hard bound", "hard cover", "hb"])) return label("Hard Bound Diaries");
+    if (hasKeyword(["planner", "motivation", "theme"])) return label("Planners & Themes");
+    if (hasKeyword(["economy", "economical", "regular"])) return label("Economy & Regular");
+    return label("General / Others");
   }
 
   if (categoryNorm === "LEATHER GIFT ITEMS") {
-    if (hasKeyword(["bag", "portfolio"])) return "Bags & Portfolios";
-    return "Leather Accessories";
+    if (hasKeyword(["bag", "portfolio"])) return label("Bags & Portfolios");
+    return label("Leather Accessories");
   }
 
   if (categoryNorm === "LEATHER BAGS") {
-    return "Executive Bags";
+    return label("Executive Bags");
   }
 
   if (categoryNorm === "JUTE BAGS") {
-    return "Eco Jute Bags";
+    return label("Eco Jute Bags");
   }
 
   if (categoryNorm === "BOTTLES GIFT SET" || categoryNorm === "BOTTLE GIFT SETS") {
-    return "Bottle & Flask Sets";
+    return label("Bottle & Flask Sets");
   }
 
   if (categoryNorm === "POWER BANK DIARIES") {
-    return "Tech Power Bank Diaries";
+    return label("Tech Power Bank Diaries");
   }
 
   if (categoryNorm === "PEN STANDS") {
-    return "Desktop Accessories";
+    return label("Desktop Accessories");
   }
 
   if (categoryNorm === "PROMOTIONAL UMBRELLAS") {
-    return "Umbrellas";
+    return label("Umbrellas");
   }
 
   if (categoryNorm === "CALENDARS") {
-    return "Desktop & Wall Calendars";
+    return label("Desktop & Wall Calendars");
   }
 
   if (categoryNorm === "EXHIBITION VISITOR'S GIFT IDEAS") {
-    return "Giveaways & Promos";
+    return label("Giveaways & Promos");
   }
 
-  return "General / Others";
+  return label("General / Others");
 }
 
 function ProductsPage() {
@@ -252,9 +304,7 @@ function ProductsPage() {
   const [search, setSearch] = useState("");
   const [editing, setEditing] = useState<CatalogItem | null>(null);
   const [catForm, setCatForm] = useState<CategoryFormState | null>(null);
-  const [addSubOpen, setAddSubOpen] = useState(false);
-  const [addSubFor, setAddSubFor] = useState<string | null>(null);
-  const [newSubName, setNewSubName] = useState("");
+  const [subForm, setSubForm] = useState<SubFormState | null>(null);
   const qc = useQueryClient();
 
   // ponytail: client-side custom categories + subcategories + SEO. localStorage
@@ -273,11 +323,21 @@ function ProductsPage() {
     } catch { return []; }
   });
 
-  const [customSubcategories, setCustomSubcategories] = useState<Record<string, string[]>>(() => {
-    if (typeof window === "undefined") return {};
-    try { return JSON.parse(localStorage.getItem(CUSTOM_SUBCATEGORIES_KEY) || "{}"); }
-    catch { return {}; }
-  });
+  const [customSubcategories, setCustomSubcategories] = useState<Record<string, string[]>>(() =>
+    readLs<Record<string, string[]>>(CUSTOM_SUBCATEGORIES_KEY, {}),
+  );
+  const [hiddenCategories, setHiddenCategories] = useState<string[]>(() =>
+    readLs<string[]>(HIDDEN_CATEGORIES_KEY, []),
+  );
+  const [categoryRenames, setCategoryRenames] = useState<Record<string, string>>(() =>
+    readLs<Record<string, string>>(CATEGORY_RENAMES_KEY, {}),
+  );
+  const [hiddenSubcategories, setHiddenSubcategories] = useState<Record<string, string[]>>(() =>
+    readLs<Record<string, string[]>>(HIDDEN_SUBCATEGORIES_KEY, {}),
+  );
+  const [subcategoryRenames, setSubcategoryRenames] = useState<Record<string, Record<string, string>>>(() =>
+    readLs<Record<string, Record<string, string>>>(SUBCATEGORY_RENAMES_KEY, {}),
+  );
 
   // SEO keyed by category name (works for built-in + custom).
   const [categorySeo, setCategorySeo] = useState<Record<string, CategorySeo>>(() => {
@@ -323,12 +383,46 @@ function ProductsPage() {
   }, [customSubcategories]);
 
   useEffect(() => {
+    localStorage.setItem(HIDDEN_CATEGORIES_KEY, JSON.stringify(hiddenCategories));
+  }, [hiddenCategories]);
+
+  useEffect(() => {
+    localStorage.setItem(CATEGORY_RENAMES_KEY, JSON.stringify(categoryRenames));
+  }, [categoryRenames]);
+
+  useEffect(() => {
+    localStorage.setItem(HIDDEN_SUBCATEGORIES_KEY, JSON.stringify(hiddenSubcategories));
+  }, [hiddenSubcategories]);
+
+  useEffect(() => {
+    localStorage.setItem(SUBCATEGORY_RENAMES_KEY, JSON.stringify(subcategoryRenames));
+  }, [subcategoryRenames]);
+
+  useEffect(() => {
     localStorage.setItem(CATEGORY_SEO_KEY, JSON.stringify(categorySeo));
   }, [categorySeo]);
 
+  function categoryKey(display: string): string {
+    const n = normCat(display);
+    if (STOREFRONT_CATEGORIES.includes(display) || STOREFRONT_CATEGORIES.includes(n)) return n;
+    for (const [orig, renamed] of Object.entries(categoryRenames)) {
+      if (normCat(renamed) === n || normCat(orig) === n) return orig;
+    }
+    return display;
+  }
+
+  function displayCategoryName(key: string): string {
+    return categoryRenames[key] || categoryRenames[normCat(key)] || key;
+  }
+
   const allCategories = useMemo(
-    () => [...STOREFRONT_CATEGORIES, ...customCategories.map((c) => c.name)],
-    [customCategories],
+    () => [
+      ...STOREFRONT_CATEGORIES.filter((c) => !hiddenCategories.includes(c) && !hiddenCategories.includes(normCat(c))).map(
+        (c) => categoryRenames[c] || c,
+      ),
+      ...customCategories.map((c) => c.name),
+    ],
+    [customCategories, hiddenCategories, categoryRenames],
   );
 
   function openAddCategoryForm() {
@@ -340,12 +434,13 @@ function ProductsPage() {
   }
 
   function openEditCategoryForm(cat: string) {
-    const seo = categorySeo[cat] ?? emptyCategorySeo();
-    // Fall back to legacy fields on customCategories if map entry is empty.
-    const legacy = customCategories.find((c) => c.name === cat);
+    const key = categoryKey(cat);
+    const seo = categorySeo[cat] ?? categorySeo[key] ?? emptyCategorySeo();
+    const legacy = customCategories.find((c) => c.name === cat || c.name === key);
     setCatForm({
       mode: "edit",
       originalName: cat,
+      originalKey: key,
       name: cat,
       seoTitle: seo.seoTitle || legacy?.seoTitle || "",
       seoDescription: seo.seoDescription || legacy?.seoDescription || "",
@@ -353,7 +448,59 @@ function ProductsPage() {
     });
   }
 
-  function saveCategoryForm() {
+  function migrateKeyed<T>(map: Record<string, T>, from: string, to: string): Record<string, T> {
+    if (from === to || !(from in map)) return map;
+    const next = { ...map, [to]: map[from] };
+    delete next[from];
+    return next;
+  }
+
+  async function retagCategoryOnItems(oldName: string, newName: string) {
+    if (normCat(oldName) === normCat(newName)) return;
+    for (const table of ["products", "diaries"] as const) {
+      const { data, error } = await supabase.from(table).select("id, category");
+      if (error) {
+        console.error(error);
+        continue;
+      }
+      for (const row of data || []) {
+        if (!matchCategory(row.category, oldName, categoryRenames)) continue;
+        const next = (row.category || "")
+          .split(",")
+          .map((c: string) => (normCat(c) === normCat(oldName) ? newName : c.trim()))
+          .filter(Boolean)
+          .join(", ");
+        if (next !== (row.category || "")) {
+          const { error: upErr } = await supabase.from(table).update({ category: next }).eq("id", row.id);
+          if (upErr) console.error(upErr);
+        }
+      }
+    }
+    qc.invalidateQueries({ queryKey: ["products-admin-only"] });
+    qc.invalidateQueries({ queryKey: ["diaries-admin-only"] });
+  }
+
+  async function retagSubcategoryOnItems(oldName: string, newName: string) {
+    if (oldName === newName) return;
+    for (const table of ["products", "diaries"] as const) {
+      const { data, error } = await supabase.from(table).select("id, tags");
+      if (error) {
+        console.error(error);
+        continue;
+      }
+      for (const row of data || []) {
+        const tags: string[] = Array.isArray(row.tags) ? row.tags : [];
+        if (!tags.includes(oldName)) continue;
+        const next = tags.map((t) => (t === oldName ? newName : t));
+        const { error: upErr } = await supabase.from(table).update({ tags: next }).eq("id", row.id);
+        if (upErr) console.error(upErr);
+      }
+    }
+    qc.invalidateQueries({ queryKey: ["products-admin-only"] });
+    qc.invalidateQueries({ queryKey: ["diaries-admin-only"] });
+  }
+
+  async function saveCategoryForm() {
     if (!catForm) return;
     const name = catForm.name.trim().toUpperCase().replace(/\s+/g, " ");
     if (!name) {
@@ -368,7 +515,15 @@ function ProductsPage() {
     };
 
     if (catForm.mode === "add") {
-      if (allCategories.some((c) => c.toUpperCase() === name)) {
+      const hiddenHit = hiddenCategories.find((h) => normCat(h) === name);
+      if (hiddenHit) {
+        setHiddenCategories((prev) => prev.filter((h) => normCat(h) !== name));
+        setCategorySeo((prev) => ({ ...prev, [hiddenHit]: seo, [name]: seo }));
+        setCatForm(null);
+        toast.success(`Restored "${displayCategoryName(hiddenHit)}"`);
+        return;
+      }
+      if (allCategories.some((c) => normCat(c) === name)) {
         toast.error("Category already exists");
         return;
       }
@@ -386,44 +541,219 @@ function ProductsPage() {
       return;
     }
 
-    // Edit: name is fixed (originalName); only SEO is updated.
-    const key = catForm.originalName || name;
-    setCategorySeo((prev) => ({ ...prev, [key]: seo }));
-    setCustomCategories((prev) =>
-      prev.map((c) =>
-        c.name === key
-          ? {
-              ...c,
-              seoTitle: seo.seoTitle || undefined,
-              seoDescription: seo.seoDescription || undefined,
-            }
-          : c,
-      ),
-    );
+    const origKey = catForm.originalKey || catForm.originalName || name;
+    const oldDisplay = catForm.originalName || origKey;
+    const isBuiltIn = STOREFRONT_CATEGORIES.includes(origKey);
+
+    if (normCat(name) !== normCat(oldDisplay) && allCategories.some((c) => normCat(c) === name && normCat(c) !== normCat(oldDisplay))) {
+      toast.error("Category already exists");
+      return;
+    }
+
+    if (isBuiltIn) {
+      setCategoryRenames((prev) => {
+        const next = { ...prev };
+        if (name === origKey) delete next[origKey];
+        else next[origKey] = name;
+        return next;
+      });
+    } else {
+      setCustomCategories((prev) =>
+        prev.map((c) =>
+          c.name === origKey || c.name === oldDisplay
+            ? {
+                ...c,
+                name,
+                seoTitle: seo.seoTitle || undefined,
+                seoDescription: seo.seoDescription || undefined,
+              }
+            : c,
+        ),
+      );
+      setCustomSubcategories((prev) => migrateKeyed(prev, origKey, name));
+      setHiddenSubcategories((prev) => migrateKeyed(prev, origKey, name));
+      setSubcategoryRenames((prev) => migrateKeyed(prev, origKey, name));
+    }
+
+    setCategorySeo((prev) => {
+      const next = { ...prev, [name]: seo };
+      if (oldDisplay !== name) delete next[oldDisplay];
+      if (origKey !== name && origKey !== oldDisplay) delete next[origKey];
+      return next;
+    });
+
+    if (selectedCategory === oldDisplay) setSelectedCategory(name);
+    if (expandedCategory === oldDisplay) setExpandedCategory(name);
+
     setCatForm(null);
-    toast.success(`Saved SEO for "${key}"`);
+    toast.success(`Saved "${name}"`);
+    if (normCat(oldDisplay) !== name) {
+      retagCategoryOnItems(oldDisplay, name).catch((e) => console.error(e));
+    }
   }
 
-  function addSubcategory() {
-    if (!addSubFor) return;
-    const name = newSubName.trim();
-    if (!name) return;
-    const cat = addSubFor.toUpperCase();
-    setCustomSubcategories((prev) => ({
-      ...prev,
-      [cat]: [...(prev[cat] || []), name],
-    }));
-    setNewSubName("");
-    setAddSubOpen(false);
-    toast.success(`Added "${name}" to ${cat}`);
+  function deleteCategory(cat: string) {
+    const key = categoryKey(cat);
+    const count = categoryCounts[cat] ?? 0;
+    const ok = confirm(
+      count > 0
+        ? `Delete category "${cat}"? ${count} item(s) stay in the catalog and will show under Uncategorised until you recategorise them.`
+        : `Delete category "${cat}"?`,
+    );
+    if (!ok) return;
+
+    const isBuiltIn = STOREFRONT_CATEGORIES.includes(key);
+    if (isBuiltIn) {
+      setHiddenCategories((prev) => (prev.includes(key) ? prev : [...prev, key]));
+    } else {
+      setCustomCategories((prev) => prev.filter((c) => c.name !== cat && c.name !== key));
+      setCustomSubcategories((prev) => {
+        const next = { ...prev };
+        delete next[cat];
+        delete next[key];
+        return next;
+      });
+    }
+    setCategorySeo((prev) => {
+      const next = { ...prev };
+      delete next[cat];
+      delete next[key];
+      return next;
+    });
+    if (selectedCategory === cat) {
+      setSelectedCategory(null);
+      setSelectedSubcategory(null);
+    }
+    if (expandedCategory === cat) setExpandedCategory(null);
+    toast.success(`Deleted "${cat}"`);
   }
 
   function getSubcategoriesFor(cat: string): string[] {
-    const norm = cat.toUpperCase();
-    return Array.from(new Set([
-      ...(STOREFRONT_SUBCATEGORIES[norm] || []),
-      ...(customSubcategories[norm] || []),
-    ]));
+    const key = categoryKey(cat);
+    const hidden = new Set([
+      ...(hiddenSubcategories[key] || []),
+      ...(hiddenSubcategories[cat] || []),
+    ]);
+    const renames = { ...(subcategoryRenames[key] || {}), ...(subcategoryRenames[cat] || {}) };
+    const raw = [
+      ...(STOREFRONT_SUBCATEGORIES[key] || STOREFRONT_SUBCATEGORIES[normCat(key)] || []),
+      ...(customSubcategories[key] || []),
+      ...(customSubcategories[cat] || []),
+    ];
+    const out: string[] = [];
+    for (const s of raw) {
+      if (hidden.has(s) || hidden.has(renames[s] || "")) continue;
+      const label = renames[s] || s;
+      if (!out.includes(label)) out.push(label);
+    }
+    return out;
+  }
+
+  function subCtx(cat: string) {
+    return {
+      key: categoryKey(cat),
+      subs: getSubcategoriesFor(cat),
+      subRenames: subcategoryRenames[categoryKey(cat)] || {},
+    };
+  }
+
+  function saveSubcategory() {
+    if (!subForm) return;
+    const name = subForm.name.trim();
+    if (!name) {
+      toast.error("Subcategory name is required");
+      return;
+    }
+    const key = categoryKey(subForm.cat);
+    const existing = getSubcategoriesFor(subForm.cat);
+
+    if (subForm.mode === "add") {
+      if (existing.some((s) => s.toLowerCase() === name.toLowerCase())) {
+        toast.error("Subcategory already exists");
+        return;
+      }
+      const hiddenList = hiddenSubcategories[key] || [];
+      const hiddenHit = hiddenList.find((h) => h.toLowerCase() === name.toLowerCase());
+      if (hiddenHit) {
+        setHiddenSubcategories((prev) => ({
+          ...prev,
+          [key]: (prev[key] || []).filter((h) => h !== hiddenHit),
+        }));
+      } else {
+        setCustomSubcategories((prev) => ({
+          ...prev,
+          [key]: [...(prev[key] || []), name],
+        }));
+      }
+      setSubForm(null);
+      toast.success(`Added "${name}"`);
+      return;
+    }
+
+    const oldName = subForm.originalName || name;
+    if (oldName.toLowerCase() !== name.toLowerCase() && existing.some((s) => s.toLowerCase() === name.toLowerCase())) {
+      toast.error("Subcategory already exists");
+      return;
+    }
+
+    const builtIn = STOREFRONT_SUBCATEGORIES[key] || [];
+    const reverseRename = Object.entries(subcategoryRenames[key] || {}).find(([, v]) => v === oldName)?.[0];
+    const origSub = builtIn.includes(oldName) ? oldName : reverseRename || oldName;
+    const isBuiltInSub = builtIn.includes(origSub);
+
+    if (isBuiltInSub) {
+      setSubcategoryRenames((prev) => {
+        const forCat = { ...(prev[key] || {}) };
+        if (name === origSub) delete forCat[origSub];
+        else forCat[origSub] = name;
+        return { ...prev, [key]: forCat };
+      });
+    } else {
+      setCustomSubcategories((prev) => ({
+        ...prev,
+        [key]: (prev[key] || []).map((s) => (s === oldName || s === origSub ? name : s)),
+      }));
+    }
+
+    if (selectedSubcategory === oldName) setSelectedSubcategory(name);
+    setSubForm(null);
+    toast.success(`Renamed to "${name}"`);
+    if (oldName !== name) {
+      retagSubcategoryOnItems(oldName, name).catch((e) => console.error(e));
+    }
+  }
+
+  function deleteSubcategory(cat: string, subcat: string) {
+    const key = categoryKey(cat);
+    const count = allItems.filter(
+      (item) => matchCategory(item.category, cat, categoryRenames) && getSubcategory(item, cat, subCtx(cat)) === subcat,
+    ).length;
+    const ok = confirm(
+      count > 0
+        ? `Delete subcategory "${subcat}"? ${count} item(s) stay in the catalog; recategorise them if needed.`
+        : `Delete subcategory "${subcat}"?`,
+    );
+    if (!ok) return;
+
+    const builtIn = STOREFRONT_SUBCATEGORIES[key] || [];
+    const reverseRename = Object.entries(subcategoryRenames[key] || {}).find(([, v]) => v === subcat)?.[0];
+    const origSub = builtIn.includes(subcat) ? subcat : reverseRename || subcat;
+    const isBuiltInSub = builtIn.includes(origSub);
+
+    if (isBuiltInSub) {
+      setHiddenSubcategories((prev) => ({
+        ...prev,
+        [key]: Array.from(new Set([...(prev[key] || []), origSub])),
+      }));
+    } else {
+      setCustomSubcategories((prev) => ({
+        ...prev,
+        [key]: (prev[key] || []).filter((s) => s !== subcat && s !== origSub),
+      }));
+    }
+
+    if (selectedSubcategory === subcat) setSelectedSubcategory(null);
+    toast.success(`Deleted "${subcat}"`);
   }
 
   // ponytail: open the edit Sheet in create mode with the source item's
@@ -479,17 +809,17 @@ function ProductsPage() {
   const categoryCounts = useMemo(() => {
     const map: Record<string, number> = {};
     for (const cat of allCategories) {
-      map[cat] = allItems.filter((item) => matchCategory(item.category, cat)).length;
+      map[cat] = allItems.filter((item) => matchCategory(item.category, cat, categoryRenames)).length;
     }
     return map;
-  }, [allItems, allCategories]);
+  }, [allItems, allCategories, categoryRenames]);
 
   const uncategorisedCount = useMemo(() => {
     return allItems.filter((item) => {
       if (!item.category || item.category.trim() === "") return true;
-      return !allCategories.some((cat) => matchCategory(item.category, cat));
+      return !allCategories.some((cat) => matchCategory(item.category, cat, categoryRenames));
     }).length;
-  }, [allItems, allCategories]);
+  }, [allItems, allCategories, categoryRenames]);
 
   // Items filtering based on navigation path
   const categoryItems = useMemo(() => {
@@ -497,22 +827,23 @@ function ProductsPage() {
     if (selectedCategory === "__uncategorised__") {
       return allItems.filter((item) => {
         if (!item.category || item.category.trim() === "") return true;
-        return !allCategories.some((cat) => matchCategory(item.category, cat));
+        return !allCategories.some((cat) => matchCategory(item.category, cat, categoryRenames));
       });
     }
-    return allItems.filter((item) => matchCategory(item.category, selectedCategory));
-  }, [allItems, selectedCategory, allCategories]);
+    return allItems.filter((item) => matchCategory(item.category, selectedCategory, categoryRenames));
+  }, [allItems, selectedCategory, allCategories, categoryRenames]);
 
   // Subcategories found in the selected category
   const subcategoryCounts = useMemo(() => {
     if (!selectedCategory) return {};
+    const ctx = subCtx(selectedCategory);
     const map: Record<string, number> = {};
     for (const item of categoryItems) {
-      const subcat = getSubcategory(item, selectedCategory);
+      const subcat = getSubcategory(item, selectedCategory, ctx);
       map[subcat] = (map[subcat] || 0) + 1;
     }
     return map;
-  }, [categoryItems, selectedCategory]);
+  }, [categoryItems, selectedCategory, subcategoryRenames, hiddenSubcategories, customSubcategories, categoryRenames]);
 
   const subcategoriesList = useMemo(() => {
     return Object.keys(subcategoryCounts).sort();
@@ -520,10 +851,11 @@ function ProductsPage() {
 
   const subcategoryItems = useMemo(() => {
     if (!selectedCategory || !selectedSubcategory) return [];
+    const ctx = subCtx(selectedCategory);
     return categoryItems.filter(
-      (item) => getSubcategory(item, selectedCategory) === selectedSubcategory
+      (item) => getSubcategory(item, selectedCategory, ctx) === selectedSubcategory
     );
-  }, [categoryItems, selectedCategory, selectedSubcategory]);
+  }, [categoryItems, selectedCategory, selectedSubcategory, subcategoryRenames, hiddenSubcategories, customSubcategories, categoryRenames]);
 
   // Flat list filtered by search or subcategory items
   const filtered = useMemo(() => {
@@ -687,7 +1019,6 @@ function ProductsPage() {
                         </span>
                         <ChevronRight className={`h-3.5 w-3.5 text-muted-foreground transition-transform duration-200 shrink-0 ${isExpanded ? "rotate-90" : ""}`} />
                       </button>
-                      {/* Category form (SEO) — always available on the name line */}
                       <Button
                         type="button"
                         variant="ghost"
@@ -697,11 +1028,23 @@ function ProductsPage() {
                           e.stopPropagation();
                           openEditCategoryForm(cat);
                         }}
-                        title={`Edit category & SEO: ${cat}`}
+                        title={`Edit category: ${cat}`}
                       >
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
-                      {/* On the category name line when expanded: add another subcategory */}
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 w-7 p-0 shrink-0 text-muted-foreground hover:text-destructive"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteCategory(cat);
+                        }}
+                        title={`Delete category: ${cat}`}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
                       {isExpanded && (
                         <Button
                           type="button"
@@ -710,9 +1053,7 @@ function ProductsPage() {
                           className="h-7 shrink-0 gap-1 px-2 text-xs"
                           onClick={(e) => {
                             e.stopPropagation();
-                            setAddSubFor(cat);
-                            setNewSubName("");
-                            setAddSubOpen(true);
+                            setSubForm({ mode: "add", cat, name: "" });
                           }}
                           title={`Add subcategory to ${cat}`}
                         >
@@ -724,19 +1065,56 @@ function ProductsPage() {
                     {isExpanded && (
                       <div className="bg-surface/30 pl-10 pr-4 py-1 divide-y divide-border/20 border-t border-b border-border/10">
                         {subcats.map((subcat) => {
-                          const count = allItems.filter(item => matchCategory(item.category, cat) && getSubcategory(item, cat) === subcat).length;
+                          const count = allItems.filter(
+                            (item) =>
+                              matchCategory(item.category, cat, categoryRenames) &&
+                              getSubcategory(item, cat, subCtx(cat)) === subcat,
+                          ).length;
                           return (
-                            <button
+                            <div
                               key={subcat}
-                              onClick={() => {
-                                setSelectedCategory(cat);
-                                setSelectedSubcategory(subcat);
-                              }}
-                              className="w-full flex items-center justify-between py-2.5 text-xs hover:text-primary text-muted-foreground hover:bg-surface-2/10 transition-all text-left group/sub"
+                              className="w-full flex items-center gap-1 py-1.5 text-xs text-muted-foreground hover:bg-surface-2/10 transition-all group/sub"
                             >
-                              <span className="group-hover/sub:translate-x-1 transition-transform">{subcat}</span>
-                              <span className="text-[10px] bg-surface-2 px-1.5 py-0.5 rounded border border-border/85 text-muted-foreground font-mono">{count} items</span>
-                            </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedCategory(cat);
+                                  setSelectedSubcategory(subcat);
+                                }}
+                                className="flex-1 flex items-center justify-between py-1 text-left min-w-0 hover:text-primary"
+                              >
+                                <span className="truncate group-hover/sub:translate-x-1 transition-transform">{subcat}</span>
+                                <span className="text-[10px] bg-surface-2 px-1.5 py-0.5 rounded border border-border/85 text-muted-foreground font-mono shrink-0 ml-2">
+                                  {count} items
+                                </span>
+                              </button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0 shrink-0 text-muted-foreground hover:text-foreground"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSubForm({ mode: "edit", cat, originalName: subcat, name: subcat });
+                                }}
+                                title={`Rename subcategory: ${subcat}`}
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0 shrink-0 text-muted-foreground hover:text-destructive"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  deleteSubcategory(cat, subcat);
+                                }}
+                                title={`Delete subcategory: ${subcat}`}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
                           );
                         })}
                         {subcats.length === 0 && (
@@ -954,6 +1332,7 @@ function ProductsPage() {
             <ProductForm
               product={editing}
               allCategories={allCategories}
+              getSubcategoriesFor={getSubcategoriesFor}
               defaultCategory={selectedCategory && selectedCategory !== "__uncategorised__" ? selectedCategory : undefined}
               defaultSubcategory={search || !selectedSubcategory || selectedCategory === "__uncategorised__" ? undefined : selectedSubcategory}
               onClose={() => setEditing(null)}
@@ -985,12 +1364,9 @@ function ProductsPage() {
                   onChange={(e) => setCatForm({ ...catForm, name: e.target.value })}
                   placeholder="e.g. WOODEN GIFTS"
                   className="mt-1.5"
-                  disabled={catForm.mode === "edit"}
                 />
                 <p className="text-xs text-muted-foreground mt-1.5">
-                  {catForm.mode === "add"
-                    ? "Saved in uppercase to match existing category style."
-                    : "Category name is fixed. Update SEO fields below."}
+                  Saved in uppercase to match existing category style. Renaming also updates products in this folder.
                 </p>
               </div>
 
@@ -1044,55 +1420,103 @@ function ProductsPage() {
               </div>
             </div>
           )}
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button variant="ghost">Cancel</Button>
-            </DialogClose>
-            <Button
-              onClick={saveCategoryForm}
-              disabled={catForm?.mode === "add" && !catForm.name.trim()}
-            >
-              {catForm?.mode === "edit" ? "Save category" : (
-                <>
-                  <Plus className="h-4 w-4 mr-1.5" />
-                  Add category
-                </>
-              )}
-            </Button>
+          <DialogFooter className="gap-2 sm:justify-between">
+            {catForm?.mode === "edit" && catForm.originalName ? (
+              <Button
+                type="button"
+                variant="ghost"
+                className="text-destructive hover:text-destructive"
+                onClick={() => {
+                  const name = catForm.originalName!;
+                  setCatForm(null);
+                  deleteCategory(name);
+                }}
+              >
+                <Trash2 className="h-4 w-4 mr-1.5" />
+                Delete
+              </Button>
+            ) : (
+              <span />
+            )}
+            <div className="flex gap-2">
+              <DialogClose asChild>
+                <Button variant="ghost">Cancel</Button>
+              </DialogClose>
+              <Button
+                onClick={saveCategoryForm}
+                disabled={catForm?.mode === "add" && !catForm.name.trim()}
+              >
+                {catForm?.mode === "edit" ? "Save category" : (
+                  <>
+                    <Plus className="h-4 w-4 mr-1.5" />
+                    Add category
+                  </>
+                )}
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      <Dialog open={addSubOpen} onOpenChange={(o) => !o && setAddSubOpen(false)}>
+      <Dialog open={!!subForm} onOpenChange={(o) => !o && setSubForm(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Add subcategory{addSubFor ? ` to ${addSubFor}` : ""}</DialogTitle>
+            <DialogTitle>
+              {subForm?.mode === "edit"
+                ? `Rename subcategory${subForm.cat ? ` in ${subForm.cat}` : ""}`
+                : `Add subcategory${subForm?.cat ? ` to ${subForm.cat}` : ""}`}
+            </DialogTitle>
           </DialogHeader>
           <div className="py-2">
-            <Label htmlFor="new-sub-name">Name</Label>
+            <Label htmlFor="sub-form-name">Name</Label>
             <Input
-              id="new-sub-name"
+              id="sub-form-name"
               autoFocus
-              value={newSubName}
-              onChange={(e) => setNewSubName(e.target.value)}
+              value={subForm?.name ?? ""}
+              onChange={(e) => subForm && setSubForm({ ...subForm, name: e.target.value })}
               onKeyDown={(e) => {
-                if (e.key === "Enter") addSubcategory();
+                if (e.key === "Enter") saveSubcategory();
               }}
               placeholder="e.g. Premium Leather"
               className="mt-1.5"
             />
             <p className="text-xs text-muted-foreground mt-2">
-              Subcategory appears in this category's expanded list and in product/diary subcategory selectors.
+              {subForm?.mode === "edit"
+                ? "Renaming updates this folder and products tagged with the old name."
+                : "Subcategory appears in this category's expanded list and in product/diary subcategory selectors."}
             </p>
           </div>
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button variant="ghost">Cancel</Button>
-            </DialogClose>
-            <Button onClick={addSubcategory} disabled={!newSubName.trim()}>
-              <Plus className="h-4 w-4 mr-1.5" />
-              Add subcategory
-            </Button>
+          <DialogFooter className="gap-2 sm:justify-between">
+            {subForm?.mode === "edit" && subForm.originalName ? (
+              <Button
+                type="button"
+                variant="ghost"
+                className="text-destructive hover:text-destructive"
+                onClick={() => {
+                  const { cat, originalName } = subForm;
+                  setSubForm(null);
+                  deleteSubcategory(cat, originalName);
+                }}
+              >
+                <Trash2 className="h-4 w-4 mr-1.5" />
+                Delete
+              </Button>
+            ) : (
+              <span />
+            )}
+            <div className="flex gap-2">
+              <DialogClose asChild>
+                <Button variant="ghost">Cancel</Button>
+              </DialogClose>
+              <Button onClick={saveSubcategory} disabled={!subForm?.name.trim()}>
+                {subForm?.mode === "edit" ? "Save name" : (
+                  <>
+                    <Plus className="h-4 w-4 mr-1.5" />
+                    Add subcategory
+                  </>
+                )}
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1105,6 +1529,7 @@ function ProductForm({
   onClose,
   onSaved,
   allCategories,
+  getSubcategoriesFor,
   defaultCategory,
   defaultSubcategory,
 }: {
@@ -1112,6 +1537,7 @@ function ProductForm({
   onClose: () => void;
   onSaved: () => void;
   allCategories: string[];
+  getSubcategoriesFor: (cat: string) => string[];
   defaultCategory?: string;
   defaultSubcategory?: string;
 }) {
@@ -1253,7 +1679,7 @@ function ProductForm({
 
   // Subcategory multi-select
   const availableSubcats = Array.from(new Set(
-    selectedCats.flatMap(cat => STOREFRONT_SUBCATEGORIES[cat.toUpperCase()] || [])
+    selectedCats.flatMap((cat) => getSubcategoriesFor(cat)),
   ));
 
   const selectedSubcats = (values.tags || []).filter(t => availableSubcats.includes(t));
