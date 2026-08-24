@@ -178,26 +178,52 @@ const productShape = z.object({
   seo_description: z.string().nullable(),
 });
 
+/** Production is missing products.features / seo_* until migration 20260809170000
+ *  is applied. Strip the unknown column and retry so admin create/update still works. */
+function missingColumn(message: string): string | null {
+  const schemaCache = message.match(/Could not find the '([^']+)' column/i);
+  if (schemaCache?.[1]) return schemaCache[1];
+  const pg = message.match(/column ["']?(\w+)["']? (?:of relation .* )?does not exist/i);
+  return pg?.[1] ?? null;
+}
+
+async function writeCatalogRow(
+  supabase: { from: (table: string) => any },
+  table: "products" | "diaries",
+  values: Record<string, unknown>,
+  id?: string,
+) {
+  const payload: Record<string, unknown> = { ...values };
+  let lastMessage = "";
+  for (let i = 0; i < 6; i++) {
+    if (id) {
+      const { error } = await supabase.from(table).update(payload).eq("id", id);
+      if (!error) return { id };
+      lastMessage = error.message || "Save failed";
+    } else {
+      const { data: row, error } = await supabase.from(table).insert(payload).select("id").single();
+      if (!error && row?.id) return { id: row.id as string };
+      lastMessage = error?.message || "Save failed";
+    }
+    const col = missingColumn(lastMessage);
+    if (col && col in payload) {
+      delete payload[col];
+      continue;
+    }
+    throw new Error(lastMessage);
+  }
+  throw new Error(lastMessage || "Save failed");
+}
+
 export const saveProduct = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) =>
     z.object({ id: z.string().uuid().optional(), values: productShape }).parse(d),
   )
   .handler(async ({ data, context }) => {
-    if (data.id) {
-      const { error } = await context.supabase.from("products").update(data.values).eq("id", data.id);
-      if (error) throw new Error(error.message);
-      await notifyStorefront(["/", "/shop", `/shop/${data.id}`, `/shop/${data.values.slug}`]);
-      return { ok: true, id: data.id };
-    }
-    const { data: row, error } = await context.supabase
-      .from("products")
-      .insert(data.values)
-      .select("id")
-      .single();
-    if (error) throw new Error(error.message);
-    await notifyStorefront(["/", "/shop", `/shop/${row.id}`]);
-    return { ok: true, id: row.id };
+    const { id } = await writeCatalogRow(context.supabase, "products", data.values, data.id);
+    await notifyStorefront(["/", "/shop", `/shop/${id}`, `/shop/${data.values.slug}`]);
+    return { ok: true, id };
   });
 
 export const deleteProduct = createServerFn({ method: "POST" })
@@ -238,20 +264,9 @@ export const saveDiary = createServerFn({ method: "POST" })
     z.object({ id: z.string().uuid().optional(), values: diaryShape }).parse(d),
   )
   .handler(async ({ data, context }) => {
-    if (data.id) {
-      const { error } = await context.supabase.from("diaries").update(data.values).eq("id", data.id);
-      if (error) throw new Error(error.message);
-      await notifyStorefront(["/", "/shop", `/shop/${data.id}`, `/shop/${data.values.slug}`]);
-      return { ok: true, id: data.id };
-    }
-    const { data: row, error } = await context.supabase
-      .from("diaries")
-      .insert(data.values)
-      .select("id")
-      .single();
-    if (error) throw new Error(error.message);
-    await notifyStorefront(["/", "/shop", `/shop/${row.id}`]);
-    return { ok: true, id: row.id };
+    const { id } = await writeCatalogRow(context.supabase, "diaries", data.values, data.id);
+    await notifyStorefront(["/", "/shop", `/shop/${id}`, `/shop/${data.values.slug}`]);
+    return { ok: true, id };
   });
 
 export const deleteDiary = createServerFn({ method: "POST" })
