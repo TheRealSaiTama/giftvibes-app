@@ -305,7 +305,10 @@ function ProductsPage() {
   const [editing, setEditing] = useState<CatalogItem | null>(null);
   const [catForm, setCatForm] = useState<CategoryFormState | null>(null);
   const [subForm, setSubForm] = useState<SubFormState | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const qc = useQueryClient();
+  const runDeleteProduct = useServerFn(deleteProduct);
+  const runDeleteDiary = useServerFn(deleteDiary);
 
   // ponytail: client-side custom categories + subcategories + SEO. localStorage
   // is enough for now; promote to a Supabase table when the catalog team needs
@@ -777,6 +780,27 @@ function ProductsPage() {
     toast.message("Duplicating — review and save to create the copy");
   }
 
+  async function deleteItem(item: CatalogItem) {
+    if (!item.id) return;
+    if (!confirm(`Delete "${item.name}"? This cannot be undone.`)) return;
+    setDeletingId(item.id);
+    try {
+      if (item.type === "diary") {
+        await runDeleteDiary({ data: { id: item.id } });
+      } else {
+        await runDeleteProduct({ data: { id: item.id } });
+      }
+      toast.success(`Deleted "${item.name}"`);
+      qc.invalidateQueries({ queryKey: ["products-admin-only"] });
+      qc.invalidateQueries({ queryKey: ["diaries-admin-only"] });
+      if (editing?.id === item.id) setEditing(null);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Delete failed");
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
   // Query standard products
   const { data: dbProducts, isLoading: loadingProducts } = useQuery<CatalogItem[]>({
     queryKey: ["products-admin-only"],
@@ -1194,7 +1218,7 @@ function ProductsPage() {
                   <th className="px-2 py-2.5">Price range</th>
                   <th className="px-2 py-2.5">Type</th>
                   <th className="px-2 py-2.5">Status</th>
-                  <th className="px-4 py-2.5 w-28 text-right">Actions</th>
+                  <th className="px-4 py-2.5 w-36 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -1297,6 +1321,21 @@ function ProductsPage() {
                           aria-label={`Edit ${item.name}`}
                         >
                           <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                          disabled={deletingId === item.id}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteItem(item);
+                          }}
+                          title="Delete"
+                          aria-label={`Delete ${item.name}`}
+                        >
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </td>
