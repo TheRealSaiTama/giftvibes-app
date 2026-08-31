@@ -94,12 +94,12 @@ export default function RelatedProducts({ products, heading }: RelatedProductsPr
                 href={productHref(product)}
                 className="group bg-white rounded-xl shadow-md hover:shadow-xl overflow-hidden transition-all duration-300 border border-gray-100 hover:border-primary/30"
               >
-                <div className="relative aspect-square bg-gradient-to-br from-gray-50 to-white overflow-hidden">
+                <div className="relative aspect-square bg-[#f6f7f8] overflow-hidden">
                   <Image
                     src={imageUrl}
                     alt={product.name}
                     fill
-                    className="object-cover group-hover:scale-105 transition-transform duration-500"
+                    className="object-contain object-center p-4 group-hover:scale-[1.03] transition-transform duration-500"
                     sizes="(max-width: 768px) 50vw, 20vw"
                   />
                 </div>

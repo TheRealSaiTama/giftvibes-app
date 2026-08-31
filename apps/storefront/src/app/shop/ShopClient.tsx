@@ -428,29 +428,26 @@ export default function ShopClient({
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-7">
                 {results.map((product) => {
                   const imageUrl = resolveProductImage(product.imageUrl, { width: 400 });
 
                   return (
-                    <article key={String(product.id)} className="bg-white rounded-xl shadow-md hover:shadow-xl overflow-hidden transition-all duration-300 border border-gray-100 hover:border-primary/30">
+                    <article key={String(product.id)} className="bg-white rounded-xl shadow-md hover:shadow-xl overflow-hidden transition-all duration-300 border border-gray-100 hover:border-primary/30 flex flex-col h-full">
                       <Link href={productHref(product)} className="block group">
-                        <div className="relative h-56 bg-gradient-to-br from-gray-50 to-white overflow-hidden">
+                        <div className="relative aspect-square bg-[#f6f7f8] overflow-hidden">
                           <Image
                             src={imageUrl}
                             alt={product.name || "Product"}
                             fill
                             loading="lazy"
                             unoptimized={isRemoteOrDataImage(imageUrl)}
-                            className="object-cover group-hover:scale-105 transition-transform duration-500"
+                            className="object-contain object-center p-5 group-hover:scale-[1.03] transition-transform duration-500"
                             sizes="(max-width: 640px) 50vw, 25vw"
                           />
-                          <div className="absolute top-2 right-2 bg-black/70 text-white px-2 py-1 rounded-full text-xs font-medium opacity-0 group-hover:opacity-100 transition-all duration-300">
-                            View Details
-                          </div>
                         </div>
                       </Link>
-                      <div className="p-5">
+                      <div className="p-5 flex flex-col flex-1">
                         <h3 className="text-base font-semibold text-gray-800 line-clamp-2 mb-4 hover:text-primary transition-colors">
                           <Link href={productHref(product)}>{product.name}</Link>
                         </h3>

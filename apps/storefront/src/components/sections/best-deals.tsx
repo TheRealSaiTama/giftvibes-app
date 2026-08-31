@@ -81,14 +81,14 @@ const ProductCard = ({ product }: { product: Product }) => {
           className="data-[state=checked]:bg-[#124559] data-[state=checked]:border-[#124559]"
         />
       </div>
-      <Link href={productHref(product)} className="relative bg-white aspect-square overflow-hidden product-image-container pt-8 pl-8 block">
+      <Link href={productHref(product)} className="relative bg-[#f6f7f8] aspect-square overflow-hidden block">
         <Image
           src={product.image || PRODUCT_IMAGE_PLACEHOLDER}
           alt={product.name}
           fill
           unoptimized={isRemoteOrDataImage(product.image || "")}
           sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-          className="object-contain transition-transform duration-300 group-hover:scale-105"
+          className="object-contain object-center p-6 transition-transform duration-300 group-hover:scale-[1.03]"
         />
         <span className="absolute top-4 right-4 bg-white rounded-full p-2.5 shadow-sm transition-all duration-300 opacity-0 translate-y-1 group-hover:opacity-100 group-hover:translate-y-0">
           <Image src={heartIconUrl} alt="Add to wishlist" width={16} height={16} unoptimized />

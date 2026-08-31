@@ -145,14 +145,14 @@ const WeeklyPopularProducts = ({ content, products: dbProducts }: WeeklyPopularP
                     className="data-[state=checked]:bg-[#124559] data-[state=checked]:border-[#124559]"
                   />
                 </div>
-                <Link href={productHref(product)} className="relative bg-white p-6 flex items-center justify-center aspect-square overflow-hidden product-image-container pt-8 pl-8 block">
+                <Link href={productHref(product)} className="relative bg-[#f6f7f8] p-6 flex items-center justify-center aspect-square overflow-hidden block">
                   <Image
                     src={product.image || PRODUCT_IMAGE_PLACEHOLDER}
                     alt={product.name}
                     width={200}
                     height={200}
                     unoptimized={isRemoteOrDataImage(product.image || "")}
-                    className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105"
+                    className="w-full h-full object-contain object-center transition-transform duration-300 group-hover:scale-[1.03]"
                   />
                   <span className="absolute top-4 right-4 bg-white w-9 h-9 flex items-center justify-center rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                      <Image

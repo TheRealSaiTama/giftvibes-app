@@ -90,7 +90,7 @@ export default function ProductGallery({ imageUrl, productName, gallery }: Produ
               src={img}
               alt={`${productName} thumbnail ${idx + 1}`}
               fill
-              className="object-cover"
+              className="object-contain object-center p-1 bg-[#f6f7f8]"
               sizes="80px"
             />
           </button>

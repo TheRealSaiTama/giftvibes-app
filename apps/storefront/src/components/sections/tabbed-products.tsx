@@ -62,13 +62,13 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, className }) => {
           className="data-[state=checked]:bg-[#124559] data-[state=checked]:border-[#124559]"
         />
       </div>
-      <Link href={productHref(product)} className="relative bg-white flex items-center justify-center p-5 mb-5 h-[230px] overflow-hidden product-image-container pt-8 pl-8 block">
+      <Link href={productHref(product)} className="relative bg-[#f6f7f8] flex items-center justify-center mb-5 aspect-square overflow-hidden block">
         <Image
           src={product.image || PRODUCT_IMAGE_PLACEHOLDER}
           alt={product.name}
           fill
           unoptimized={isRemoteOrDataImage(product.image || "")}
-          className="object-contain transition-transform duration-300 group-hover:scale-105"
+          className="object-contain object-center p-6 transition-transform duration-300 group-hover:scale-[1.03]"
           sizes="(max-width: 640px) 90vw, (max-width: 1024px) 45vw, 22vw"
         />
         <span className="absolute top-2.5 right-2.5 bg-white rounded-full w-8 h-8 flex items-center justify-center cursor-pointer shadow-sm z-10 transition-transform group-hover:scale-110">
