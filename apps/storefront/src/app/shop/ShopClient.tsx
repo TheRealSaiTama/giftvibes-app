@@ -53,19 +53,22 @@ function getFileIdFromUrl(url: string): string | null {
   return match ? match[1] : null;
 }
 
+function splitCategories(raw: string | null | undefined): string[] {
+  if (!raw) return [];
+  return raw.split(",").map((s) => s.trim()).filter(Boolean);
+}
+
 function categoryMatches(productCategory: string, filterCat: string): boolean {
-  const hay = productCategory.toLowerCase();
   const needle = filterCat.toLowerCase().trim();
   if (!needle) return true;
-  if (hay.includes(needle)) return true;
-  // Tolerate singular/plural and slight naming drift from home carousel links.
   const compact = (s: string) => s.replace(/[^a-z0-9]+/g, " ").trim();
-  const h = compact(hay);
   const n = compact(needle);
-  if (h.includes(n) || n.includes(h)) return true;
-  if (n.endsWith("s") && h.includes(n.slice(0, -1))) return true;
-  if (h.endsWith("s") && n.includes(h.slice(0, -1))) return true;
-  return false;
+  return splitCategories(productCategory).some((part) => {
+    const hay = part.toLowerCase();
+    if (hay === needle) return true;
+    const h = compact(hay);
+    return h === n;
+  });
 }
 
 function filterAndSortProducts(products: ShopProduct[], filters: Filters): ShopProduct[] {
@@ -113,6 +116,7 @@ export default function ShopClient({
   initialDiaries,
   initialProducts,
   chrome,
+  folderNames,
 }: {
   initialDiaries: Diary[];
   initialProducts: Product[];
@@ -122,6 +126,8 @@ export default function ShopClient({
     subheading?: string;
     empty_state?: string;
   };
+  /** Official Products folders — never invent filters from raw category text. */
+  folderNames?: string[];
 }) {
   const heading = chrome?.heading?.trim() || "Our Products";
   const emptyState =
@@ -276,7 +282,18 @@ export default function ShopClient({
     });
   };
 
-  const uniqueCategories = useMemo(() => Array.from(new Set(combinedProducts.map((p: ShopProduct) => p.category).filter(Boolean) as string[])), [combinedProducts]);
+  const uniqueCategories = useMemo(() => {
+    if (folderNames && folderNames.length) {
+      return folderNames.filter((name) =>
+        combinedProducts.some((p) => categoryMatches(p.category || "", name)),
+      );
+    }
+    const parts = new Set<string>();
+    for (const p of combinedProducts) {
+      for (const part of splitCategories(p.category)) parts.add(part);
+    }
+    return Array.from(parts);
+  }, [combinedProducts, folderNames]);
 
   return (
     <main className="container mx-auto px-4 py-12">

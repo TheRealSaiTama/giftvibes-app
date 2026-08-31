@@ -151,7 +151,7 @@ function ProductsPage() {
   const runSaveTree = useServerFn(saveCatalogTree);
   const seededRef = useRef(false);
 
-  const { data: remoteTree } = useQuery({
+  const { data: remoteTree, isSuccess: catalogReady } = useQuery({
     queryKey: ["catalog-folders"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -167,22 +167,51 @@ function ProductsPage() {
     },
   });
 
-  const [tree, setTree] = useState<CatalogFolder[]>(DEFAULT_CATALOG_FOLDERS);
+  const tree = remoteTree?.folders ?? [];
+
   useEffect(() => {
-    if (!remoteTree) return;
-    setTree(remoteTree.folders);
-    if (!remoteTree.fromDb && !seededRef.current) {
-      seededRef.current = true;
-      runSaveTree({ data: { categories: remoteTree.folders } }).catch((e) =>
-        console.error("seed catalog tree failed", e),
-      );
-    }
+    if (!remoteTree || remoteTree.fromDb || seededRef.current) return;
+    seededRef.current = true;
+    runSaveTree({ data: { categories: remoteTree.folders } }).catch((e) =>
+      console.error("seed catalog tree failed", e),
+    );
   }, [remoteTree, runSaveTree]);
 
   const allCategories = useMemo(() => tree.map((f) => f.name), [tree]);
 
+  const sanitizedCatsRef = useRef(false);
+  async function sanitizeStoredCategories(folders: CatalogFolder[]) {
+    const official = new Map(folders.map((f) => [normCat(f.name), f.name] as const));
+    for (const table of ["products", "diaries"] as const) {
+      const { data, error } = await supabase.from(table).select("id, category");
+      if (error) continue;
+      for (const row of data || []) {
+        const next = [
+          ...new Set(
+            String(row.category || "")
+              .split(",")
+              .map((c) => official.get(normCat(c.trim())))
+              .filter((n): n is string => !!n),
+          ),
+        ];
+        const joined = next.join(", ");
+        if (joined !== (row.category || "").trim()) {
+          await supabase.from(table).update({ category: joined || null }).eq("id", row.id);
+        }
+      }
+    }
+    qc.invalidateQueries({ queryKey: ["products-admin-only"] });
+    qc.invalidateQueries({ queryKey: ["diaries-admin-only"] });
+  }
+
+  useEffect(() => {
+    if (!catalogReady || !tree.length || sanitizedCatsRef.current) return;
+    sanitizedCatsRef.current = true;
+    sanitizeStoredCategories(tree).catch((e) => console.error("sanitize categories", e));
+  }, [catalogReady, tree]);
+
   async function persistTree(next: CatalogFolder[]) {
-    setTree(next);
+    qc.setQueryData(["catalog-folders"], { folders: next, fromDb: true });
     try {
       await runSaveTree({ data: { categories: next } });
       qc.invalidateQueries({ queryKey: ["catalog-folders"] });
@@ -1038,6 +1067,7 @@ function ProductsPage() {
             <ProductForm
               product={editing}
               allCategories={allCategories}
+              categoriesReady={catalogReady}
               getSubcategoriesFor={getSubcategoriesFor}
               defaultCategory={selectedCategory && selectedCategory !== "__uncategorised__" ? selectedCategory : undefined}
               defaultSubcategory={search || !selectedSubcategory || selectedCategory === "__uncategorised__" || selectedSubcategory === UNSORTED_SUB ? undefined : selectedSubcategory}
@@ -1235,6 +1265,7 @@ function ProductForm({
   onClose,
   onSaved,
   allCategories,
+  categoriesReady = false,
   getSubcategoriesFor,
   defaultCategory,
   defaultSubcategory,
@@ -1243,6 +1274,7 @@ function ProductForm({
   onClose: () => void;
   onSaved: () => void;
   allCategories: string[];
+  categoriesReady?: boolean;
   getSubcategoriesFor: (cat: string) => string[];
   defaultCategory?: string;
   defaultSubcategory?: string;
@@ -1302,7 +1334,7 @@ function ProductForm({
               description: values.description || null,
               min_price: values.min_price,
               max_price: values.max_price,
-              category: values.category || null,
+              category: selectedCats.join(", ") || null,
               tags: values.tags,
               color: values.color || null,
               size: values.size || null,
@@ -1328,7 +1360,7 @@ function ProductForm({
               description: values.description || null,
               min_price: values.min_price,
               max_price: values.max_price,
-              category: values.category || null,
+              category: selectedCats.join(", ") || null,
               tags: values.tags,
               image_url: values.image_url || null,
               featured: values.featured,
@@ -1387,13 +1419,16 @@ function ProductForm({
   }, [values.category, officialByNorm]);
 
   useEffect(() => {
+    // Do not strip until the Products folder tree is loaded. Doing it against
+    // the default 12 folders deleted "SBI PRODUCTS" and left junk names.
+    if (!categoriesReady || officialByNorm.size === 0) return;
     const parts = (values.category || "").split(",").map((c) => c.trim()).filter(Boolean);
-    if (!parts.length || officialByNorm.size === 0) return;
+    if (!parts.length) return;
     const cleaned = selectedCats.join(", ");
     if (parts.join(", ") !== cleaned) {
       set("category", cleaned);
     }
-  }, [officialByNorm, selectedCats, values.category]);
+  }, [categoriesReady, officialByNorm, selectedCats, values.category]);
 
   function toggleCat(cat: string) {
     const official = officialByNorm.get(normCat(cat)) || cat.trim();

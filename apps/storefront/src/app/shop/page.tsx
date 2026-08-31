@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import Header from "@/components/sections/header";
 import Footer from "@/components/sections/footer";
 import ShopClient from "./ShopClient";
-import { getStorefrontData, getShopChrome } from "@/lib/site";
+import { getStorefrontData, getShopChrome, getCatalogFolders } from "@/lib/site";
 import { productHref } from "@/lib/seo";
 import { getCachedLiveCatalog } from "@/lib/catalog";
 
@@ -19,10 +19,11 @@ export const revalidate = 60;
 export default async function ShopPage() {
   // Catalogue first so it is not starved by header/footer/chrome queries
   // on the same serverless Prisma pool (that race rendered "0 live items").
-  const [catalog, storefront, chrome] = await Promise.all([
+  const [catalog, storefront, chrome, folders] = await Promise.all([
     getCachedLiveCatalog(),
     getStorefrontData(),
     getShopChrome(),
+    getCatalogFolders(),
   ]);
 
   const allDiaries = catalog.filter((i) => i.kind === "diary");
@@ -55,6 +56,7 @@ export default async function ShopPage() {
           initialDiaries={allDiaries as any}
           initialProducts={allProducts as any}
           chrome={chrome}
+          folderNames={folders.map((f) => f.name)}
         />
       </Suspense>
       <nav className="container py-10" aria-label="Full catalogue">
