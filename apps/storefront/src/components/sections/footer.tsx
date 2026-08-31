@@ -15,7 +15,6 @@ const FALLBACK_COMPANY: { label: string; href: string }[] = [
   { label: "Shipping & Returns", href: "drawer:shipping" },
   { label: "Contact Us", href: "drawer:contact" },
   { label: "Corporate Gifting", href: "/corporate-gifting" },
-  { label: "Buyer guides", href: "/guides" },
 ];
 
 const FALLBACK_SHOP: { label: string; href: string }[] = [

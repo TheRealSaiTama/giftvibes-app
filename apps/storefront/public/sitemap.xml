@@ -51,31 +51,6 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.giftvibes.in/guides</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://www.giftvibes.in/guides/new-year-diary-bulk-order-timeline</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.giftvibes.in/guides/logo-print-methods</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.giftvibes.in/guides/bulk-diary-specifications</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.giftvibes.in/guides/employee-joining-kits</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
     <loc>https://www.giftvibes.in/industries/pharma</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>

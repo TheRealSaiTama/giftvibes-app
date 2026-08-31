@@ -95,11 +95,6 @@ function RelatedSeoLinks() {
             Banks
           </Link>
         </li>
-        <li>
-          <Link className="underline" href="/guides">
-            Buyer guides
-          </Link>
-        </li>
       </ul>
     </nav>
   );

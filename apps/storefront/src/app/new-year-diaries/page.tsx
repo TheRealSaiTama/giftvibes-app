@@ -35,8 +35,7 @@ export default async function Page() {
         <li>Print: emboss / foil / each-page logo</li>
       </ul>
       <p>
-        Timeline detail:{" "}
-        <a href="/guides/new-year-diary-bulk-order-timeline">bulk order calendar</a>.
+        For a bulk quote, use the enquiry form on any product.
       </p>
       <h2>Live catalogue matches</h2>
       <ProductMiniList items={items} />

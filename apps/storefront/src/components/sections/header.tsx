@@ -43,7 +43,6 @@ const FALLBACK_NAV = [
   { label: "Shop", href: "/shop" },
   { label: "Corporate Gifting", href: "/corporate-gifting" },
   { label: "Custom Print", href: "/custom-design" },
-  { label: "Guides", href: "/guides" },
 ];
 
 const Header = ({

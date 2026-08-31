@@ -40,7 +40,37 @@ export async function getSettings(): Promise<StorefrontSettings> {
   }
 }
 
+function isGuidesLink(label: string, href: string) {
+  return /guide/i.test(label) || /\/guides/i.test(href);
+}
+
+const HEADER_FALLBACK = [
+  { label: "Shop", href: "/shop", enabled: true, sort_order: 0 },
+  { label: "Corporate Gifting", href: "/corporate-gifting", enabled: true, sort_order: 1 },
+  { label: "Custom Print", href: "/custom-design", enabled: true, sort_order: 2 },
+];
+
+/** Drop SEO-era Guides rows that were never a GiftVibes nav item. */
+async function purgeGuidesNavFromDb() {
+  try {
+    await prisma.navLink.deleteMany({
+      where: {
+        OR: [
+          { href: { contains: "guides" } },
+          { label: { contains: "Guide", mode: "insensitive" } },
+        ],
+      },
+    });
+    await prisma.pageSeo.deleteMany({
+      where: { pageKey: { startsWith: "guides" } },
+    });
+  } catch (e) {
+    console.error("purgeGuidesNavFromDb failed", e);
+  }
+}
+
 export async function getHeaderNav(): Promise<StorefrontNavLink[]> {
+  await purgeGuidesNavFromDb();
   try {
     const rows = await prisma.navLink.findMany({
       where: { groupKey: "header", enabled: true },
@@ -48,28 +78,19 @@ export async function getHeaderNav(): Promise<StorefrontNavLink[]> {
       select: { label: true, href: true, enabled: true, sortOrder: true },
     });
     const mapped = mapEnabledNavLinks(
-      rows.map((r) => ({
-        label: r.label,
-        href: r.href,
-        enabled: r.enabled,
-        sortOrder: r.sortOrder,
-      })),
+      rows
+        .filter((r) => !isGuidesLink(r.label, r.href))
+        .map((r) => ({
+          label: r.label,
+          href: r.href,
+          enabled: r.enabled,
+          sortOrder: r.sortOrder,
+        })),
     );
-    // Offline fallback only when CMS has zero enabled header links
     if (mapped.length) return mapped;
-    return mapEnabledNavLinks([
-      { label: "Shop", href: "/shop", enabled: true, sort_order: 0 },
-      { label: "Corporate Gifting", href: "/corporate-gifting", enabled: true, sort_order: 1 },
-      { label: "Custom Print", href: "/custom-design", enabled: true, sort_order: 2 },
-      { label: "Guides", href: "/guides", enabled: true, sort_order: 3 },
-    ]);
+    return mapEnabledNavLinks(HEADER_FALLBACK);
   } catch {
-    return mapEnabledNavLinks([
-      { label: "Shop", href: "/shop", enabled: true, sort_order: 0 },
-      { label: "Corporate Gifting", href: "/corporate-gifting", enabled: true, sort_order: 1 },
-      { label: "Custom Print", href: "/custom-design", enabled: true, sort_order: 2 },
-      { label: "Guides", href: "/guides", enabled: true, sort_order: 3 },
-    ]);
+    return mapEnabledNavLinks(HEADER_FALLBACK);
   }
 }
 
@@ -81,12 +102,14 @@ export async function getFooterNav(groupKey = "footer"): Promise<StorefrontNavLi
       select: { label: true, href: true, enabled: true, sortOrder: true },
     });
     return mapEnabledNavLinks(
-      rows.map((r) => ({
-        label: r.label,
-        href: r.href,
-        enabled: r.enabled,
-        sortOrder: r.sortOrder,
-      })),
+      rows
+        .filter((r) => !isGuidesLink(r.label, r.href))
+        .map((r) => ({
+          label: r.label,
+          href: r.href,
+          enabled: r.enabled,
+          sortOrder: r.sortOrder,
+        })),
     );
   } catch {
     return [];

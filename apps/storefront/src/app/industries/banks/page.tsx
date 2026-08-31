@@ -25,7 +25,7 @@ export default function Page() {
       <p>
         Start with <a href="/new-year-diaries">New Year diaries</a> and{" "}
         <a href="/pu-leather-diaries">PU leather diaries</a>. Lock artwork using the{" "}
-        <a href="/guides/new-year-diary-bulk-order-timeline">season timeline</a>.
+        <a href="/custom-design">custom print options</a>.
       </p>
     </MarketingShell>
   );

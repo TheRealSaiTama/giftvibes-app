@@ -23,7 +23,7 @@ export default function Page() {
         <li>Optional notepad or pen stand</li>
       </ul>
       <p>
-        Practical packing list: <a href="/guides/employee-joining-kits">joining kit guide</a>.
+        Practical packing list via bulk enquiry.
         Sets: <a href="/corporate-gift-sets">corporate gift sets</a>.
       </p>
     </MarketingShell>

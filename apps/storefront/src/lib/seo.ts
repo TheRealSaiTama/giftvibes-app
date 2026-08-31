@@ -25,7 +25,6 @@ export const SEO_NAV = [
   { label: "Shop", href: "/shop" },
   { label: "Corporate Gifting", href: "/corporate-gifting" },
   { label: "Custom Print", href: "/custom-design" },
-  { label: "Guides", href: "/guides" },
 ];
 
 export const CATEGORY_LANDINGS = [

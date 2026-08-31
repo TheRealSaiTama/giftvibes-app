@@ -26,7 +26,7 @@ export default function Page() {
       <p>
         Share expected quantity by SKU, artwork in vector, and the camp or FY start date. We
         confirm paper and print method before production — see{" "}
-        <a href="/guides/logo-print-methods">print methods</a>. Browse{" "}
+        <a href="/custom-design">print methods</a>. Browse{" "}
         <a href="/promotional-diaries">promotional diaries</a>.
       </p>
     </MarketingShell>

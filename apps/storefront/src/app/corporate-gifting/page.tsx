@@ -48,14 +48,14 @@ export default function CorporateGiftingPage() {
       <h2>Branding we do in-house</h2>
       <p>
         Logo emboss, hot foil, screen, laser, cover print and logo-on-each-page. See{" "}
-        <Link href="/guides/logo-print-methods">print method guide</Link> and{" "}
+        <Link href="/custom-design">print method options</Link> and{" "}
         <Link href="/custom-design">custom print</Link>.
       </p>
       <h2>How bulk orders work</h2>
       <p>
         Typical MOQ starts at 100. Share quantity, city, delivery week and branding file. We
         confirm paper, size (usually A5 / B5 executive), box and lead time before you raise a PO.
-        Read <Link href="/guides/bulk-diary-specifications">how to spec 500–5,000 diaries</Link>.
+        Browse the <Link href="/shop">catalogue</Link> for 500–5,000 unit specs.
       </p>
       <h2>Who we already serve</h2>
       <p>
