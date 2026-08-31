@@ -113,12 +113,21 @@ const categoryData: Category[] = [
   },
 ];
 
-const Categories = ({ content }: { content?: any }) => {
+function normName(s: string) {
+  return s.trim().toUpperCase().replace(/\s+/g, " ");
+}
+
+const Categories = ({
+  content,
+  folders,
+}: {
+  content?: any;
+  folders?: { name: string; subcategories?: string[] }[];
+}) => {
   const heading = content?.heading || "Our Products";
-  // ponytail: sort by sort_order asc, then drop items with no name. The DB
-  // drives the visible list now; categoryData is just the first-install seed.
-  // Accept legacy `image` key from older seeds as image_url.
-  const items: Category[] = (content?.items || categoryData)
+  // CMS items supply photos/subtitles. The Products folder tree is the list
+  // of tiles so SBI (and any new admin category) appears here too.
+  const cmsItems: Category[] = (content?.items || categoryData)
     .map((c: any, i: number) => ({
       name: c.name || "",
       subtitle: c.subtitle || "",
@@ -128,9 +137,26 @@ const Categories = ({ content }: { content?: any }) => {
       href: c.href || "",
       sort_order: typeof c.sort_order === "number" ? c.sort_order : i + 1,
     }))
-    .filter((c: Category) => c.name)
-    .slice()
-    .sort((a: Category, b: Category) => (a.sort_order || 0) - (b.sort_order || 0));
+    .filter((c: Category) => c.name);
+
+  const items: Category[] =
+    folders && folders.length
+      ? folders.map((folder, i) => {
+          const cms =
+            cmsItems.find((c) => normName(c.name) === normName(folder.name)) ||
+            categoryData.find((c) => normName(c.name) === normName(folder.name));
+          const subCount = (folder.subcategories || []).length;
+          return {
+            name: folder.name,
+            subtitle: cms?.subtitle || (subCount ? `${subCount} types` : ""),
+            image_url: cms?.image_url || "",
+            bgColor: cms?.bgColor || "#124559",
+            alt: cms?.alt || folder.name,
+            href: cms?.href || "",
+            sort_order: i + 1,
+          };
+        })
+      : cmsItems.slice().sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
 
   return (
     <section id="our-products" className="bg-white py-[100px]">

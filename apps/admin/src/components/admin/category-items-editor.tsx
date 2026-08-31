@@ -98,8 +98,9 @@ function emptyItem(sort_order: number): CategoryCarouselItem {
 
 /**
  * Editor for home → categories → items ("Our Products" carousel).
- * Fields: cover photo, category name (from catalog list), meta text,
- * sort order, CTA link.
+ * Tile ORDER and which folders appear come from Products folders.
+ * Photos/subtitles here are matched by category name (SBI gets a tile
+ * even without a photo).
  */
 export function CategoryItemsEditor({
   value,

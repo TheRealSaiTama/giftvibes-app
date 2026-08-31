@@ -16,7 +16,7 @@ import GiftVibeAbout from "@/components/sections/giftvibe-about";
 import Footer from "@/components/sections/footer";
 import CorporateShowcase from "@/components/sections/corporate-showcase";
 import { prisma } from '@/lib/prisma';
-import { getStorefrontData, getSeo } from "@/lib/site";
+import { getStorefrontData, getSeo, getCatalogFolders } from "@/lib/site";
 import {
   mapEnabledSections,
   filterLiveCatalog,
@@ -155,7 +155,7 @@ async function hydrateCatalogPicks(catalog: any[], sections: Record<string, any>
 
 export default async function HomePage() {
   // Isolate failures: one bad query must not blank the whole homepage.
-  const [catalogRaw, sections, storefront] = await Promise.all([
+  const [catalogRaw, sections, storefront, catalogFolders] = await Promise.all([
     getCatalog(),
     getHomeSections(),
     getStorefrontData().catch((e) => {
@@ -166,6 +166,10 @@ export default async function HomePage() {
         megaMenu: undefined as any,
         footerLinks: undefined as any,
       };
+    }),
+    getCatalogFolders().catch((e) => {
+      console.error("home getCatalogFolders failed", e);
+      return [] as { name: string; subcategories: string[] }[];
     }),
   ]);
 
@@ -190,7 +194,9 @@ export default async function HomePage() {
         {sections.hero !== undefined && <Hero content={sections.hero} />}
         {sections.about !== undefined && <GiftVibeAbout content={sections.about} />}
         {sections.discounts !== undefined && <BestDiscountsBanner content={sections.discounts} />}
-        {sections.categories !== undefined && <Categories content={sections.categories} />}
+        {sections.categories !== undefined && (
+          <Categories content={sections.categories} folders={catalogFolders} />
+        )}
         {sections.best_deals !== undefined && (
           <BestDealsSection content={sections.best_deals} products={catalog} />
         )}

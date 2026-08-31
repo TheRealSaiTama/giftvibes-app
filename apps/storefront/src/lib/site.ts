@@ -93,18 +93,35 @@ export async function getFooterNav(groupKey = "footer"): Promise<StorefrontNavLi
   }
 }
 
-/** Navbar Category dropdown: Products folder tree (includes SBI etc.). */
-export async function getMegaMenu(): Promise<MegaMenuItemOut[]> {
+export type CatalogFolderNav = { name: string; subcategories: string[] };
+
+/** Admin Products folder tree (page_sections catalog/folders). */
+export async function getCatalogFolders(): Promise<CatalogFolderNav[]> {
   try {
     const row = await prisma.pageSection.findFirst({
       where: { pageKey: "catalog", sectionKey: "folders" },
     });
     const cats = (row?.content as any)?.categories;
-    const fromTree = mapCatalogFolders(Array.isArray(cats) ? cats : []);
-    if (fromTree.length) return fromTree;
-  } catch {
-    /* fall through */
+    if (!Array.isArray(cats) || !cats.length) return [];
+    return cats
+      .map((c: any) => ({
+        name: String(c?.name || "").trim(),
+        subcategories: Array.isArray(c?.subcategories)
+          ? c.subcategories.filter((s: unknown) => typeof s === "string" && s.trim() && s.trim() !== "Unsorted")
+          : [],
+      }))
+      .filter((c: CatalogFolderNav) => c.name);
+  } catch (e) {
+    console.error("getCatalogFolders failed", e);
+    return [];
   }
+}
+
+/** Navbar Category dropdown: Products folder tree (includes SBI etc.). */
+export async function getMegaMenu(): Promise<MegaMenuItemOut[]> {
+  const folders = await getCatalogFolders();
+  const fromTree = mapCatalogFolders(folders);
+  if (fromTree.length) return fromTree;
   try {
     const row = await prisma.pageSection.findFirst({
       where: { pageKey: "site", sectionKey: "mega_menu", enabled: true },
