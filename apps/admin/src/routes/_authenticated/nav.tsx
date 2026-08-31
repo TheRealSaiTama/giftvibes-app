@@ -162,7 +162,9 @@ function MegaMenuEditor() {
         <div>
           <h3 className="font-display font-medium">Category mega-menu</h3>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Navbar “Category” dropdown on the storefront. Disable or delete a row to hide it.
+            The storefront Category dropdown now lists folders and subfolders from{" "}
+            <strong>Products</strong> (including SBI). Add or rename categories there — they
+            sync to the navbar. The image grid below is unused.
           </p>
         </div>
         <Button size="sm" variant="outline" onClick={add}>

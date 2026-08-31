@@ -26,6 +26,7 @@ type ShopProduct = {
 
 interface Filters {
   category: string[];
+  subcategory: string;
   minPrice: number;
   maxPrice: number;
   sortBy: 'name' | 'price';
@@ -78,6 +79,17 @@ function filterAndSortProducts(products: ShopProduct[], filters: Filters): ShopP
     );
   }
 
+  if (filters.subcategory) {
+    const needle = filters.subcategory.toLowerCase().trim();
+    filtered = filtered.filter((product: ShopProduct) => {
+      const tags = product.tags || "";
+      return tags
+        .split(",")
+        .map((t) => t.trim().toLowerCase())
+        .some((t) => t === needle || t.includes(needle));
+    });
+  }
+
   if (filters.minPrice > 0) {
     filtered = filtered.filter((product: ShopProduct) => product.minPrice && product.minPrice >= filters.minPrice);
   }
@@ -118,6 +130,7 @@ export default function ShopClient({
   const searchParams = useSearchParams();
   const [filters, setFilters] = useState<Filters>({
     category: [],
+    subcategory: '',
     minPrice: 0,
     maxPrice: 0,
     sortBy: 'price',
@@ -206,13 +219,15 @@ export default function ShopClient({
         nextCategories = single.split(',').map((item) => item.trim()).filter(Boolean);
       }
     }
+    const sub = searchParams.get("sub")?.trim() || "";
     setFilters((prev) => {
-      if (arraysEqual(prev.category, nextCategories)) {
+      if (arraysEqual(prev.category, nextCategories) && prev.subcategory === sub) {
         return prev;
       }
       return {
         ...prev,
         category: nextCategories,
+        subcategory: sub,
       };
     });
   }, [searchParams]);
@@ -253,6 +268,7 @@ export default function ShopClient({
   const clearFilters = () => {
     setFilters({
       category: [],
+      subcategory: '',
       minPrice: 0,
       maxPrice: 0,
       sortBy: 'price',

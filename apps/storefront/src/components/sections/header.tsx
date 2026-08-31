@@ -32,9 +32,10 @@ type SearchResultItem = {
 
 type MegaItem = {
   name: string;
-  subtitle: string;
-  image: string;
+  subtitle?: string;
+  image?: string;
   href: string;
+  subcategories?: { name: string; href: string }[];
 };
 
 // Offline-only fallback if parent passes nothing (e.g. error path).
@@ -214,34 +215,34 @@ const Header = ({
                   Category
                   <ChevronDown className="w-4 h-4 ml-1" />
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="p-6 w-[560px]">
+                <DropdownMenuContent className="p-5 w-[min(92vw,760px)] max-h-[70vh] overflow-y-auto">
                   <div className="font-semibold text-dark-gray mb-4">Our Products</div>
-                  <div className="grid grid-cols-3 gap-x-6 gap-y-4">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-x-8 gap-y-5">
                     {megaItems.map((item) => (
-                      <Link
-                        href={item.href}
-                        key={item.name}
-                        className="group"
-                        prefetch={false}
-                      >
-                        <div className="flex items-start gap-3">
-                          <div className="w-[60px] h-[60px] bg-gray-100 rounded-md flex-shrink-0 relative overflow-hidden">
-                            <Image
-                              src={item.image || "/logo.png"}
-                              alt={item.name}
-                              fill
-                              className="object-cover group-hover:scale-110 transition-transform duration-300"
-                              sizes="60px"
-                            />
-                          </div>
-                          <div>
-                            <p className="font-medium text-sm text-dark-gray group-hover:text-primary">
-                              {item.name}
-                            </p>
-                            <p className="text-xs text-medium-gray">{item.subtitle}</p>
-                          </div>
-                        </div>
-                      </Link>
+                      <div key={item.name} className="min-w-0">
+                        <Link
+                          href={item.href}
+                          prefetch={false}
+                          className="text-sm font-semibold text-dark-gray hover:text-primary uppercase tracking-wide"
+                        >
+                          {item.name}
+                        </Link>
+                        {item.subcategories && item.subcategories.length > 0 && (
+                          <ul className="mt-2 space-y-1">
+                            {item.subcategories.map((sub) => (
+                              <li key={sub.name}>
+                                <Link
+                                  href={sub.href}
+                                  prefetch={false}
+                                  className="text-xs text-medium-gray hover:text-primary"
+                                >
+                                  {sub.name}
+                                </Link>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
                     ))}
                   </div>
                   <div className="mt-4 flex justify-end">

@@ -94,6 +94,7 @@ describe("mapMegaMenuItems", () => {
     assert.equal(out[0].name, "CORPORATE GIFT SETS");
     assert.ok(out[0].href.includes("category="));
     assert.ok(out[0].href.includes(encodeURIComponent("CORPORATE GIFT SETS")));
+    assert.deepEqual(out[0].subcategories, []);
   });
 });
 

@@ -133,13 +133,50 @@ export type MegaMenuItemIn = {
   enabled?: boolean;
 };
 
+export type MegaSubOut = {
+  name: string;
+  href: string;
+};
+
 export type MegaMenuItemOut = {
   name: string;
   subtitle: string;
   image: string;
   href: string;
   sort_order: number;
+  subcategories: MegaSubOut[];
 };
+
+function shopCatHref(name: string, sub?: string) {
+  const q = new URLSearchParams({ category: name });
+  if (sub) q.set("sub", sub);
+  return `/shop?${q.toString()}`;
+}
+
+/** Products folder tree (page_sections catalog/folders) → navbar groups. */
+export function mapCatalogFolders(
+  raw: Array<{ name?: string; subcategories?: unknown }> | null | undefined,
+): MegaMenuItemOut[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((it, i) => {
+      const name = String(it?.name || "").trim();
+      const subs = Array.isArray(it?.subcategories)
+        ? it.subcategories
+            .filter((s): s is string => typeof s === "string" && s.trim().length > 0 && s.trim() !== "Unsorted")
+            .map((s) => s.trim())
+        : [];
+      return {
+        name,
+        subtitle: "",
+        image: "",
+        href: name ? shopCatHref(name) : "/shop",
+        sort_order: i + 1,
+        subcategories: subs.map((s) => ({ name: s, href: shopCatHref(name, s) })),
+      };
+    })
+    .filter((it) => it.name);
+}
 
 /** Only enabled items with a name; href falls back to /shop?category=Name. */
 export function mapMegaMenuItems(raw: MegaMenuItemIn[] | null | undefined): MegaMenuItemOut[] {
@@ -152,13 +189,14 @@ export function mapMegaMenuItems(raw: MegaMenuItemIn[] | null | undefined): Mega
       const subtitle = String(it.subtitle || it.items || "").trim();
       const href =
         String(it.href || "").trim() ||
-        (name ? `/shop?category=${encodeURIComponent(name)}` : "/shop");
+        (name ? shopCatHref(name) : "/shop");
       return {
         name,
         subtitle,
         image: image || "/logo.png",
         href,
         sort_order: typeof it.sort_order === "number" ? it.sort_order : i + 1,
+        subcategories: [] as MegaSubOut[],
       };
     })
     .filter((it) => it.name)

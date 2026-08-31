@@ -3,6 +3,7 @@ import {
   mapSiteSettings,
   mapEnabledNavLinks,
   mapMegaMenuItems,
+  mapCatalogFolders,
   mapEnabledSections,
   mapShopChrome,
   mapProductChrome,
@@ -92,8 +93,18 @@ export async function getFooterNav(groupKey = "footer"): Promise<StorefrontNavLi
   }
 }
 
-/** Category mega-menu stored as page_sections page_key=site section_key=mega_menu. */
+/** Navbar Category dropdown: Products folder tree (includes SBI etc.). */
 export async function getMegaMenu(): Promise<MegaMenuItemOut[]> {
+  try {
+    const row = await prisma.pageSection.findFirst({
+      where: { pageKey: "catalog", sectionKey: "folders" },
+    });
+    const cats = (row?.content as any)?.categories;
+    const fromTree = mapCatalogFolders(Array.isArray(cats) ? cats : []);
+    if (fromTree.length) return fromTree;
+  } catch {
+    /* fall through */
+  }
   try {
     const row = await prisma.pageSection.findFirst({
       where: { pageKey: "site", sectionKey: "mega_menu", enabled: true },
@@ -104,20 +115,19 @@ export async function getMegaMenu(): Promise<MegaMenuItemOut[]> {
   } catch {
     /* fall through */
   }
-  // Offline fallback defaults (clearable once admin saves mega menu)
-  return mapMegaMenuItems([
-    { name: "CORPORATE GIFT SETS", subtitle: "Premium Packages Available", image_url: "/Giftvibes categories/CORPORATE GIFTSETS.png", enabled: true, sort_order: 1 },
-    { name: "NEW YEAR DIARY BOOKS", subtitle: "Fresh Designs 2025", image_url: "/Giftvibes categories/NEW YEAR DIARY.png", enabled: true, sort_order: 2 },
-    { name: "LEATHER GIFT ITEMS", subtitle: "Luxury Options", image_url: "/Giftvibes categories/LEATHER GIFT ITEMS.png", enabled: true, sort_order: 3 },
-    { name: "LEATHER BAGS", subtitle: "Elegant Styles", image_url: "/Giftvibes categories/LEATHER BAGS.png", enabled: true, sort_order: 4 },
-    { name: "JUTE BAGS", subtitle: "Eco-Friendly Choices", image_url: "/Giftvibes categories/JUTE BAGS.png", enabled: true, sort_order: 5 },
-    { name: "BOTTLES GIFT SET", subtitle: "Unique Sets", image_url: "/Giftvibes categories/BOTTLE GIFT SETS.png", enabled: true, sort_order: 6 },
-    { name: "POWER BANK DIARIES", subtitle: "Tech-Integrated Gifts", image_url: "/Giftvibes categories/POWERBANK DIARIES.png", enabled: true, sort_order: 7 },
-    { name: "PEN STANDS", subtitle: "Desk Essentials", image_url: "/Giftvibes categories/PEN STANDS.png", enabled: true, sort_order: 8 },
-    { name: "PROMOTIONAL UMBRELLAS", subtitle: "Branded Protection", image_url: "/Giftvibes categories/PROMOTIONAL UMBRELLAS.jpg", enabled: true, sort_order: 9 },
-    { name: "CUSTOMISED DIARY & NOTE BOOKS", subtitle: "Personalized Products", image_url: "/Giftvibes categories/PROMOTIONAL DIARIES AND NOTEBOOKS.jpg", enabled: true, sort_order: 10 },
-    { name: "CALENDARS", subtitle: "Yearly Planners", image_url: "/Giftvibes categories/CALENDARS.png", enabled: true, sort_order: 11 },
-    { name: "EXHIBITION VISITOR'S GIFT IDEAS", subtitle: "Event Specials", image_url: "/Giftvibes categories/EXHIBITION GIVEAWAY IDEAS.png", enabled: true, sort_order: 12 },
+  return mapCatalogFolders([
+    { name: "CORPORATE GIFT SETS", subcategories: ["Diary & Pen Sets", "Calendar Sets", "Giftsets", "General / Others"] },
+    { name: "NEW YEAR DIARY", subcategories: ["Eco-Friendly & Green", "Leather Diaries", "Hard Bound Diaries", "Planners & Themes", "Economy & Regular", "General / Others"] },
+    { name: "LEATHER GIFT ITEMS", subcategories: ["Bags & Portfolios", "Leather Accessories"] },
+    { name: "LEATHER BAGS", subcategories: ["Executive Bags"] },
+    { name: "JUTE BAGS", subcategories: ["Eco Jute Bags"] },
+    { name: "BOTTLES GIFT SET", subcategories: ["Bottle & Flask Sets"] },
+    { name: "POWER BANK DIARIES", subcategories: ["Tech Power Bank Diaries"] },
+    { name: "PEN STANDS", subcategories: ["Desktop Accessories"] },
+    { name: "PROMOTIONAL UMBRELLAS", subcategories: ["Umbrellas"] },
+    { name: "CUSTOMISED DIARY & NOTE BOOKS", subcategories: ["Eco-Friendly & Green", "Leather Diaries", "Hard Bound Diaries", "Planners & Themes", "Economy & Regular", "General / Others"] },
+    { name: "CALENDARS", subcategories: ["Desktop & Wall Calendars"] },
+    { name: "EXHIBITION VISITOR'S GIFT IDEAS", subcategories: ["Giveaways & Promos"] },
   ]);
 }
 
