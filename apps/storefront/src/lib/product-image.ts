@@ -30,7 +30,10 @@ export function extractGoogleDriveFileId(url: string): string | null {
  * Prefer reliable Drive thumbnail; keep http(s) and site-relative paths;
  * never return empty string (next/image throws).
  */
-export function resolveProductImage(raw: string | null | undefined): string {
+export function resolveProductImage(
+  raw: string | null | undefined,
+  opts?: { width?: number },
+): string {
   const url = String(raw || "").trim();
   if (!url) return PRODUCT_IMAGE_PLACEHOLDER;
 
@@ -46,9 +49,9 @@ export function resolveProductImage(raw: string | null | undefined): string {
 
   const driveId = extractGoogleDriveFileId(url);
   if (driveId) {
-    // thumbnail endpoint serves actual images for publicly shared Drive files.
-    // uc?id= often returns an HTML interstitial that next/image cannot display.
-    return `https://drive.google.com/thumbnail?id=${driveId}&sz=w1000`;
+    // Card grids use ~400px; PDP can pass a larger width.
+    const w = Math.min(Math.max(opts?.width ?? 400, 200), 1200);
+    return `https://drive.google.com/thumbnail?id=${driveId}&sz=w${w}`;
   }
 
   if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("/")) {

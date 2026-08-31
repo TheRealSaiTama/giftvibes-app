@@ -5,6 +5,8 @@ const LOADER = path.resolve(__dirname, 'src/visual-edits/component-tagger-loader
 
 const nextConfig: NextConfig = {
   images: {
+    minimumCacheTTL: 3600,
+    formats: ["image/avif", "image/webp"],
     remotePatterns: [
       {
         protocol: 'https',

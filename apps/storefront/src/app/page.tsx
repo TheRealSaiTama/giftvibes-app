@@ -1,32 +1,33 @@
 import type { Metadata } from "next";
+import dynamic from "next/dynamic";
 import Header from "@/components/sections/header";
 import Hero from "@/components/sections/hero";
 import Categories from "@/components/sections/categories";
-import BestDealsSection from "@/components/sections/best-deals";
 import BestDiscountsBanner from "@/components/sections/best-discounts";
-import WhyChooseUsSection from "@/components/sections/why-choose-us";
-import CustomerSatisfaction from "@/components/sections/customer-satisfaction";
-import BrandsSection from "@/components/sections/brands";
-import WeeklyPopularProducts from "@/components/sections/weekly-popular";
-import CashBackSection from "@/components/sections/cash-back";
-import TabbedProducts from "@/components/sections/tabbed-products";
-import CashBackBottom from "@/components/sections/cash-back-bottom";
-import ServicesSection from "@/components/sections/services";
 import GiftVibeAbout from "@/components/sections/giftvibe-about";
 import Footer from "@/components/sections/footer";
-import CorporateShowcase from "@/components/sections/corporate-showcase";
-import { prisma } from '@/lib/prisma';
+import { prisma } from "@/lib/prisma";
 import { getStorefrontData, getSeo, getCatalogFolders } from "@/lib/site";
+import { getCachedLiveCatalog } from "@/lib/catalog";
 import {
   mapEnabledSections,
-  filterLiveCatalog,
   parseCustomTabs,
   normalizeTabProductIds,
 } from "@/lib/cms/mappers";
 
-// ponytail: revalidate=0 → page re-renders on every request after admin calls /api/revalidate.
-// Without this the webhook no-ops (page would be fully static).
-export const revalidate = 0;
+const BestDealsSection = dynamic(() => import("@/components/sections/best-deals"));
+const WhyChooseUsSection = dynamic(() => import("@/components/sections/why-choose-us"));
+const CustomerSatisfaction = dynamic(() => import("@/components/sections/customer-satisfaction"));
+const BrandsSection = dynamic(() => import("@/components/sections/brands"));
+const WeeklyPopularProducts = dynamic(() => import("@/components/sections/weekly-popular"));
+const CashBackSection = dynamic(() => import("@/components/sections/cash-back"));
+const TabbedProducts = dynamic(() => import("@/components/sections/tabbed-products"));
+const CashBackBottom = dynamic(() => import("@/components/sections/cash-back-bottom"));
+const ServicesSection = dynamic(() => import("@/components/sections/services"));
+const CorporateShowcase = dynamic(() => import("@/components/sections/corporate-showcase"));
+
+// Admin /api/revalidate still busts this. 60s ISR so visitors are not hitting Postgres every click.
+export const revalidate = 60;
 
 export async function generateMetadata(): Promise<Metadata> {
   const seo = await getSeo("home").catch(() => null);
@@ -59,30 +60,9 @@ const catalogSelect = {
 } as const;
 
 async function getCatalog() {
-  // Products + diaries so admin-picked IDs (either table) resolve on home sections.
-  // Use narrow select so a missing optional column cannot blank the whole catalog.
   try {
-    const [products, diaries] = await Promise.all([
-      prisma.product
-        .findMany({ select: catalogSelect })
-        .catch((e) => {
-          console.error("home getCatalog products failed", e);
-          return [] as any[];
-        }),
-      prisma.diary
-        .findMany({ select: catalogSelect })
-        .catch((e) => {
-          console.error("home getCatalog diaries failed", e);
-          return [] as any[];
-        }),
-    ]);
-    const live = filterLiveCatalog([...products, ...diaries] as any[]);
-    // Serialize to plain JSON so RSC never chokes on Prisma special types.
-    // Force string ids so Map lookups match admin UUID strings from page_sections JSON.
-    return (JSON.parse(JSON.stringify(live)) as any[]).map((row) => ({
-      ...row,
-      id: String(row.id),
-    }));
+    const live = await getCachedLiveCatalog();
+    return live.map((row) => ({ ...row, id: String(row.id) }));
   } catch (e) {
     console.error("home getCatalog failed", e);
     return [] as any[];

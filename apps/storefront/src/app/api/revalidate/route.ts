@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 
 // ponytail: fire-and-forget on-demand revalidation. Admin calls this after a save
 // so storefront pages pick up DB changes without a manual Vercel redeploy.
@@ -28,6 +28,13 @@ export async function POST(req: NextRequest) {
   const paths = Array.isArray(body.path) ? body.path : body.path ? [body.path] : [];
   if (paths.length === 0) {
     return NextResponse.json({ error: "Missing 'path'" }, { status: 400 });
+  }
+
+  try {
+    revalidateTag("catalog");
+    revalidateTag("storefront");
+  } catch {
+    /* tags optional on older runtimes */
   }
 
   for (const p of paths) {

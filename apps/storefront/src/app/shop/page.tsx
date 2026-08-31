@@ -5,7 +5,7 @@ import Footer from "@/components/sections/footer";
 import ShopClient from "./ShopClient";
 import { getStorefrontData, getShopChrome } from "@/lib/site";
 import { productHref } from "@/lib/seo";
-import { listLiveCatalog } from "@/lib/catalog";
+import { getCachedLiveCatalog } from "@/lib/catalog";
 
 export const metadata: Metadata = {
   title: "Shop Customised Diaries & Corporate Gift Sets",
@@ -14,14 +14,13 @@ export const metadata: Metadata = {
   alternates: { canonical: "/shop" },
 };
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+export const revalidate = 60;
 
 export default async function ShopPage() {
   // Catalogue first so it is not starved by header/footer/chrome queries
   // on the same serverless Prisma pool (that race rendered "0 live items").
-  const catalog = await listLiveCatalog(500);
-  const [storefront, chrome] = await Promise.all([
+  const [catalog, storefront, chrome] = await Promise.all([
+    getCachedLiveCatalog(),
     getStorefrontData(),
     getShopChrome(),
   ]);

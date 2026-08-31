@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { isUuid } from "@/lib/seo";
 
 /** Columns that exist on the original products/diaries tables (no seo/features). */
@@ -139,3 +140,10 @@ export async function listLiveCatalog(take = 200) {
   rows.sort((a, b) => (a.minPrice ?? Number.POSITIVE_INFINITY) - (b.minPrice ?? Number.POSITIVE_INFINITY));
   return rows;
 }
+
+/** 60s cache so shop/home/SEO pages do not query Postgres on every click. */
+export const getCachedLiveCatalog = unstable_cache(
+  async () => listLiveCatalog(200),
+  ["live-catalog-v2"],
+  { revalidate: 60, tags: ["catalog"] },
+);

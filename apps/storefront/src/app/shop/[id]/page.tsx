@@ -11,7 +11,7 @@ import { findCatalogItem } from "@/lib/catalog";
 import { productHref, productJsonLd } from "@/lib/seo";
 
 // ponytail: revalidate=0 so /api/revalidate can bust this page after admin edits.
-export const revalidate = 0;
+export const revalidate = 60;
 
 // M9: SEO meta. Falls back to the product name + highlights if the
 // admin didn't fill in the per-product SEO fields.

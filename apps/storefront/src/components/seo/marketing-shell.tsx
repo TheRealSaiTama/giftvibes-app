@@ -3,7 +3,7 @@ import Header from "@/components/sections/header";
 import Footer from "@/components/sections/footer";
 import { getStorefrontData } from "@/lib/site";
 import { CATEGORY_LANDINGS, productHref } from "@/lib/seo";
-import { listLiveCatalog, type CatalogItem } from "@/lib/catalog";
+import { getCachedLiveCatalog, type CatalogItem } from "@/lib/catalog";
 
 export async function MarketingShell({
   children,
@@ -130,4 +130,4 @@ export function ProductMiniList({ items }: { items: CatalogItem[] }) {
   );
 }
 
-export { listLiveCatalog };
+export { getCachedLiveCatalog as listLiveCatalog };

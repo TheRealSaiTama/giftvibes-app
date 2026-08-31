@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import CustomDesignClient from "./CustomDesignClient";
 import { getStorefrontData } from "@/lib/site";
 
-export const revalidate = 0;
+export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: "Custom Print & Logo Branding on Diaries",

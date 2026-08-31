@@ -21,9 +21,9 @@ export default function ProductGallery({ imageUrl, productName, gallery }: Produ
   // ponytail: primary image first, then any gallery entries. M6 secondary
   // images flow through as the rest of the array.
   const images: string[] = [
-    resolveProductImage(imageUrl),
+    resolveProductImage(imageUrl, { width: 800 }),
     ...(Array.isArray(gallery) ? gallery : [])
-      .map((u) => resolveProductImage(u))
+      .map((u) => resolveProductImage(u, { width: 800 }))
       .filter((u) => u && u !== PRODUCT_IMAGE_PLACEHOLDER),
   ].filter(Boolean);
   const safeImages = images.length > 0 ? images : [PRODUCT_IMAGE_PLACEHOLDER];

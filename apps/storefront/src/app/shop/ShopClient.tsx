@@ -413,7 +413,7 @@ export default function ShopClient({
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {results.map((product) => {
-                  const imageUrl = resolveProductImage(product.imageUrl);
+                  const imageUrl = resolveProductImage(product.imageUrl, { width: 400 });
 
                   return (
                     <article key={String(product.id)} className="bg-white rounded-xl shadow-md hover:shadow-xl overflow-hidden transition-all duration-300 border border-gray-100 hover:border-primary/30">
@@ -423,9 +423,10 @@ export default function ShopClient({
                             src={imageUrl}
                             alt={product.name || "Product"}
                             fill
+                            loading="lazy"
                             unoptimized={isRemoteOrDataImage(imageUrl)}
                             className="object-cover group-hover:scale-105 transition-transform duration-500"
-                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                            sizes="(max-width: 640px) 50vw, 25vw"
                           />
                           <div className="absolute top-2 right-2 bg-black/70 text-white px-2 py-1 rounded-full text-xs font-medium opacity-0 group-hover:opacity-100 transition-all duration-300">
                             View Details

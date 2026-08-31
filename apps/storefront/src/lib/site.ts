@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import {
   mapSiteSettings,
@@ -18,7 +19,7 @@ export type StorefrontSettings = SiteSettingsOut;
 export type StorefrontNavLink = NavLinkOut;
 export type StorefrontMegaItem = MegaMenuItemOut;
 
-export async function getSettings(): Promise<StorefrontSettings> {
+async function loadSettings(): Promise<StorefrontSettings> {
   try {
     const row = await prisma.siteSetting.findUnique({ where: { id: 1 } });
     if (!row) return mapSiteSettings(null);
@@ -40,6 +41,11 @@ export async function getSettings(): Promise<StorefrontSettings> {
   }
 }
 
+export const getSettings = unstable_cache(loadSettings, ["site-settings-v1"], {
+  revalidate: 60,
+  tags: ["storefront"],
+});
+
 function isGuidesLink(label: string, href: string) {
   return /guide/i.test(label) || /\/guides/i.test(href);
 }
@@ -53,6 +59,16 @@ const HEADER_FALLBACK = [
 /** Drop SEO-era Guides rows that were never a GiftVibes nav item. */
 async function purgeGuidesNavFromDb() {
   try {
+    const hit = await prisma.navLink.findFirst({
+      where: {
+        OR: [
+          { href: { contains: "guides" } },
+          { label: { contains: "Guide", mode: "insensitive" } },
+        ],
+      },
+      select: { id: true },
+    });
+    if (!hit) return;
     await prisma.navLink.deleteMany({
       where: {
         OR: [
@@ -119,26 +135,30 @@ export async function getFooterNav(groupKey = "footer"): Promise<StorefrontNavLi
 export type CatalogFolderNav = { name: string; subcategories: string[] };
 
 /** Admin Products folder tree (page_sections catalog/folders). */
-export async function getCatalogFolders(): Promise<CatalogFolderNav[]> {
-  try {
-    const row = await prisma.pageSection.findFirst({
-      where: { pageKey: "catalog", sectionKey: "folders" },
-    });
-    const cats = (row?.content as any)?.categories;
-    if (!Array.isArray(cats) || !cats.length) return [];
-    return cats
-      .map((c: any) => ({
-        name: String(c?.name || "").trim(),
-        subcategories: Array.isArray(c?.subcategories)
-          ? c.subcategories.filter((s: unknown) => typeof s === "string" && s.trim() && s.trim() !== "Unsorted")
-          : [],
-      }))
-      .filter((c: CatalogFolderNav) => c.name);
-  } catch (e) {
-    console.error("getCatalogFolders failed", e);
-    return [];
-  }
-}
+export const getCatalogFolders = unstable_cache(
+  async (): Promise<CatalogFolderNav[]> => {
+    try {
+      const row = await prisma.pageSection.findFirst({
+        where: { pageKey: "catalog", sectionKey: "folders" },
+      });
+      const cats = (row?.content as any)?.categories;
+      if (!Array.isArray(cats) || !cats.length) return [];
+      return cats
+        .map((c: any) => ({
+          name: String(c?.name || "").trim(),
+          subcategories: Array.isArray(c?.subcategories)
+            ? c.subcategories.filter((s: unknown) => typeof s === "string" && s.trim() && s.trim() !== "Unsorted")
+            : [],
+        }))
+        .filter((c: CatalogFolderNav) => c.name);
+    } catch (e) {
+      console.error("getCatalogFolders failed", e);
+      return [];
+    }
+  },
+  ["catalog-folders-v1"],
+  { revalidate: 60, tags: ["storefront", "catalog"] },
+);
 
 /** Navbar Category dropdown: Products folder tree (includes SBI etc.). */
 export async function getMegaMenu(): Promise<MegaMenuItemOut[]> {
@@ -197,27 +217,31 @@ export type FooterLinkGroups = {
   support: NavLinkOut[];
 };
 
-export async function getStorefrontData() {
-  const [settings, headerNav, footerShop, footerCompany, footerSupport, megaMenu] =
-    await Promise.all([
-      getSettings(),
-      getHeaderNav(),
-      getFooterNav("footer_shop"),
-      getFooterNav("footer_company"),
-      getFooterNav("footer_support"),
-      getMegaMenu(),
-    ]);
-  return {
-    settings,
-    headerNav,
-    megaMenu,
-    footerLinks: {
-      shop: footerShop,
-      company: footerCompany,
-      support: footerSupport,
-    } satisfies FooterLinkGroups,
-  };
-}
+export const getStorefrontData = unstable_cache(
+  async () => {
+    const [settings, headerNav, footerShop, footerCompany, footerSupport, megaMenu] =
+      await Promise.all([
+        getSettings(),
+        getHeaderNav(),
+        getFooterNav("footer_shop"),
+        getFooterNav("footer_company"),
+        getFooterNav("footer_support"),
+        getMegaMenu(),
+      ]);
+    return {
+      settings,
+      headerNav,
+      megaMenu,
+      footerLinks: {
+        shop: footerShop,
+        company: footerCompany,
+        support: footerSupport,
+      } satisfies FooterLinkGroups,
+    };
+  },
+  ["storefront-data-v2"],
+  { revalidate: 60, tags: ["storefront"] },
+);
 
 /** Enabled page_sections for a page_key, keyed by section_key. */
 export async function getPageSections(
@@ -241,10 +265,14 @@ export async function getPageSections(
   }
 }
 
-export async function getShopChrome(): Promise<ShopChromeOut> {
-  const sections = await getPageSections("shop");
-  return mapShopChrome(sections.main);
-}
+export const getShopChrome = unstable_cache(
+  async (): Promise<ShopChromeOut> => {
+    const sections = await getPageSections("shop");
+    return mapShopChrome(sections.main);
+  },
+  ["shop-chrome-v1"],
+  { revalidate: 60, tags: ["storefront"] },
+);
 
 export async function getProductChrome(): Promise<ProductChromeOut> {
   const sections = await getPageSections("product");
