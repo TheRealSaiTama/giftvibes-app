@@ -23,6 +23,7 @@ import { Eye, EyeOff, Plus, Trash2, Monitor, Smartphone, RefreshCw, ExternalLink
 import { MediaPicker } from "@/components/admin/media-picker";
 import { ProductPicker } from "@/components/admin/product-picker";
 import { TabManager } from "@/components/admin/tab-manager";
+import { LIVE_SITE, normalizeGiftvibesUrl } from "@/lib/site-url";
 import {
   CategoryItemsEditor,
   defaultCategoryItems,
@@ -170,16 +171,24 @@ function PageEditor() {
         .eq("id", 1)
         .maybeSingle();
       if (error) throw error;
-      return (data as { preview_url: string | null; site_url: string | null }) ?? {
+      const row = (data as { preview_url: string | null; site_url: string | null }) ?? {
         preview_url: null,
-        site_url: "https://www.giftvibes.in",
+        site_url: LIVE_SITE,
       };
+      const site = normalizeGiftvibesUrl(row.site_url);
+      const preview = normalizeGiftvibesUrl(row.preview_url || row.site_url);
+      if (row.site_url !== site || row.preview_url !== preview) {
+        await supabase
+          .from("site_settings")
+          .update({ site_url: site, preview_url: preview })
+          .eq("id", 1);
+      }
+      return { preview_url: preview, site_url: site };
     },
   });
 
-  const previewBase = (settings?.preview_url || settings?.site_url || "https://www.giftvibes.in").replace(
-    /\/+$/,
-    "",
+  const previewBase = normalizeGiftvibesUrl(
+    settings?.preview_url || settings?.site_url || "https://www.giftvibes.in",
   );
   const previewPath = PAGE_PREVIEW_PATHS[page] ?? `/${page}`;
   const previewUrl = previewBase ? `${previewBase}${previewPath}` : "";

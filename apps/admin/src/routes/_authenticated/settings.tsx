@@ -109,11 +109,11 @@ function SettingsPage() {
           <div className="grid sm:grid-cols-2 gap-4">
             <div>
               <Label>Public site URL</Label>
-              <Input value={draft.site_url ?? ""} onChange={(e) => setDraft({ ...draft, site_url: e.target.value })} placeholder="https://giftvibe.com" className="mt-1.5 font-mono text-sm" />
+              <Input value={draft.site_url ?? ""} onChange={(e) => setDraft({ ...draft, site_url: e.target.value })} placeholder="https://www.giftvibes.in" className="mt-1.5 font-mono text-sm" />
             </div>
             <div>
               <Label>Live preview URL</Label>
-              <Input value={draft.preview_url ?? ""} onChange={(e) => setDraft({ ...draft, preview_url: e.target.value })} placeholder="https://staging.giftvibe.com" className="mt-1.5 font-mono text-sm" />
+              <Input value={draft.preview_url ?? ""} onChange={(e) => setDraft({ ...draft, preview_url: e.target.value })} placeholder="https://www.giftvibes.in" className="mt-1.5 font-mono text-sm" />
             </div>
           </div>
         </div>

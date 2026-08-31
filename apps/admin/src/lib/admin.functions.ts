@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { notifyStorefront } from "@/lib/revalidate";
+import { normalizeGiftvibesUrl } from "@/lib/site-url";
 
 /**
  * All admin write server functions.
@@ -81,7 +82,12 @@ export const updateSiteSettings = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase.from("site_settings").update(data).eq("id", 1);
+    const payload = {
+      ...data,
+      site_url: data.site_url ? normalizeGiftvibesUrl(data.site_url) : normalizeGiftvibesUrl(null),
+      preview_url: data.preview_url ? normalizeGiftvibesUrl(data.preview_url) : normalizeGiftvibesUrl(null),
+    };
+    const { error } = await context.supabase.from("site_settings").update(payload).eq("id", 1);
     if (error) throw new Error(error.message);
     await notifyStorefront(["/"]);
     return { ok: true };
