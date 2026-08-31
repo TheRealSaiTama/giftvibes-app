@@ -1367,15 +1367,39 @@ function ProductForm({
   }
 
   // Category multi-select
-  const selectedCats = values.category
-    ? values.category.split(",").map((c) => c.trim()).filter(Boolean)
-    : [];
+  const officialByNorm = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const c of allCategories) map.set(normCat(c), c);
+    return map;
+  }, [allCategories]);
+
+  const selectedCats = useMemo(() => {
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const raw of (values.category || "").split(",")) {
+      const official = officialByNorm.get(normCat(raw));
+      if (official && !seen.has(official)) {
+        seen.add(official);
+        out.push(official);
+      }
+    }
+    return out;
+  }, [values.category, officialByNorm]);
+
+  useEffect(() => {
+    const parts = (values.category || "").split(",").map((c) => c.trim()).filter(Boolean);
+    if (!parts.length || officialByNorm.size === 0) return;
+    const cleaned = selectedCats.join(", ");
+    if (parts.join(", ") !== cleaned) {
+      set("category", cleaned);
+    }
+  }, [officialByNorm, selectedCats, values.category]);
 
   function toggleCat(cat: string) {
-    const norm = cat.trim();
-    const next = selectedCats.includes(norm)
-      ? selectedCats.filter((c) => c !== norm)
-      : [...selectedCats, norm];
+    const official = officialByNorm.get(normCat(cat)) || cat.trim();
+    const next = selectedCats.includes(official)
+      ? selectedCats.filter((c) => c !== official)
+      : [...selectedCats, official];
     set("category", next.join(", "));
   }
 
@@ -1594,7 +1618,9 @@ function ProductForm({
       {/* Category selector */}
       <div>
         <Label>Category</Label>
-        <p className="text-xs text-muted-foreground mt-0.5 mb-2">Select one or more categories this item belongs to.</p>
+        <p className="text-xs text-muted-foreground mt-0.5 mb-2">
+          Select from the Products folder list only. Names that are not in that list are dropped.
+        </p>
 
         {/* Selected pills */}
         {selectedCats.length > 0 && (
@@ -1626,7 +1652,7 @@ function ProductForm({
           </div>
           <div className="max-h-48 overflow-y-auto divide-y divide-border">
             {filteredCats.map((cat) => {
-              const checked = selectedCats.includes(cat);
+              const checked = selectedCats.some((c) => normCat(c) === normCat(cat));
               return (
                 <button
                   key={cat}
