@@ -4,7 +4,19 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/admin/admin-shell";
-import { saveProduct, deleteProduct, saveDiary, deleteDiary, repairCatalogSchema } from "@/lib/admin.functions";
+import { saveProduct, deleteProduct, saveDiary, deleteDiary, repairCatalogSchema, saveCatalogTree } from "@/lib/admin.functions";
+import {
+  DEFAULT_CATALOG_FOLDERS,
+  UNSORTED_SUB,
+  type CatalogFolder,
+  parseCatalogTree,
+  findFolder,
+  matchCategory,
+  getSubcategory,
+  folderMatchesAny,
+  mergeLegacyLocalStorage,
+  normCat,
+} from "@/lib/catalog-tree";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,30 +33,6 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-
-const CUSTOM_CATEGORIES_KEY = "gv_custom_categories";
-const CUSTOM_SUBCATEGORIES_KEY = "gv_custom_subcategories";
-const CATEGORY_SEO_KEY = "gv_category_seo";
-const HIDDEN_CATEGORIES_KEY = "gv_hidden_categories";
-const CATEGORY_RENAMES_KEY = "gv_category_renames";
-const HIDDEN_SUBCATEGORIES_KEY = "gv_hidden_subcategories";
-const SUBCATEGORY_RENAMES_KEY = "gv_subcategory_renames";
-
-function readLs<T>(key: string, fallback: T): T {
-  if (typeof window === "undefined") return fallback;
-  try {
-    const raw = JSON.parse(localStorage.getItem(key) || "null");
-    return raw == null ? fallback : (raw as T);
-  } catch {
-    return fallback;
-  }
-}
-
-type CustomCategory = {
-  name: string;
-  seoTitle?: string;
-  seoDescription?: string;
-};
 
 /** SEO meta for a category (shop filter / landing). */
 type CategorySeo = {
@@ -146,157 +134,6 @@ const empty: CatalogItem = {
   cover_type: "",
 };
 
-const STOREFRONT_CATEGORIES = [
-  "CORPORATE GIFT SETS",
-  "NEW YEAR DIARY",
-  "LEATHER GIFT ITEMS",
-  "LEATHER BAGS",
-  "JUTE BAGS",
-  "BOTTLES GIFT SET",
-  "POWER BANK DIARIES",
-  "PEN STANDS",
-  "PROMOTIONAL UMBRELLAS",
-  "CUSTOMISED DIARY & NOTE BOOKS",
-  "CALENDARS",
-  "EXHIBITION VISITOR'S GIFT IDEAS",
-];
-
-const STOREFRONT_SUBCATEGORIES: Record<string, string[]> = {
-  "CORPORATE GIFT SETS": ["Diary & Pen Sets", "Calendar Sets", "Giftsets", "General / Others"],
-  "NEW YEAR DIARY": ["Eco-Friendly & Green", "Leather Diaries", "Hard Bound Diaries", "Planners & Themes", "Economy & Regular", "General / Others"],
-  "LEATHER GIFT ITEMS": ["Bags & Portfolios", "Leather Accessories"],
-  "LEATHER BAGS": ["Executive Bags"],
-  "JUTE BAGS": ["Eco Jute Bags"],
-  "BOTTLES GIFT SET": ["Bottle & Flask Sets"],
-  "POWER BANK DIARIES": ["Tech Power Bank Diaries"],
-  "PEN STANDS": ["Desktop Accessories"],
-  "PROMOTIONAL UMBRELLAS": ["Umbrellas"],
-  "CUSTOMISED DIARY & NOTE BOOKS": ["Eco-Friendly & Green", "Leather Diaries", "Hard Bound Diaries", "Planners & Themes", "Economy & Regular", "General / Others"],
-  "CALENDARS": ["Desktop & Wall Calendars"],
-  "EXHIBITION VISITOR'S GIFT IDEAS": ["Giveaways & Promos"],
-};
-
-/** Normalise a category string for comparison */
-function normCat(s: string) {
-  return s.trim().toUpperCase().replace(/\s+/g, " ");
-}
-
-/** Match products or diaries against a normalized storefront category */
-function matchCategory(
-  productCat: string | null,
-  targetCat: string,
-  aliases: Record<string, string> = {},
-): boolean {
-  if (!productCat) return false;
-  const names = new Set<string>([normCat(targetCat)]);
-  for (const [orig, renamed] of Object.entries(aliases)) {
-    if (normCat(orig) === normCat(targetCat) || normCat(renamed) === normCat(targetCat)) {
-      names.add(normCat(orig));
-      names.add(normCat(renamed));
-    }
-  }
-  const productCats = productCat.split(",").map((c) => normCat(c));
-  return productCats.some((pc) => {
-    if (!pc) return false;
-    if (names.has(pc)) return true;
-    for (const t of names) {
-      if (pc + "S" === t || pc === t + "S") return true;
-      if (t === "CORPORATE GIFT SETS" && pc === "CORPORATE GIFT SET") return true;
-      if (t === "CUSTOMISED DIARY & NOTE BOOKS" && pc.includes("CUSTOMISED DIARY")) return true;
-    }
-    return false;
-  });
-}
-
-/** Determine the subcategory mapping dynamically based on tags and product details */
-function getSubcategory(
-  item: CatalogItem,
-  category: string,
-  ctx?: { key: string; subs: string[]; subRenames: Record<string, string> },
-): string {
-  const categoryNorm = (ctx?.key || category).trim().toUpperCase();
-  const tags = item.tags || [];
-
-  if (ctx?.subs?.length) {
-    const reverse: Record<string, string> = {};
-    for (const [orig, renamed] of Object.entries(ctx.subRenames || {})) reverse[renamed] = orig;
-    const explicit = ctx.subs.find((sub) => tags.includes(sub) || tags.includes(reverse[sub] || ""));
-    if (explicit) return explicit;
-    for (const [orig, renamed] of Object.entries(ctx.subRenames || {})) {
-      if (tags.includes(orig)) return renamed;
-    }
-  }
-
-  // First, check if the item has an explicit subcategory tag saved from the dropdown
-  const predefined = STOREFRONT_SUBCATEGORIES[categoryNorm];
-  if (predefined) {
-    const explicitMatch = predefined.find(sub => (item.tags || []).includes(sub));
-    if (explicitMatch) return ctx?.subRenames?.[explicitMatch] || explicitMatch;
-  }
-
-  const nameLower = item.name.toLowerCase();
-  const tagsLower = (item.tags || []).map((t) => t.toLowerCase());
-
-  const hasKeyword = (keywords: string[]) =>
-    keywords.some((k) => nameLower.includes(k) || tagsLower.some((t) => t.includes(k)));
-  const label = (s: string) => ctx?.subRenames?.[s] || s;
-
-  if (categoryNorm === "CORPORATE GIFT SETS" || categoryNorm === "CORPORATE GIFT SET") {
-    if (hasKeyword(["diary and pen", "diary & pen", "pen set"])) return label("Diary & Pen Sets");
-    if (hasKeyword(["calendar"])) return label("Calendar Sets");
-    if (hasKeyword(["gift set", "giftset", "combo"])) return label("Giftsets");
-    return label("General / Others");
-  }
-
-  if (categoryNorm === "NEW YEAR DIARY" || categoryNorm === "CUSTOMISED DIARY & NOTE BOOKS") {
-    if (hasKeyword(["go green", "eco", "wood", "woody", "green"])) return label("Eco-Friendly & Green");
-    if (hasKeyword(["leather", "pu leather"])) return label("Leather Diaries");
-    if (hasKeyword(["hard bound", "hard cover", "hb"])) return label("Hard Bound Diaries");
-    if (hasKeyword(["planner", "motivation", "theme"])) return label("Planners & Themes");
-    if (hasKeyword(["economy", "economical", "regular"])) return label("Economy & Regular");
-    return label("General / Others");
-  }
-
-  if (categoryNorm === "LEATHER GIFT ITEMS") {
-    if (hasKeyword(["bag", "portfolio"])) return label("Bags & Portfolios");
-    return label("Leather Accessories");
-  }
-
-  if (categoryNorm === "LEATHER BAGS") {
-    return label("Executive Bags");
-  }
-
-  if (categoryNorm === "JUTE BAGS") {
-    return label("Eco Jute Bags");
-  }
-
-  if (categoryNorm === "BOTTLES GIFT SET" || categoryNorm === "BOTTLE GIFT SETS") {
-    return label("Bottle & Flask Sets");
-  }
-
-  if (categoryNorm === "POWER BANK DIARIES") {
-    return label("Tech Power Bank Diaries");
-  }
-
-  if (categoryNorm === "PEN STANDS") {
-    return label("Desktop Accessories");
-  }
-
-  if (categoryNorm === "PROMOTIONAL UMBRELLAS") {
-    return label("Umbrellas");
-  }
-
-  if (categoryNorm === "CALENDARS") {
-    return label("Desktop & Wall Calendars");
-  }
-
-  if (categoryNorm === "EXHIBITION VISITOR'S GIFT IDEAS") {
-    return label("Giveaways & Promos");
-  }
-
-  return label("General / Others");
-}
-
 function ProductsPage() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(null);
@@ -311,124 +148,49 @@ function ProductsPage() {
   const runDeleteProduct = useServerFn(deleteProduct);
   const runDeleteDiary = useServerFn(deleteDiary);
   const runRepairCatalog = useServerFn(repairCatalogSchema);
+  const runSaveTree = useServerFn(saveCatalogTree);
+  const seededRef = useRef(false);
 
-  // ponytail: client-side custom categories + subcategories + SEO. localStorage
-  // is enough for now; promote to a Supabase table when the catalog team needs
-  // shared editing.
-  const [customCategories, setCustomCategories] = useState<CustomCategory[]>(() => {
-    if (typeof window === "undefined") return [];
-    try {
-      const raw = JSON.parse(localStorage.getItem(CUSTOM_CATEGORIES_KEY) || "[]");
-      if (!Array.isArray(raw)) return [];
-      // ponytail: accept legacy string[] entries from the previous commit;
-      // drop the helper once no live users have the old shape.
-      return raw.map((item: unknown) =>
-        typeof item === "string" ? { name: item } : (item as CustomCategory)
+  const { data: remoteTree } = useQuery({
+    queryKey: ["catalog-folders"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("page_sections")
+        .select("id, content")
+        .eq("page_key", "catalog")
+        .eq("section_key", "folders")
+        .maybeSingle();
+      if (error) throw error;
+      const parsed = parseCatalogTree(data?.content);
+      if (parsed.length) return { folders: parsed, fromDb: true };
+      return { folders: mergeLegacyLocalStorage(DEFAULT_CATALOG_FOLDERS), fromDb: false };
+    },
+  });
+
+  const [tree, setTree] = useState<CatalogFolder[]>(DEFAULT_CATALOG_FOLDERS);
+  useEffect(() => {
+    if (!remoteTree) return;
+    setTree(remoteTree.folders);
+    if (!remoteTree.fromDb && !seededRef.current) {
+      seededRef.current = true;
+      runSaveTree({ data: { categories: remoteTree.folders } }).catch((e) =>
+        console.error("seed catalog tree failed", e),
       );
-    } catch { return []; }
-  });
-
-  const [customSubcategories, setCustomSubcategories] = useState<Record<string, string[]>>(() =>
-    readLs<Record<string, string[]>>(CUSTOM_SUBCATEGORIES_KEY, {}),
-  );
-  const [hiddenCategories, setHiddenCategories] = useState<string[]>(() =>
-    readLs<string[]>(HIDDEN_CATEGORIES_KEY, []),
-  );
-  const [categoryRenames, setCategoryRenames] = useState<Record<string, string>>(() =>
-    readLs<Record<string, string>>(CATEGORY_RENAMES_KEY, {}),
-  );
-  const [hiddenSubcategories, setHiddenSubcategories] = useState<Record<string, string[]>>(() =>
-    readLs<Record<string, string[]>>(HIDDEN_SUBCATEGORIES_KEY, {}),
-  );
-  const [subcategoryRenames, setSubcategoryRenames] = useState<Record<string, Record<string, string>>>(() =>
-    readLs<Record<string, Record<string, string>>>(SUBCATEGORY_RENAMES_KEY, {}),
-  );
-
-  // SEO keyed by category name (works for built-in + custom).
-  const [categorySeo, setCategorySeo] = useState<Record<string, CategorySeo>>(() => {
-    if (typeof window === "undefined") return {};
-    try {
-      const stored = JSON.parse(localStorage.getItem(CATEGORY_SEO_KEY) || "{}") as Record<string, Partial<CategorySeo>>;
-      const map: Record<string, CategorySeo> = {};
-      for (const [k, v] of Object.entries(stored || {})) {
-        map[k] = {
-          seoTitle: v.seoTitle ?? "",
-          seoDescription: v.seoDescription ?? "",
-          ogImageUrl: v.ogImageUrl ?? "",
-        };
-      }
-      // Migrate SEO that used to live only on customCategories entries.
-      try {
-        const raw = JSON.parse(localStorage.getItem(CUSTOM_CATEGORIES_KEY) || "[]");
-        if (Array.isArray(raw)) {
-          for (const item of raw) {
-            if (item && typeof item === "object" && typeof item.name === "string") {
-              const name = item.name as string;
-              if (!map[name] && (item.seoTitle || item.seoDescription)) {
-                map[name] = {
-                  seoTitle: item.seoTitle || "",
-                  seoDescription: item.seoDescription || "",
-                  ogImageUrl: "",
-                };
-              }
-            }
-          }
-        }
-      } catch { /* ignore */ }
-      return map;
-    } catch { return {}; }
-  });
-
-  useEffect(() => {
-    localStorage.setItem(CUSTOM_CATEGORIES_KEY, JSON.stringify(customCategories));
-  }, [customCategories]);
-
-  useEffect(() => {
-    localStorage.setItem(CUSTOM_SUBCATEGORIES_KEY, JSON.stringify(customSubcategories));
-  }, [customSubcategories]);
-
-  useEffect(() => {
-    localStorage.setItem(HIDDEN_CATEGORIES_KEY, JSON.stringify(hiddenCategories));
-  }, [hiddenCategories]);
-
-  useEffect(() => {
-    localStorage.setItem(CATEGORY_RENAMES_KEY, JSON.stringify(categoryRenames));
-  }, [categoryRenames]);
-
-  useEffect(() => {
-    localStorage.setItem(HIDDEN_SUBCATEGORIES_KEY, JSON.stringify(hiddenSubcategories));
-  }, [hiddenSubcategories]);
-
-  useEffect(() => {
-    localStorage.setItem(SUBCATEGORY_RENAMES_KEY, JSON.stringify(subcategoryRenames));
-  }, [subcategoryRenames]);
-
-  useEffect(() => {
-    localStorage.setItem(CATEGORY_SEO_KEY, JSON.stringify(categorySeo));
-  }, [categorySeo]);
-
-  function categoryKey(display: string): string {
-    const n = normCat(display);
-    if (STOREFRONT_CATEGORIES.includes(display) || STOREFRONT_CATEGORIES.includes(n)) return n;
-    for (const [orig, renamed] of Object.entries(categoryRenames)) {
-      if (normCat(renamed) === n || normCat(orig) === n) return orig;
     }
-    return display;
-  }
+  }, [remoteTree, runSaveTree]);
 
-  function displayCategoryName(key: string): string {
-    return categoryRenames[key] || categoryRenames[normCat(key)] || key;
-  }
+  const allCategories = useMemo(() => tree.map((f) => f.name), [tree]);
 
-  const allCategories = useMemo(
-    () => [
-      ...STOREFRONT_CATEGORIES.filter((c) => !hiddenCategories.includes(c) && !hiddenCategories.includes(normCat(c))).map(
-        (c) => categoryRenames[c] || c,
-      ),
-      ...customCategories.map((c) => c.name),
-    ],
-    [customCategories, hiddenCategories, categoryRenames],
-  );
+  async function persistTree(next: CatalogFolder[]) {
+    setTree(next);
+    try {
+      await runSaveTree({ data: { categories: next } });
+      qc.invalidateQueries({ queryKey: ["catalog-folders"] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not save folders");
+      qc.invalidateQueries({ queryKey: ["catalog-folders"] });
+    }
+  }
 
   function openAddCategoryForm() {
     setCatForm({
@@ -439,25 +201,16 @@ function ProductsPage() {
   }
 
   function openEditCategoryForm(cat: string) {
-    const key = categoryKey(cat);
-    const seo = categorySeo[cat] ?? categorySeo[key] ?? emptyCategorySeo();
-    const legacy = customCategories.find((c) => c.name === cat || c.name === key);
+    const folder = findFolder(tree, cat);
     setCatForm({
       mode: "edit",
       originalName: cat,
-      originalKey: key,
+      originalKey: folder?.name || cat,
       name: cat,
-      seoTitle: seo.seoTitle || legacy?.seoTitle || "",
-      seoDescription: seo.seoDescription || legacy?.seoDescription || "",
-      ogImageUrl: seo.ogImageUrl || "",
+      seoTitle: folder?.seoTitle || "",
+      seoDescription: folder?.seoDescription || "",
+      ogImageUrl: folder?.ogImageUrl || "",
     });
-  }
-
-  function migrateKeyed<T>(map: Record<string, T>, from: string, to: string): Record<string, T> {
-    if (from === to || !(from in map)) return map;
-    const next = { ...map, [to]: map[from] };
-    delete next[from];
-    return next;
   }
 
   async function retagCategoryOnItems(oldName: string, newName: string) {
@@ -469,7 +222,8 @@ function ProductsPage() {
         continue;
       }
       for (const row of data || []) {
-        if (!matchCategory(row.category, oldName, categoryRenames)) continue;
+        const folder = findFolder(tree, oldName);
+        if (!folder || !matchCategory(row.category, folder)) continue;
         const next = (row.category || "")
           .split(",")
           .map((c: string) => (normCat(c) === normCat(oldName) ? newName : c.trim()))
@@ -513,83 +267,48 @@ function ProductsPage() {
       return;
     }
 
-    const seo: CategorySeo = {
+    const seo = {
       seoTitle: catForm.seoTitle.trim(),
       seoDescription: catForm.seoDescription.trim(),
       ogImageUrl: catForm.ogImageUrl.trim(),
     };
 
     if (catForm.mode === "add") {
-      const hiddenHit = hiddenCategories.find((h) => normCat(h) === name);
-      if (hiddenHit) {
-        setHiddenCategories((prev) => prev.filter((h) => normCat(h) !== name));
-        setCategorySeo((prev) => ({ ...prev, [hiddenHit]: seo, [name]: seo }));
-        setCatForm(null);
-        toast.success(`Restored "${displayCategoryName(hiddenHit)}"`);
-        return;
-      }
-      if (allCategories.some((c) => normCat(c) === name)) {
+      if (tree.some((f) => normCat(f.name) === name)) {
         toast.error("Category already exists");
         return;
       }
-      setCustomCategories((prev) => [
-        ...prev,
+      await persistTree([
+        ...tree,
         {
           name,
-          seoTitle: seo.seoTitle || undefined,
-          seoDescription: seo.seoDescription || undefined,
+          aliases: [],
+          subcategories: ["General / Others"],
+          ...seo,
         },
       ]);
-      setCategorySeo((prev) => ({ ...prev, [name]: seo }));
       setCatForm(null);
       toast.success(`Added "${name}"`);
       return;
     }
 
-    const origKey = catForm.originalKey || catForm.originalName || name;
-    const oldDisplay = catForm.originalName || origKey;
-    const isBuiltIn = STOREFRONT_CATEGORIES.includes(origKey);
-
-    if (normCat(name) !== normCat(oldDisplay) && allCategories.some((c) => normCat(c) === name && normCat(c) !== normCat(oldDisplay))) {
+    const oldDisplay = catForm.originalName || name;
+    if (normCat(name) !== normCat(oldDisplay) && tree.some((f) => normCat(f.name) === name)) {
       toast.error("Category already exists");
       return;
     }
 
-    if (isBuiltIn) {
-      setCategoryRenames((prev) => {
-        const next = { ...prev };
-        if (name === origKey) delete next[origKey];
-        else next[origKey] = name;
-        return next;
-      });
-    } else {
-      setCustomCategories((prev) =>
-        prev.map((c) =>
-          c.name === origKey || c.name === oldDisplay
-            ? {
-                ...c,
-                name,
-                seoTitle: seo.seoTitle || undefined,
-                seoDescription: seo.seoDescription || undefined,
-              }
-            : c,
-        ),
-      );
-      setCustomSubcategories((prev) => migrateKeyed(prev, origKey, name));
-      setHiddenSubcategories((prev) => migrateKeyed(prev, origKey, name));
-      setSubcategoryRenames((prev) => migrateKeyed(prev, origKey, name));
-    }
-
-    setCategorySeo((prev) => {
-      const next = { ...prev, [name]: seo };
-      if (oldDisplay !== name) delete next[oldDisplay];
-      if (origKey !== name && origKey !== oldDisplay) delete next[origKey];
-      return next;
+    const next = tree.map((f) => {
+      if (normCat(f.name) !== normCat(oldDisplay)) return f;
+      const aliases = [...f.aliases];
+      if (normCat(name) !== normCat(oldDisplay) && !aliases.map(normCat).includes(normCat(oldDisplay))) {
+        aliases.push(oldDisplay);
+      }
+      return { ...f, name, aliases, ...seo };
     });
-
+    await persistTree(next);
     if (selectedCategory === oldDisplay) setSelectedCategory(name);
     if (expandedCategory === oldDisplay) setExpandedCategory(name);
-
     setCatForm(null);
     toast.success(`Saved "${name}"`);
     if (normCat(oldDisplay) !== name) {
@@ -598,7 +317,6 @@ function ProductsPage() {
   }
 
   function deleteCategory(cat: string) {
-    const key = categoryKey(cat);
     const count = categoryCounts[cat] ?? 0;
     const ok = confirm(
       count > 0
@@ -606,25 +324,7 @@ function ProductsPage() {
         : `Delete category "${cat}"?`,
     );
     if (!ok) return;
-
-    const isBuiltIn = STOREFRONT_CATEGORIES.includes(key);
-    if (isBuiltIn) {
-      setHiddenCategories((prev) => (prev.includes(key) ? prev : [...prev, key]));
-    } else {
-      setCustomCategories((prev) => prev.filter((c) => c.name !== cat && c.name !== key));
-      setCustomSubcategories((prev) => {
-        const next = { ...prev };
-        delete next[cat];
-        delete next[key];
-        return next;
-      });
-    }
-    setCategorySeo((prev) => {
-      const next = { ...prev };
-      delete next[cat];
-      delete next[key];
-      return next;
-    });
+    persistTree(tree.filter((f) => normCat(f.name) !== normCat(cat)));
     if (selectedCategory === cat) {
       setSelectedCategory(null);
       setSelectedSubcategory(null);
@@ -634,32 +334,12 @@ function ProductsPage() {
   }
 
   function getSubcategoriesFor(cat: string): string[] {
-    const key = categoryKey(cat);
-    const hidden = new Set([
-      ...(hiddenSubcategories[key] || []),
-      ...(hiddenSubcategories[cat] || []),
-    ]);
-    const renames = { ...(subcategoryRenames[key] || {}), ...(subcategoryRenames[cat] || {}) };
-    const raw = [
-      ...(STOREFRONT_SUBCATEGORIES[key] || STOREFRONT_SUBCATEGORIES[normCat(key)] || []),
-      ...(customSubcategories[key] || []),
-      ...(customSubcategories[cat] || []),
-    ];
-    const out: string[] = [];
-    for (const s of raw) {
-      if (hidden.has(s) || hidden.has(renames[s] || "")) continue;
-      const label = renames[s] || s;
-      if (!out.includes(label)) out.push(label);
-    }
-    return out;
+    return findFolder(tree, cat)?.subcategories ?? [];
   }
 
-  function subCtx(cat: string) {
-    return {
-      key: categoryKey(cat),
-      subs: getSubcategoriesFor(cat),
-      subRenames: subcategoryRenames[categoryKey(cat)] || {},
-    };
+  function listedSubsFor(cat: string): string[] {
+    const subs = getSubcategoriesFor(cat);
+    return subs.includes(UNSORTED_SUB) ? subs : [...subs, UNSORTED_SUB];
   }
 
   function saveSubcategory() {
@@ -669,27 +349,22 @@ function ProductsPage() {
       toast.error("Subcategory name is required");
       return;
     }
-    const key = categoryKey(subForm.cat);
-    const existing = getSubcategoriesFor(subForm.cat);
+    const folder = findFolder(tree, subForm.cat);
+    if (!folder) return;
+    const existing = folder.subcategories;
 
     if (subForm.mode === "add") {
       if (existing.some((s) => s.toLowerCase() === name.toLowerCase())) {
         toast.error("Subcategory already exists");
         return;
       }
-      const hiddenList = hiddenSubcategories[key] || [];
-      const hiddenHit = hiddenList.find((h) => h.toLowerCase() === name.toLowerCase());
-      if (hiddenHit) {
-        setHiddenSubcategories((prev) => ({
-          ...prev,
-          [key]: (prev[key] || []).filter((h) => h !== hiddenHit),
-        }));
-      } else {
-        setCustomSubcategories((prev) => ({
-          ...prev,
-          [key]: [...(prev[key] || []), name],
-        }));
-      }
+      persistTree(
+        tree.map((f) =>
+          normCat(f.name) === normCat(folder.name)
+            ? { ...f, subcategories: [...f.subcategories, name] }
+            : f,
+        ),
+      );
       setSubForm(null);
       toast.success(`Added "${name}"`);
       return;
@@ -701,25 +376,13 @@ function ProductsPage() {
       return;
     }
 
-    const builtIn = STOREFRONT_SUBCATEGORIES[key] || [];
-    const reverseRename = Object.entries(subcategoryRenames[key] || {}).find(([, v]) => v === oldName)?.[0];
-    const origSub = builtIn.includes(oldName) ? oldName : reverseRename || oldName;
-    const isBuiltInSub = builtIn.includes(origSub);
-
-    if (isBuiltInSub) {
-      setSubcategoryRenames((prev) => {
-        const forCat = { ...(prev[key] || {}) };
-        if (name === origSub) delete forCat[origSub];
-        else forCat[origSub] = name;
-        return { ...prev, [key]: forCat };
-      });
-    } else {
-      setCustomSubcategories((prev) => ({
-        ...prev,
-        [key]: (prev[key] || []).map((s) => (s === oldName || s === origSub ? name : s)),
-      }));
-    }
-
+    persistTree(
+      tree.map((f) =>
+        normCat(f.name) === normCat(folder.name)
+          ? { ...f, subcategories: f.subcategories.map((s) => (s === oldName ? name : s)) }
+          : f,
+      ),
+    );
     if (selectedSubcategory === oldName) setSelectedSubcategory(name);
     setSubForm(null);
     toast.success(`Renamed to "${name}"`);
@@ -729,34 +392,24 @@ function ProductsPage() {
   }
 
   function deleteSubcategory(cat: string, subcat: string) {
-    const key = categoryKey(cat);
+    const folder = findFolder(tree, cat);
+    if (!folder || subcat === UNSORTED_SUB) return;
     const count = allItems.filter(
-      (item) => matchCategory(item.category, cat, categoryRenames) && getSubcategory(item, cat, subCtx(cat)) === subcat,
+      (item) => folder && matchCategory(item.category, folder) && getSubcategory(item, folder) === subcat,
     ).length;
     const ok = confirm(
       count > 0
-        ? `Delete subcategory "${subcat}"? ${count} item(s) stay in the catalog; recategorise them if needed.`
+        ? `Delete subcategory "${subcat}"? ${count} item(s) stay in the catalog under Unsorted until you recategorise them.`
         : `Delete subcategory "${subcat}"?`,
     );
     if (!ok) return;
-
-    const builtIn = STOREFRONT_SUBCATEGORIES[key] || [];
-    const reverseRename = Object.entries(subcategoryRenames[key] || {}).find(([, v]) => v === subcat)?.[0];
-    const origSub = builtIn.includes(subcat) ? subcat : reverseRename || subcat;
-    const isBuiltInSub = builtIn.includes(origSub);
-
-    if (isBuiltInSub) {
-      setHiddenSubcategories((prev) => ({
-        ...prev,
-        [key]: Array.from(new Set([...(prev[key] || []), origSub])),
-      }));
-    } else {
-      setCustomSubcategories((prev) => ({
-        ...prev,
-        [key]: (prev[key] || []).filter((s) => s !== subcat && s !== origSub),
-      }));
-    }
-
+    persistTree(
+      tree.map((f) =>
+        normCat(f.name) === normCat(folder.name)
+          ? { ...f, subcategories: f.subcategories.filter((s) => s !== subcat) }
+          : f,
+      ),
+    );
     if (selectedSubcategory === subcat) setSelectedSubcategory(null);
     toast.success(`Deleted "${subcat}"`);
   }
@@ -834,18 +487,18 @@ function ProductsPage() {
   // Root level category counts
   const categoryCounts = useMemo(() => {
     const map: Record<string, number> = {};
-    for (const cat of allCategories) {
-      map[cat] = allItems.filter((item) => matchCategory(item.category, cat, categoryRenames)).length;
+    for (const folder of tree) {
+      map[folder.name] = allItems.filter((item) => matchCategory(item.category, folder)).length;
     }
     return map;
-  }, [allItems, allCategories, categoryRenames]);
+  }, [allItems, tree]);
 
   const uncategorisedCount = useMemo(() => {
     return allItems.filter((item) => {
       if (!item.category || item.category.trim() === "") return true;
-      return !allCategories.some((cat) => matchCategory(item.category, cat, categoryRenames));
+      return !folderMatchesAny(item.category, tree);
     }).length;
-  }, [allItems, allCategories, categoryRenames]);
+  }, [allItems, tree]);
 
   // Items filtering based on navigation path
   const categoryItems = useMemo(() => {
@@ -853,35 +506,20 @@ function ProductsPage() {
     if (selectedCategory === "__uncategorised__") {
       return allItems.filter((item) => {
         if (!item.category || item.category.trim() === "") return true;
-        return !allCategories.some((cat) => matchCategory(item.category, cat, categoryRenames));
+        return !folderMatchesAny(item.category, tree);
       });
     }
-    return allItems.filter((item) => matchCategory(item.category, selectedCategory, categoryRenames));
-  }, [allItems, selectedCategory, allCategories, categoryRenames]);
-
-  // Subcategories found in the selected category
-  const subcategoryCounts = useMemo(() => {
-    if (!selectedCategory) return {};
-    const ctx = subCtx(selectedCategory);
-    const map: Record<string, number> = {};
-    for (const item of categoryItems) {
-      const subcat = getSubcategory(item, selectedCategory, ctx);
-      map[subcat] = (map[subcat] || 0) + 1;
-    }
-    return map;
-  }, [categoryItems, selectedCategory, subcategoryRenames, hiddenSubcategories, customSubcategories, categoryRenames]);
-
-  const subcategoriesList = useMemo(() => {
-    return Object.keys(subcategoryCounts).sort();
-  }, [subcategoryCounts]);
+    const folder = findFolder(tree, selectedCategory);
+    if (!folder) return [];
+    return allItems.filter((item) => matchCategory(item.category, folder));
+  }, [allItems, selectedCategory, tree]);
 
   const subcategoryItems = useMemo(() => {
     if (!selectedCategory || !selectedSubcategory) return [];
-    const ctx = subCtx(selectedCategory);
-    return categoryItems.filter(
-      (item) => getSubcategory(item, selectedCategory, ctx) === selectedSubcategory
-    );
-  }, [categoryItems, selectedCategory, selectedSubcategory, subcategoryRenames, hiddenSubcategories, customSubcategories, categoryRenames]);
+    const folder = findFolder(tree, selectedCategory);
+    if (!folder) return [];
+    return categoryItems.filter((item) => getSubcategory(item, folder) === selectedSubcategory);
+  }, [categoryItems, selectedCategory, selectedSubcategory, tree]);
 
   // Flat list filtered by search or subcategory items
   const filtered = useMemo(() => {
@@ -910,7 +548,9 @@ function ProductsPage() {
         ? selectedCategory
         : "";
     const tags =
-      selectedSubcategory && selectedCategory !== "__uncategorised__"
+      selectedSubcategory &&
+      selectedCategory !== "__uncategorised__" &&
+      selectedSubcategory !== UNSORTED_SUB
         ? [selectedSubcategory]
         : [];
     setEditing({
@@ -931,7 +571,7 @@ function ProductsPage() {
             ? selectedCategory && selectedSubcategory
               ? `Products and diaries in ${selectedCategory} → ${selectedSubcategory}.`
               : "Search results across the catalog."
-            : "Category management — add categories here, then open one to manage products and diaries inside it."
+            : "Folders sync across devices. A product appears here only if its Category field matches this folder and a tag matches the subfolder."
         }
       >
         <div className="flex items-center gap-2">
@@ -1039,8 +679,8 @@ function ProductsPage() {
             {!isLoading &&
               allCategories.map((cat) => {
                 const isExpanded = expandedCategory === cat;
-                const subcats = getSubcategoriesFor(cat);
-                const isCustom = customCategories.some((c) => c.name === cat);
+                const folder = findFolder(tree, cat);
+                const subcats = listedSubsFor(cat);
                 return (
                   <div key={cat} className="transition-all">
                     <div className="w-full flex items-center gap-2 px-4 py-3 hover:bg-surface/60 transition-colors group">
@@ -1051,12 +691,7 @@ function ProductsPage() {
                         <Folder className={`h-4 w-4 transition-colors shrink-0 ${isExpanded ? "text-amber-500" : "text-primary/70 group-hover:text-primary"}`} />
                         <span className="flex-1 text-sm font-semibold flex items-center gap-2 min-w-0 truncate">
                           {cat}
-                          {isCustom && (
-                            <span className="text-[9px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600 border border-amber-500/25 shrink-0">
-                              custom
-                            </span>
-                          )}
-                          {(categorySeo[cat]?.seoTitle || categorySeo[cat]?.seoDescription) && (
+                          {(folder?.seoTitle || folder?.seoDescription) && (
                             <span className="text-[9px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20 shrink-0">
                               SEO
                             </span>
@@ -1113,11 +748,15 @@ function ProductsPage() {
                     {isExpanded && (
                       <div className="bg-surface/30 pl-10 pr-4 py-1 divide-y divide-border/20 border-t border-b border-border/10">
                         {subcats.map((subcat) => {
-                          const count = allItems.filter(
-                            (item) =>
-                              matchCategory(item.category, cat, categoryRenames) &&
-                              getSubcategory(item, cat, subCtx(cat)) === subcat,
-                          ).length;
+                          const count = folder
+                            ? allItems.filter(
+                                (item) =>
+                                  matchCategory(item.category, folder) &&
+                                  getSubcategory(item, folder) === subcat,
+                              ).length
+                            : 0;
+                          const isUnsorted = subcat === UNSORTED_SUB;
+                          if (isUnsorted && count === 0) return null;
                           return (
                             <div
                               key={subcat}
@@ -1136,6 +775,7 @@ function ProductsPage() {
                                   {count} items
                                 </span>
                               </button>
+                              {!isUnsorted && (
                               <Button
                                 type="button"
                                 variant="ghost"
@@ -1149,6 +789,8 @@ function ProductsPage() {
                               >
                                 <Pencil className="h-3.5 w-3.5" />
                               </Button>
+                              )}
+                              {!isUnsorted && (
                               <Button
                                 type="button"
                                 variant="ghost"
@@ -1162,6 +804,7 @@ function ProductsPage() {
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
                               </Button>
+                              )}
                             </div>
                           );
                         })}
@@ -1178,7 +821,7 @@ function ProductsPage() {
               <button
                 onClick={() => {
                   setSelectedCategory("__uncategorised__");
-                  setSelectedSubcategory("General / Others");
+                  setSelectedSubcategory(UNSORTED_SUB);
                 }}
                 className="w-full flex items-center gap-3 px-4 py-3 hover:bg-surface/60 transition-colors text-left group"
               >
@@ -1397,7 +1040,7 @@ function ProductsPage() {
               allCategories={allCategories}
               getSubcategoriesFor={getSubcategoriesFor}
               defaultCategory={selectedCategory && selectedCategory !== "__uncategorised__" ? selectedCategory : undefined}
-              defaultSubcategory={search || !selectedSubcategory || selectedCategory === "__uncategorised__" ? undefined : selectedSubcategory}
+              defaultSubcategory={search || !selectedSubcategory || selectedCategory === "__uncategorised__" || selectedSubcategory === UNSORTED_SUB ? undefined : selectedSubcategory}
               onClose={() => setEditing(null)}
               onSaved={() => {
                 qc.invalidateQueries({ queryKey: ["products-admin-only"] });

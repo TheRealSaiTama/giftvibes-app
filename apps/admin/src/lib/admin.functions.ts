@@ -360,6 +360,49 @@ export const repairCatalogSchema = createServerFn({ method: "POST" })
     return body as { ok: boolean; added: string[]; columns: string[] };
   });
 
+const catalogFolderShape = z.object({
+  name: z.string().min(1),
+  aliases: z.array(z.string()).default([]),
+  subcategories: z.array(z.string()).default([]),
+  seoTitle: z.string().default(""),
+  seoDescription: z.string().default(""),
+  ogImageUrl: z.string().default(""),
+});
+
+/** Persist the admin Products folder tree so every device shares the same mapping. */
+export const saveCatalogTree = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ categories: z.array(catalogFolderShape) }).parse(d))
+  .handler(async ({ data, context }) => {
+    const content = { categories: data.categories };
+    const { data: existing, error: findErr } = await context.supabase
+      .from("page_sections")
+      .select("id")
+      .eq("page_key", "catalog")
+      .eq("section_key", "folders")
+      .maybeSingle();
+    if (findErr) throw new Error(findErr.message);
+    if (existing?.id) {
+      const { error } = await context.supabase
+        .from("page_sections")
+        .update({ content, title: "Catalog folders", enabled: true })
+        .eq("id", existing.id);
+      if (error) throw new Error(error.message);
+    } else {
+      const { error } = await context.supabase.from("page_sections").insert({
+        page_key: "catalog",
+        section_key: "folders",
+        title: "Catalog folders",
+        enabled: true,
+        sort_order: 0,
+        content,
+      });
+      if (error) throw new Error(error.message);
+    }
+    await notifyStorefront(["/", "/shop"]);
+    return { ok: true };
+  });
+
 // -------- MEDIA --------
 export const registerMedia = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
