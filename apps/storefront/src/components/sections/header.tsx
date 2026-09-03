@@ -245,8 +245,8 @@ const Header = ({
                     ))}
                   </div>
                   <div className="mt-4 flex justify-end">
-                    <Link href="/shop" className="text-sm font-medium text-primary hover:underline">
-                      View All Products
+                    <Link href="/#our-products" className="text-sm font-medium text-primary hover:underline">
+                      View All Categories
                     </Link>
                   </div>
                 </DropdownMenuContent>
