@@ -104,6 +104,7 @@ type CatalogItem = {
   // M9: SEO meta for generateMetadata on the storefront product page.
   seo_title: string | null;
   seo_description: string | null;
+  seo_keywords: string | null;
   // diary specific metadata
   color?: string | null;
   size?: string | null;
@@ -128,6 +129,7 @@ const empty: CatalogItem = {
   features: {},
   seo_title: "",
   seo_description: "",
+  seo_keywords: "",
   color: "",
   size: "",
   pages: null,
@@ -1306,11 +1308,23 @@ function ProductForm({
 
   // Auto-slug from name until the user edits the slug field manually.
   const slugTouched = useRef(false);
+  const seoTitleTouched = useRef(!!product.seo_title);
+  const seoKwTouched = useRef(!!product.seo_keywords);
   useEffect(() => {
     if (slugTouched.current) return;
     const auto = slugify(values.name);
     setValues((prev) => (prev.slug === auto ? prev : { ...prev, slug: auto }));
   }, [values.name]);
+  useEffect(() => {
+    if (seoTitleTouched.current) return;
+    const auto = buildSeoTitle(values.name);
+    setValues((prev) => (prev.seo_title === auto ? prev : { ...prev, seo_title: auto }));
+  }, [values.name]);
+  useEffect(() => {
+    if (seoKwTouched.current) return;
+    const auto = buildSeoKeywords(values.name, values.category, values.tags);
+    setValues((prev) => (prev.seo_keywords === auto ? prev : { ...prev, seo_keywords: auto }));
+  }, [values.name, values.category, values.tags]);
 
   const runSaveProduct = useServerFn(saveProduct);
   const runDeleteProduct = useServerFn(deleteProduct);
@@ -1347,6 +1361,7 @@ function ProductForm({
               features: values.features || {},
               seo_title: values.seo_title || null,
               seo_description: values.seo_description || null,
+              seo_keywords: values.seo_keywords || null,
             },
           },
         });
@@ -1369,6 +1384,7 @@ function ProductForm({
               features: values.features || {},
               seo_title: values.seo_title || null,
               seo_description: values.seo_description || null,
+              seo_keywords: values.seo_keywords || null,
             },
           },
         });
@@ -1817,7 +1833,10 @@ function ProductForm({
           <Input
             id="seo-title"
             value={values.seo_title ?? ""}
-            onChange={(e) => set("seo_title", e.target.value)}
+            onChange={(e) => {
+              seoTitleTouched.current = true;
+              set("seo_title", e.target.value);
+            }}
             placeholder={`${values.name || "Product"} | GiftVibes`}
             maxLength={70}
             className="mt-1.5"
@@ -1840,6 +1859,23 @@ function ProductForm({
           <div className="text-[10px] text-muted-foreground mt-1">
             {(values.seo_description ?? "").length}/160 recommended
           </div>
+        </div>
+        <div>
+          <Label htmlFor="seo-keywords" className="text-xs">SEO keywords</Label>
+          <Textarea
+            id="seo-keywords"
+            rows={2}
+            value={values.seo_keywords ?? ""}
+            onChange={(e) => {
+              seoKwTouched.current = true;
+              set("seo_keywords", e.target.value);
+            }}
+            placeholder="product name, category, GiftVibes, wholesale…"
+            className="mt-1.5"
+          />
+          <p className="text-[10px] text-muted-foreground mt-1">
+            Auto-filled from name, categories and tags. Edit anytime. Comma-separated.
+          </p>
         </div>
       </div>
 
@@ -1870,6 +1906,32 @@ function ProductForm({
       </div>
     </div>
   );
+}
+
+function buildSeoTitle(name: string) {
+  const n = name.replace(/\s+/g, " ").trim();
+  if (!n) return "";
+  const title = `${n} | GiftVibes`;
+  return title.length > 70 ? `${n.slice(0, 58).trim()} | GiftVibes` : title;
+}
+
+function buildSeoKeywords(name: string, category: string | null, tags: string[]) {
+  const bits: string[] = [];
+  const push = (s: string) => {
+    const t = s.replace(/\s+/g, " ").trim();
+    if (!t) return;
+    if (bits.some((b) => b.toLowerCase() === t.toLowerCase())) return;
+    bits.push(t);
+  };
+  push(name);
+  for (const c of (category || "").split(",")) push(c);
+  for (const t of tags || []) push(t);
+  push("GiftVibes");
+  push("corporate gifts");
+  push("wholesale");
+  push("Delhi manufacturer");
+  push("customised diaries");
+  return bits.slice(0, 15).join(", ");
 }
 
 function slugify(s: string) {

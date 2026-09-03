@@ -58,6 +58,7 @@ export type CatalogItem = {
   features: Record<string, any>;
   seoTitle: string | null;
   seoDescription: string | null;
+  seoKeywords: string | null;
   enabled: boolean;
   kind: "product" | "diary";
 };
@@ -75,8 +76,9 @@ function mapRow(row: any, kind: "product" | "diary"): CatalogItem {
     tags: row.tags || [],
     gallery: Array.isArray(row.gallery) ? row.gallery : [],
     features: row.features && typeof row.features === "object" ? row.features : {},
-    seoTitle: row.seoTitle ?? null,
-    seoDescription: row.seoDescription ?? null,
+    seoTitle: row.seoTitle ?? row.seo_title ?? null,
+    seoDescription: row.seoDescription ?? row.seo_description ?? null,
+    seoKeywords: row.seoKeywords ?? row.seo_keywords ?? null,
     enabled: row.enabled !== false,
     kind,
   };

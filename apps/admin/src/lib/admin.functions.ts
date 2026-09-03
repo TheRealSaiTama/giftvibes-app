@@ -182,10 +182,11 @@ const productShape = z.object({
   // M9: SEO meta. Used by storefront generateMetadata.
   seo_title: z.string().nullable(),
   seo_description: z.string().nullable(),
+  seo_keywords: z.string().nullable(),
 });
 
 /** Columns from migration 20260809170000 — missing on production Postgres. */
-const OPTIONAL_CATALOG_COLS = new Set(["features", "seo_title", "seo_description"]);
+const OPTIONAL_CATALOG_COLS = new Set(["features", "seo_title", "seo_description", "seo_keywords"]);
 
 function missingColumn(message: string): string | null {
   const schemaCache = message.match(/Could not find the '([^']+)' column/i);
@@ -316,6 +317,7 @@ const diaryShape = z.object({
   features: z.record(z.object({ show: z.boolean(), value: z.string() })).default({}),
   seo_title: z.string().nullable(),
   seo_description: z.string().nullable(),
+  seo_keywords: z.string().nullable(),
 });
 
 export const saveDiary = createServerFn({ method: "POST" })

@@ -7,9 +7,11 @@ export const runtime = "nodejs";
 const ALTERS = [
   `ALTER TABLE public.products ADD COLUMN IF NOT EXISTS seo_title text`,
   `ALTER TABLE public.products ADD COLUMN IF NOT EXISTS seo_description text`,
+  `ALTER TABLE public.products ADD COLUMN IF NOT EXISTS seo_keywords text`,
   `ALTER TABLE public.products ADD COLUMN IF NOT EXISTS features jsonb NOT NULL DEFAULT '{}'::jsonb`,
   `ALTER TABLE public.diaries ADD COLUMN IF NOT EXISTS seo_title text`,
   `ALTER TABLE public.diaries ADD COLUMN IF NOT EXISTS seo_description text`,
+  `ALTER TABLE public.diaries ADD COLUMN IF NOT EXISTS seo_keywords text`,
   `ALTER TABLE public.diaries ADD COLUMN IF NOT EXISTS features jsonb NOT NULL DEFAULT '{}'::jsonb`,
 ];
 

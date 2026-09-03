@@ -28,6 +28,7 @@ model Product {
   features    Json     @default("{}")
   seoTitle    String?  @map("seo_title")
   seoDescription String? @map("seo_description")
+  seoKeywords String?  @map("seo_keywords")
   featured    Boolean  @default(false)
   enabled     Boolean  @default(true)
   createdAt   DateTime @default(now()) @map("created_at")
@@ -48,6 +49,7 @@ model Diary {
   features    Json     @default("{}")
   seoTitle    String?  @map("seo_title")
   seoDescription String? @map("seo_description")
+  seoKeywords String?  @map("seo_keywords")
   category    String?
   tags        String[]
   color       String?

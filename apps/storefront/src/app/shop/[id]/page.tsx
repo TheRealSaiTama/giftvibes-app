@@ -26,9 +26,15 @@ export async function generateMetadata({
   const title = product.seoTitle || product.name;
   const description = (product.seoDescription || product.description || product.name).slice(0, 200);
   const path = productHref(product);
+  const keywordBits = (product.seoKeywords || [product.name, product.category, ...(product.tags || [])].filter(Boolean).join(", "))
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .slice(0, 20);
   return {
     title,
     description,
+    keywords: keywordBits.length ? keywordBits : undefined,
     alternates: { canonical: path },
     openGraph: {
       title,
