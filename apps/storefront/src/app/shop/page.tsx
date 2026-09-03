@@ -5,6 +5,7 @@ import Footer from "@/components/sections/footer";
 import ShopClient from "./ShopClient";
 import { getStorefrontData, getShopChrome, getCatalogFolders } from "@/lib/site";
 import { productHref } from "@/lib/seo";
+import { mapCatalogFolders } from "@/lib/cms/mappers";
 import { getCachedLiveCatalog } from "@/lib/catalog";
 
 export const metadata: Metadata = {
@@ -34,7 +35,11 @@ export default async function ShopPage() {
     <div className="min-h-screen bg-gray-50">
       <Header
         nav={storefront.headerNav}
-        megaMenu={storefront.megaMenu}
+        megaMenu={
+          mapCatalogFolders(folders).length
+            ? mapCatalogFolders(folders)
+            : storefront.megaMenu
+        }
         logoUrl={storefront.settings?.logoUrl}
         brandName={storefront.settings?.brandName}
       />

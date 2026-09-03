@@ -405,6 +405,38 @@ export const saveCatalogTree = createServerFn({ method: "POST" })
       });
       if (error) throw new Error(error.message);
     }
+
+    const megaItems = data.categories.map((c, i) => ({
+      name: c.name,
+      subtitle: "",
+      image_url: "",
+      href: `/shop?category=${encodeURIComponent(c.name)}`,
+      sort_order: i + 1,
+      enabled: true,
+      subcategories: c.subcategories.filter((s) => s && s !== "Unsorted"),
+    }));
+    const { data: mega } = await context.supabase
+      .from("page_sections")
+      .select("id")
+      .eq("page_key", "site")
+      .eq("section_key", "mega_menu")
+      .maybeSingle();
+    if (mega?.id) {
+      await context.supabase
+        .from("page_sections")
+        .update({ content: { items: megaItems }, enabled: true, title: "Category mega-menu" })
+        .eq("id", mega.id);
+    } else {
+      await context.supabase.from("page_sections").insert({
+        page_key: "site",
+        section_key: "mega_menu",
+        title: "Category mega-menu",
+        enabled: true,
+        sort_order: 0,
+        content: { items: megaItems },
+      });
+    }
+
     await notifyStorefront(["/", "/shop"]);
     return { ok: true };
   });

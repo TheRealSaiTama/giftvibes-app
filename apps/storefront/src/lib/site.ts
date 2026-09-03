@@ -134,31 +134,40 @@ export async function getFooterNav(groupKey = "footer"): Promise<StorefrontNavLi
 
 export type CatalogFolderNav = { name: string; subcategories: string[] };
 
-/** Admin Products folder tree (page_sections catalog/folders). */
-export const getCatalogFolders = unstable_cache(
-  async (): Promise<CatalogFolderNav[]> => {
+function parseFolderRows(raw: unknown): CatalogFolderNav[] {
+  let content = raw;
+  if (typeof content === "string") {
     try {
-      const row = await prisma.pageSection.findFirst({
-        where: { pageKey: "catalog", sectionKey: "folders" },
-      });
-      const cats = (row?.content as any)?.categories;
-      if (!Array.isArray(cats) || !cats.length) return [];
-      return cats
-        .map((c: any) => ({
-          name: String(c?.name || "").trim(),
-          subcategories: Array.isArray(c?.subcategories)
-            ? c.subcategories.filter((s: unknown) => typeof s === "string" && s.trim() && s.trim() !== "Unsorted")
-            : [],
-        }))
-        .filter((c: CatalogFolderNav) => c.name);
-    } catch (e) {
-      console.error("getCatalogFolders failed", e);
+      content = JSON.parse(content);
+    } catch {
       return [];
     }
-  },
-  ["catalog-folders-v1"],
-  { revalidate: 60, tags: ["storefront", "catalog"] },
-);
+  }
+  const cats = content && typeof content === "object" ? (content as { categories?: unknown }).categories : null;
+  if (!Array.isArray(cats)) return [];
+  return cats
+    .map((c: any) => ({
+      name: String(c?.name || "").trim(),
+      subcategories: Array.isArray(c?.subcategories)
+        ? c.subcategories.filter((s: unknown) => typeof s === "string" && s.trim() && s.trim() !== "Unsorted")
+        : [],
+    }))
+    .filter((c: CatalogFolderNav) => c.name);
+}
+
+/** Admin Products folder tree — uncached so new folders (SBI) show in the navbar immediately. */
+export async function getCatalogFolders(): Promise<CatalogFolderNav[]> {
+  try {
+    const row = await prisma.pageSection.findFirst({
+      where: { pageKey: "catalog", sectionKey: "folders" },
+    });
+    const parsed = parseFolderRows(row?.content);
+    if (parsed.length) return parsed;
+  } catch (e) {
+    console.error("getCatalogFolders failed", e);
+  }
+  return [];
+}
 
 /** Navbar Category dropdown: Products folder tree (includes SBI etc.). */
 export async function getMegaMenu(): Promise<MegaMenuItemOut[]> {
@@ -239,8 +248,8 @@ export const getStorefrontData = unstable_cache(
       } satisfies FooterLinkGroups,
     };
   },
-  ["storefront-data-v2"],
-  { revalidate: 60, tags: ["storefront"] },
+  ["storefront-data-v3"],
+  { revalidate: 30, tags: ["storefront"] },
 );
 
 /** Enabled page_sections for a page_key, keyed by section_key. */

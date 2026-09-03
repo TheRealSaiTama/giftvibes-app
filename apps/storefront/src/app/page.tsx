@@ -11,6 +11,7 @@ import { getStorefrontData, getSeo, getCatalogFolders } from "@/lib/site";
 import { getCachedLiveCatalog } from "@/lib/catalog";
 import {
   mapEnabledSections,
+  mapCatalogFolders,
   parseCustomTabs,
   normalizeTabProductIds,
 } from "@/lib/cms/mappers";
@@ -160,12 +161,14 @@ export default async function HomePage() {
   const headerNav = storefront?.headerNav;
   const megaMenu = storefront?.megaMenu;
   const footerLinks = storefront?.footerLinks;
+  const liveMega = mapCatalogFolders(catalogFolders);
+  const headerMega = liveMega.length ? liveMega : megaMenu;
 
   return (
     <div className="min-h-screen">
       <Header
         nav={headerNav}
-        megaMenu={megaMenu}
+        megaMenu={headerMega}
         logoUrl={settings?.logoUrl}
         brandName={settings?.brandName}
       />

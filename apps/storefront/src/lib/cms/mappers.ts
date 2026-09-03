@@ -190,13 +190,19 @@ export function mapMegaMenuItems(raw: MegaMenuItemIn[] | null | undefined): Mega
       const href =
         String(it.href || "").trim() ||
         (name ? shopCatHref(name) : "/shop");
+      const rawSubs = (it as { subcategories?: unknown }).subcategories;
+      const subs = Array.isArray(rawSubs)
+        ? rawSubs
+            .filter((s): s is string => typeof s === "string" && s.trim().length > 0 && s.trim() !== "Unsorted")
+            .map((s) => s.trim())
+        : [];
       return {
         name,
         subtitle,
         image: image || "/logo.png",
         href,
         sort_order: typeof it.sort_order === "number" ? it.sort_order : i + 1,
-        subcategories: [] as MegaSubOut[],
+        subcategories: subs.map((s) => ({ name: s, href: shopCatHref(name, s) })),
       };
     })
     .filter((it) => it.name)

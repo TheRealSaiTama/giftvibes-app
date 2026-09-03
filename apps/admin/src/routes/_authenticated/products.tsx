@@ -170,10 +170,10 @@ function ProductsPage() {
   const tree = remoteTree?.folders ?? [];
 
   useEffect(() => {
-    if (!remoteTree || remoteTree.fromDb || seededRef.current) return;
+    if (!remoteTree?.folders?.length || seededRef.current) return;
     seededRef.current = true;
     runSaveTree({ data: { categories: remoteTree.folders } }).catch((e) =>
-      console.error("seed catalog tree failed", e),
+      console.error("sync catalog tree failed", e),
     );
   }, [remoteTree, runSaveTree]);
 
