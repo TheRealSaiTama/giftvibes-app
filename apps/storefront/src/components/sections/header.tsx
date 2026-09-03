@@ -245,7 +245,20 @@ const Header = ({
                     ))}
                   </div>
                   <div className="mt-4 flex justify-end">
-                    <Link href="/#our-products" className="text-sm font-medium text-primary hover:underline">
+                    <Link
+                      href="/#our-products"
+                      className="text-sm font-medium text-primary hover:underline"
+                      onClick={(e) => {
+                        if (typeof window === "undefined") return;
+                        if (window.location.pathname === "/" || window.location.pathname === "") {
+                          e.preventDefault();
+                          document.getElementById("our-products")?.scrollIntoView({
+                            behavior: "smooth",
+                            block: "start",
+                          });
+                        }
+                      }}
+                    >
                       View All Categories
                     </Link>
                   </div>

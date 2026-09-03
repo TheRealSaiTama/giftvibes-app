@@ -1,4 +1,5 @@
 "use client";
+import { useEffect } from "react";
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'motion/react';
@@ -158,8 +159,15 @@ const Categories = ({
         })
       : cmsItems.slice().sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
 
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash === "#our-products" || hash === "#categories") {
+      document.getElementById("our-products")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, []);
+
   return (
-    <section id="our-products" className="bg-white py-[100px]">
+    <section id="our-products" className="bg-white py-[100px] scroll-mt-24">
       <div className="container">
         <div className="section-title-wrap">
           <motion.h3
