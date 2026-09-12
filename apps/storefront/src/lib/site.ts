@@ -54,7 +54,13 @@ const HEADER_FALLBACK = [
   { label: "Shop", href: "/shop", enabled: true, sort_order: 0 },
   { label: "Corporate Gifting", href: "/corporate-gifting", enabled: true, sort_order: 1 },
   { label: "Custom Print", href: "/custom-design", enabled: true, sort_order: 2 },
+  { label: "Blog", href: "/blog", enabled: true, sort_order: 3 },
 ];
+
+function withBlogNav(links: StorefrontNavLink[]): StorefrontNavLink[] {
+  if (links.some((l) => /^blog$/i.test(l.label) || /\/blog\/?$/i.test(l.href))) return links;
+  return [...links, { label: "Blog", href: "/blog" }];
+}
 
 /** Drop SEO-era Guides rows that were never a GiftVibes nav item. */
 async function purgeGuidesNavFromDb() {
@@ -103,10 +109,10 @@ export async function getHeaderNav(): Promise<StorefrontNavLink[]> {
           sortOrder: r.sortOrder,
         })),
     );
-    if (mapped.length) return mapped;
-    return mapEnabledNavLinks(HEADER_FALLBACK);
+    if (mapped.length) return withBlogNav(mapped);
+    return withBlogNav(mapEnabledNavLinks(HEADER_FALLBACK));
   } catch {
-    return mapEnabledNavLinks(HEADER_FALLBACK);
+    return withBlogNav(mapEnabledNavLinks(HEADER_FALLBACK));
   }
 }
 

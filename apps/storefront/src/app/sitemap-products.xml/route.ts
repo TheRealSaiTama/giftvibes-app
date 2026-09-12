@@ -1,4 +1,5 @@
 import { CATEGORY_LANDINGS, SITE_ORIGIN, productHref } from "@/lib/seo";
+import { getPublishedPosts } from "@/lib/blog";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +18,7 @@ export async function GET() {
     { path: "/shop", freq: "daily", pri: "0.9" },
     { path: "/corporate-gifting", freq: "weekly", pri: "0.9" },
     { path: "/custom-design", freq: "weekly", pri: "0.8" },
+    { path: "/blog", freq: "weekly", pri: "0.7" },
     { path: "/industries/pharma", freq: "weekly", pri: "0.7" },
     { path: "/industries/banks", freq: "weekly", pri: "0.7" },
     { path: "/industries/joining-kits", freq: "weekly", pri: "0.7" },
@@ -50,6 +52,17 @@ export async function GET() {
           (row.updatedAt || new Date()).toISOString(),
           "weekly",
           "0.6",
+        ),
+      );
+    }
+    const posts = await getPublishedPosts();
+    for (const post of posts) {
+      chunks.push(
+        urlEl(
+          `${SITE_ORIGIN}/blog/${post.slug}`,
+          post.updatedAt || post.publishedAt,
+          "weekly",
+          "0.5",
         ),
       );
     }

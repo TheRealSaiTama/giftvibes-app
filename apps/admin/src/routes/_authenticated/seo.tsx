@@ -25,6 +25,7 @@ const PAGES = [
   { key: "pu-leather-diaries", label: "PU leather diaries" },
   { key: "corporate-gift-sets", label: "Corporate gift sets" },
   { key: "promotional-diaries", label: "Promotional diaries" },
+  { key: "blog", label: "Blog index" },
 ];
 
 type Seo = { page_key: string; title: string | null; description: string | null; og_image_url: string | null };

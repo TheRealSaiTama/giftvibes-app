@@ -443,6 +443,99 @@ export const saveCatalogTree = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+// -------- BLOG (page_sections page_key=blog — not catalog) --------
+const blogShape = z.object({
+  slug: z.string().min(1).regex(/^[A-Za-z0-9-_]+$/, "letters, digits, dashes and underscores only"),
+  title: z.string().min(1),
+  excerpt: z.string().default(""),
+  body: z.string().default(""),
+  coverUrl: z.string().nullable(),
+  seoTitle: z.string().nullable(),
+  seoDescription: z.string().nullable(),
+  seoKeywords: z.string().nullable(),
+  publishedAt: z.string().nullable(),
+  enabled: z.boolean(),
+});
+
+export const saveBlogPost = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z.object({ id: z.string().uuid().optional(), values: blogShape }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const v = data.values;
+    const publishedAt = v.publishedAt || new Date().toISOString();
+    const sortOrder = Math.floor(Date.parse(publishedAt) / 1000) || Math.floor(Date.now() / 1000);
+    const content = {
+      excerpt: v.excerpt,
+      body: v.body,
+      coverUrl: v.coverUrl || "",
+      seoTitle: v.seoTitle || "",
+      seoDescription: v.seoDescription || "",
+      seoKeywords: v.seoKeywords || "",
+      publishedAt,
+    };
+
+    const clash = await context.supabase
+      .from("page_sections")
+      .select("id")
+      .eq("page_key", "blog")
+      .eq("section_key", v.slug)
+      .maybeSingle();
+    if (clash.error) throw new Error(clash.error.message);
+    if (clash.data?.id && clash.data.id !== data.id) {
+      throw new Error("A post with this URL slug already exists. Change the slug.");
+    }
+
+    if (data.id) {
+      const { error } = await context.supabase
+        .from("page_sections")
+        .update({
+          section_key: v.slug,
+          title: v.title,
+          enabled: v.enabled,
+          sort_order: sortOrder,
+          content,
+        })
+        .eq("id", data.id)
+        .eq("page_key", "blog");
+      if (error) throw new Error(error.message);
+    } else {
+      const { error } = await context.supabase.from("page_sections").insert({
+        page_key: "blog",
+        section_key: v.slug,
+        title: v.title,
+        enabled: v.enabled,
+        sort_order: sortOrder,
+        content,
+      });
+      if (error) throw new Error(error.message);
+    }
+
+    await notifyStorefront(["/blog", `/blog/${v.slug}`]);
+    return { ok: true };
+  });
+
+export const deleteBlogPost = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: row } = await context.supabase
+      .from("page_sections")
+      .select("section_key")
+      .eq("id", data.id)
+      .eq("page_key", "blog")
+      .maybeSingle();
+    const { error } = await context.supabase
+      .from("page_sections")
+      .delete()
+      .eq("id", data.id)
+      .eq("page_key", "blog");
+    if (error) throw new Error(error.message);
+    await notifyStorefront(["/blog", row?.section_key ? `/blog/${row.section_key}` : "/blog"]);
+    return { ok: true };
+  });
+
 // -------- MEDIA --------
 export const registerMedia = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

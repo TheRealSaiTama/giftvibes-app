@@ -16,6 +16,7 @@ import {
   ShoppingBag,
   Link2,
   FolderTree,
+  Newspaper,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -64,6 +65,7 @@ const NAV: NavGroup[] = [
       { label: "Media library", to: "/media", icon: Images },
       { label: "Global settings", to: "/settings", icon: Settings },
       { label: "SEO", to: "/seo", icon: Search },
+      { label: "Blog", to: "/blog", icon: Newspaper },
       { label: "Navigation & footer", to: "/nav", icon: Link2 },
       { label: "Integration", to: "/integration", icon: Compass },
     ],

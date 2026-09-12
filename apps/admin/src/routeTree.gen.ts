@@ -21,6 +21,7 @@ import { Route as AuthenticatedNavRouteImport } from './routes/_authenticated/na
 import { Route as AuthenticatedMediaRouteImport } from './routes/_authenticated/media'
 import { Route as AuthenticatedIntegrationRouteImport } from './routes/_authenticated/integration'
 import { Route as AuthenticatedDiariesRouteImport } from './routes/_authenticated/diaries'
+import { Route as AuthenticatedBlogRouteImport } from './routes/_authenticated/blog'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedPagesPageRouteImport } from './routes/_authenticated/pages.$page'
 import { Route as ApiPublicProductsIndexRouteImport } from './routes/api/public/products/index'
@@ -90,6 +91,11 @@ const AuthenticatedDiariesRoute = AuthenticatedDiariesRouteImport.update({
   path: '/diaries',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedBlogRoute = AuthenticatedBlogRouteImport.update({
+  id: '/blog',
+  path: '/blog',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -139,6 +145,7 @@ export interface FileRoutesByFullPath {
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/blog': typeof AuthenticatedBlogRoute
   '/diaries': typeof AuthenticatedDiariesRoute
   '/integration': typeof AuthenticatedIntegrationRoute
   '/media': typeof AuthenticatedMediaRoute
@@ -160,6 +167,7 @@ export interface FileRoutesByTo {
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/blog': typeof AuthenticatedBlogRoute
   '/diaries': typeof AuthenticatedDiariesRoute
   '/integration': typeof AuthenticatedIntegrationRoute
   '/media': typeof AuthenticatedMediaRoute
@@ -183,6 +191,7 @@ export interface FileRoutesById {
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/blog': typeof AuthenticatedBlogRoute
   '/_authenticated/diaries': typeof AuthenticatedDiariesRoute
   '/_authenticated/integration': typeof AuthenticatedIntegrationRoute
   '/_authenticated/media': typeof AuthenticatedMediaRoute
@@ -206,6 +215,7 @@ export interface FileRouteTypes {
     | '/robots.txt'
     | '/sitemap.xml'
     | '/dashboard'
+    | '/blog'
     | '/diaries'
     | '/integration'
     | '/media'
@@ -227,6 +237,7 @@ export interface FileRouteTypes {
     | '/robots.txt'
     | '/sitemap.xml'
     | '/dashboard'
+    | '/blog'
     | '/diaries'
     | '/integration'
     | '/media'
@@ -249,6 +260,7 @@ export interface FileRouteTypes {
     | '/robots.txt'
     | '/sitemap.xml'
     | '/_authenticated/dashboard'
+    | '/_authenticated/blog'
     | '/_authenticated/diaries'
     | '/_authenticated/integration'
     | '/_authenticated/media'
@@ -365,6 +377,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDiariesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/blog': {
+      id: '/_authenticated/blog'
+      path: '/blog'
+      fullPath: '/blog'
+      preLoaderRoute: typeof AuthenticatedBlogRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/dashboard': {
       id: '/_authenticated/dashboard'
       path: '/dashboard'
@@ -426,6 +445,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedBlogRoute: typeof AuthenticatedBlogRoute
   AuthenticatedDiariesRoute: typeof AuthenticatedDiariesRoute
   AuthenticatedIntegrationRoute: typeof AuthenticatedIntegrationRoute
   AuthenticatedMediaRoute: typeof AuthenticatedMediaRoute
@@ -438,6 +458,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedBlogRoute: AuthenticatedBlogRoute,
   AuthenticatedDiariesRoute: AuthenticatedDiariesRoute,
   AuthenticatedIntegrationRoute: AuthenticatedIntegrationRoute,
   AuthenticatedMediaRoute: AuthenticatedMediaRoute,

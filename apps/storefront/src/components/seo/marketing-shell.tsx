@@ -74,6 +74,11 @@ function RelatedSeoLinks() {
       <p className="text-sm font-semibold text-[#124559] mb-3">Explore</p>
       <ul className="flex flex-wrap gap-x-4 gap-y-2 text-sm">
         <li>
+          <Link className="underline" href="/blog">
+            Blog
+          </Link>
+        </li>
+        <li>
           <Link className="underline" href="/corporate-gifting">
             Corporate gifting
           </Link>
