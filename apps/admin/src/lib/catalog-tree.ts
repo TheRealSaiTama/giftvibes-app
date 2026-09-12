@@ -68,7 +68,18 @@ export function normalizeFolder(raw: unknown): CatalogFolder | null {
 }
 
 export function parseCatalogTree(content: unknown): CatalogFolder[] {
-  const cats = content && typeof content === "object" ? (content as { categories?: unknown }).categories : null;
+  let raw: unknown = content;
+  if (typeof raw === "string") {
+    try {
+      raw = JSON.parse(raw);
+    } catch {
+      return [];
+    }
+  }
+  if (Array.isArray(raw)) {
+    return raw.map(normalizeFolder).filter((f): f is CatalogFolder => !!f);
+  }
+  const cats = raw && typeof raw === "object" ? (raw as { categories?: unknown }).categories : null;
   if (!Array.isArray(cats) || cats.length === 0) return [];
   return cats.map(normalizeFolder).filter((f): f is CatalogFolder => !!f);
 }
@@ -88,13 +99,22 @@ export function matchCategory(productCat: string | null, folder: CatalogFolder):
     .some((pc) => !!pc && needles.has(pc));
 }
 
+/** Postgres text[] or a leftover comma string — never iterate a string as tags. */
+export function asTagList(tags: unknown): string[] {
+  if (Array.isArray(tags)) return tags.map((t) => String(t).trim()).filter(Boolean);
+  if (typeof tags === "string") {
+    return tags.split(",").map((t) => t.trim()).filter(Boolean);
+  }
+  return [];
+}
+
 /**
  * Subfolder is the product's tag that matches this folder's subcategory list.
  * No name heuristics — that was moving products between folders by themselves.
  */
-export function getSubcategory(item: { tags?: string[] | null }, folder: CatalogFolder): string {
-  const tags = item.tags || [];
-  const hit = folder.subcategories.find((s) => tags.includes(s));
+export function getSubcategory(item: { tags?: unknown }, folder: CatalogFolder): string {
+  const tags = asTagList(item.tags).map((t) => t.toLowerCase());
+  const hit = folder.subcategories.find((s) => tags.includes(s.trim().toLowerCase()));
   return hit || UNSORTED_SUB;
 }
 

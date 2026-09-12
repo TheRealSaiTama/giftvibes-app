@@ -15,6 +15,7 @@ import {
   getSubcategory,
   folderMatchesAny,
   mergeLegacyLocalStorage,
+  asTagList,
   normCat,
 } from "@/lib/catalog-tree";
 import { Button } from "@/components/ui/button";
@@ -165,6 +166,9 @@ function ProductsPage() {
       if (error) throw error;
       const parsed = parseCatalogTree(data?.content);
       if (parsed.length) return { folders: parsed, fromDb: true };
+      // Row exists but is empty/unparseable — do not seed the 12 defaults over it
+      // (that deleted custom folders like SBI and made their products look gone).
+      if (data?.id) return { folders: parsed, fromDb: true };
       return { folders: mergeLegacyLocalStorage(DEFAULT_CATALOG_FOLDERS), fromDb: false };
     },
   });
@@ -172,45 +176,16 @@ function ProductsPage() {
   const tree = remoteTree?.folders ?? [];
 
   useEffect(() => {
-    if (!remoteTree?.folders?.length || seededRef.current) return;
+    // Only seed when the DB has no folder tree. Never overwrite an existing tree
+    // (that deleted new folders like SBI and made products vanish).
+    if (!remoteTree?.folders?.length || remoteTree.fromDb || seededRef.current) return;
     seededRef.current = true;
     runSaveTree({ data: { categories: remoteTree.folders } }).catch((e) =>
-      console.error("sync catalog tree failed", e),
+      console.error("seed catalog tree failed", e),
     );
   }, [remoteTree, runSaveTree]);
 
   const allCategories = useMemo(() => tree.map((f) => f.name), [tree]);
-
-  const sanitizedCatsRef = useRef(false);
-  async function sanitizeStoredCategories(folders: CatalogFolder[]) {
-    const official = new Map(folders.map((f) => [normCat(f.name), f.name] as const));
-    for (const table of ["products", "diaries"] as const) {
-      const { data, error } = await supabase.from(table).select("id, category");
-      if (error) continue;
-      for (const row of data || []) {
-        const next = [
-          ...new Set(
-            String(row.category || "")
-              .split(",")
-              .map((c) => official.get(normCat(c.trim())))
-              .filter((n): n is string => !!n),
-          ),
-        ];
-        const joined = next.join(", ");
-        if (joined !== (row.category || "").trim()) {
-          await supabase.from(table).update({ category: joined || null }).eq("id", row.id);
-        }
-      }
-    }
-    qc.invalidateQueries({ queryKey: ["products-admin-only"] });
-    qc.invalidateQueries({ queryKey: ["diaries-admin-only"] });
-  }
-
-  useEffect(() => {
-    if (!catalogReady || !tree.length || sanitizedCatsRef.current) return;
-    sanitizedCatsRef.current = true;
-    sanitizeStoredCategories(tree).catch((e) => console.error("sanitize categories", e));
-  }, [catalogReady, tree]);
 
   async function persistTree(next: CatalogFolder[]) {
     qc.setQueryData(["catalog-folders"], { folders: next, fromDb: true });
@@ -319,7 +294,10 @@ function ProductsPage() {
         },
       ]);
       setCatForm(null);
-      toast.success(`Added "${name}"`);
+      setSelectedCategory(name);
+      setExpandedCategory(name);
+      setSelectedSubcategory("General / Others");
+      toast.success(`Added "${name}" — add products in this folder`);
       return;
     }
 
@@ -493,7 +471,7 @@ function ProductsPage() {
     queryFn: async () => {
       const { data, error } = await supabase.from("products").select("*");
       if (error) throw error;
-      return (data || []).map((p) => ({ ...p, type: "product" as const }));
+      return (data || []).map((p) => ({ ...p, type: "product" as const, tags: asTagList(p.tags) }));
     },
   });
 
@@ -503,7 +481,7 @@ function ProductsPage() {
     queryFn: async () => {
       const { data, error } = await supabase.from("diaries").select("*");
       if (error) throw error;
-      return (data || []).map((d) => ({ ...d, type: "diary" as const }));
+      return (data || []).map((d) => ({ ...d, type: "diary" as const, tags: asTagList(d.tags) }));
     },
   });
 
@@ -1335,7 +1313,84 @@ function ProductForm({
     setValues((prev) => ({ ...prev, [key]: v }));
   }
 
+  const officialByNorm = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const c of allCategories) map.set(normCat(c), c);
+    return map;
+  }, [allCategories]);
+
+  // Keep unknown names (new folders). Only remap aliases of folders we know.
+  const selectedCats = useMemo(() => {
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const raw of (values.category || "").split(",")) {
+      const t = raw.trim();
+      if (!t) continue;
+      const official = officialByNorm.get(normCat(t)) || t;
+      const key = normCat(official);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(official);
+    }
+    return out;
+  }, [values.category, officialByNorm]);
+
+  useEffect(() => {
+    if (!categoriesReady || officialByNorm.size === 0) return;
+    const parts = (values.category || "").split(",").map((c) => c.trim()).filter(Boolean);
+    if (!parts.length) return;
+    const seen = new Set<string>();
+    const next: string[] = [];
+    for (const p of parts) {
+      const official = officialByNorm.get(normCat(p)) || p;
+      const key = normCat(official);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      next.push(official);
+    }
+    const cleaned = next.join(", ");
+    if (cleaned !== parts.join(", ")) set("category", cleaned);
+  }, [categoriesReady, officialByNorm, values.category]);
+
+  function pinnedCats(): string[] {
+    const out = [...selectedCats];
+    // New items opened from a folder must stay in that folder even if the
+    // checkbox list had not loaded yet.
+    const pin =
+      !product.id && defaultCategory && defaultCategory !== "__uncategorised__"
+        ? defaultCategory
+        : "";
+    if (pin) {
+      const official = officialByNorm.get(normCat(pin)) || pin;
+      if (!out.some((c) => normCat(c) === normCat(official))) out.push(official);
+    }
+    return out;
+  }
+
+  function pinnedTags(): string[] {
+    const out = [...(values.tags || [])];
+    const pin =
+      !product.id && defaultSubcategory && defaultSubcategory !== UNSORTED_SUB
+        ? defaultSubcategory
+        : "";
+    if (pin && !out.some((t) => t.trim().toLowerCase() === pin.trim().toLowerCase())) {
+      out.push(pin);
+    }
+    return out;
+  }
+
   async function handleSave() {
+    const catsToSave = pinnedCats();
+    const tagsToSave = pinnedTags();
+    if (
+      !product.id &&
+      defaultCategory &&
+      defaultCategory !== "__uncategorised__" &&
+      catsToSave.length === 0
+    ) {
+      toast.error("This item needs a category. Stay in the folder and save again.");
+      return;
+    }
     setSaving(true);
     try {
       if (values.type === "diary") {
@@ -1348,8 +1403,8 @@ function ProductForm({
               description: values.description || null,
               min_price: values.min_price,
               max_price: values.max_price,
-              category: selectedCats.join(", ") || null,
-              tags: values.tags,
+              category: catsToSave.join(", ") || null,
+              tags: tagsToSave,
               color: values.color || null,
               size: values.size || null,
               pages: values.pages,
@@ -1375,8 +1430,8 @@ function ProductForm({
               description: values.description || null,
               min_price: values.min_price,
               max_price: values.max_price,
-              category: selectedCats.join(", ") || null,
-              tags: values.tags,
+              category: catsToSave.join(", ") || null,
+              tags: tagsToSave,
               image_url: values.image_url || null,
               featured: values.featured,
               enabled: values.enabled,
@@ -1414,42 +1469,10 @@ function ProductForm({
     }
   }
 
-  // Category multi-select
-  const officialByNorm = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const c of allCategories) map.set(normCat(c), c);
-    return map;
-  }, [allCategories]);
-
-  const selectedCats = useMemo(() => {
-    const seen = new Set<string>();
-    const out: string[] = [];
-    for (const raw of (values.category || "").split(",")) {
-      const official = officialByNorm.get(normCat(raw));
-      if (official && !seen.has(official)) {
-        seen.add(official);
-        out.push(official);
-      }
-    }
-    return out;
-  }, [values.category, officialByNorm]);
-
-  useEffect(() => {
-    // Do not strip until the Products folder tree is loaded. Doing it against
-    // the default 12 folders deleted "SBI PRODUCTS" and left junk names.
-    if (!categoriesReady || officialByNorm.size === 0) return;
-    const parts = (values.category || "").split(",").map((c) => c.trim()).filter(Boolean);
-    if (!parts.length) return;
-    const cleaned = selectedCats.join(", ");
-    if (parts.join(", ") !== cleaned) {
-      set("category", cleaned);
-    }
-  }, [categoriesReady, officialByNorm, selectedCats, values.category]);
-
   function toggleCat(cat: string) {
     const official = officialByNorm.get(normCat(cat)) || cat.trim();
-    const next = selectedCats.includes(official)
-      ? selectedCats.filter((c) => c !== official)
+    const next = selectedCats.some((c) => normCat(c) === normCat(official))
+      ? selectedCats.filter((c) => normCat(c) !== normCat(official))
       : [...selectedCats, official];
     set("category", next.join(", "));
   }
@@ -1463,12 +1486,17 @@ function ProductForm({
     selectedCats.flatMap((cat) => getSubcategoriesFor(cat)),
   ));
 
-  const selectedSubcats = (values.tags || []).filter(t => availableSubcats.includes(t));
+  const selectedSubcats = (values.tags || []).filter((t) =>
+    availableSubcats.some((s) => s.trim().toLowerCase() === t.trim().toLowerCase()),
+  );
 
   function toggleSubcat(subcat: string) {
-    const nextTags = (values.tags || []).includes(subcat)
-      ? (values.tags || []).filter(t => t !== subcat)
-      : [...(values.tags || []), subcat];
+    const tags = values.tags || [];
+    const key = subcat.trim().toLowerCase();
+    const has = tags.some((t) => t.trim().toLowerCase() === key);
+    const nextTags = has
+      ? tags.filter((t) => t.trim().toLowerCase() !== key)
+      : [...tags, subcat];
     set("tags", nextTags);
   }
 
@@ -1670,7 +1698,7 @@ function ProductForm({
       <div>
         <Label>Category</Label>
         <p className="text-xs text-muted-foreground mt-0.5 mb-2">
-          Select from the Products folder list only. Names that are not in that list are dropped.
+          Pick the Products folder this item belongs to. New items stay in the folder you opened them from.
         </p>
 
         {/* Selected pills */}
